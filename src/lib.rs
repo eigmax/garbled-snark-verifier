@@ -20,6 +20,7 @@ pub mod bigint;
 pub mod blake3;
 pub mod u4;
 pub mod gate;
+pub mod xor;
 pub mod pseudo;
 
 /// A wrapper for the stack types to print them better.
