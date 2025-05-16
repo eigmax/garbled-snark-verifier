@@ -60,7 +60,7 @@ impl Gate {
         result
     }
 
-    pub fn script(&self, _garbled: Vec<Vec<u8>>, correct: Vec<u8>, limb_len: u8) -> Script {
+    pub fn script(&self, garbled: Vec<Vec<u8>>, limb_len: u8) -> Script {
         let input_len = 255 / limb_len + 1;
         // expects label_a and label_b as input, can be executed if none of the rows in the garbled gate passes, operator has to ensure it is a valid garble
         script! {
@@ -144,74 +144,99 @@ impl Gate {
             }
             // hash a|b
             { blake3_compute_script_with_limb(64, limb_len) }
-            // push garbled row (pushing the correct one for now)
-            for byte in correct {
-                { byte / 16 }
-                { byte % 16 }
-            }
-            // put hash and garbled row to altstack
-            for _ in 0..64 {
-                OP_TOALTSTACK
-            }
+            // put hash to altstack
             for _ in 0..64 {
                 OP_TOALTSTACK
             }
             // push xor table and lookup
             { u4_push_full_xor_table() }
             { u4_push_full_lookup()}
-            // pop hash and garbled row from altstack
+            for i in 0..4 {
+                // put garbled row i
+                for byte in garbled[i].clone() {
+                    { byte / 16 }
+                    { byte % 16 }
+                }
+                // pop hash from altstack
+                for _ in 0..64 {
+                    OP_FROMALTSTACK
+                }
+                // copy hash
+                for _ in 0..64 {
+                    63 OP_PICK
+                }
+                // put hash to altstack
+                for _ in 0..64 {
+                    OP_TOALTSTACK
+                }
+                // zip them
+                for i in 0..64 {
+                    127 OP_ROLL
+                    { 64+i } OP_ROLL
+                }
+                // xor and bring to main stack
+                for j in 0..64 {
+                    { u4_full_table_operation(64*(i as u32)+127-2*j, 64*(i as u32)+127-2*j+16) }
+                    OP_TOALTSTACK
+                }
+                for _ in 0..64 {
+                    OP_FROMALTSTACK
+                }
+            }
+            // pop hash from altstack and drop it
             for _ in 0..64 {
                 OP_FROMALTSTACK
+                OP_DROP
+            }
+            // put these 4 possible results to altstack
+            for _ in 0..64 {
+                OP_TOALTSTACK
             }
             for _ in 0..64 {
-                OP_FROMALTSTACK
+                OP_TOALTSTACK
             }
-            // zip them
-            for i in 0..64 {
-                127 OP_ROLL
-                { 64+i } OP_ROLL
+            for _ in 0..64 {
+                OP_TOALTSTACK
             }
-            // xor
-            for i in 0..64 {
-                { u4_full_table_operation(127-2*i, 127-2*i+16) }
+            for _ in 0..64 {
                 OP_TOALTSTACK
             }
             // drop xor table and lookup
             { u4_drop_full_lookup() }
             { u4_drop_full_logic_table() }
-            // get result from altstack
-            for _ in 0..64 {
-                OP_FROMALTSTACK
+            for _ in 0..4 {
+                // take one
+                for _ in 0..64 {
+                    OP_FROMALTSTACK
+                }
+                // prepare it for hashing, pad zeroes and hash it
+                for _ in 0..8 {
+                    57 OP_ROLL
+                    57 OP_ROLL
+                    59 OP_ROLL
+                    59 OP_ROLL
+                    61 OP_ROLL
+                    61 OP_ROLL
+                    63 OP_ROLL
+                    63 OP_ROLL
+                }
+                for _ in 0..64 {
+                    0
+                }
+                { blake3_compute_script_with_limb(32, 4) }
+                // transform to 9-limb form
+                { U256::transform_limbsize(4, 29) }
+                // push possible hash values (may need to randomize the order)
+                { U256::push_hex(&hex::encode(self.wire_c.hash0.clone())) }
+                { U256::push_hex(&hex::encode(self.wire_c.hash1.clone())) }
+                // if it is not one of the possible values, continue, otherwise script is not executable because garble is correct
+                { U256::copy(2) }
+                { U256::notequal(0, 1) }
+                OP_VERIFY
+                { U256::notequal(0, 1) }
+                OP_VERIFY
             }
-            // prepare it for hashing, pad zeroes and hash it
-            for _ in 0..8 {
-                57 OP_ROLL
-                57 OP_ROLL
-                59 OP_ROLL
-                59 OP_ROLL
-                61 OP_ROLL
-                61 OP_ROLL
-                63 OP_ROLL
-                63 OP_ROLL
-            }
-            for _ in 0..64 {
-                0
-            }
-            { blake3_compute_script_with_limb(32, 4) }
-            // transform to 9-limb form
-            { U256::transform_limbsize(4, 29) }
-            // push possible hash values (may need to randomize the order)
-            { U256::push_hex(&hex::encode(self.wire_c.hash0.clone())) }
-            { U256::push_hex(&hex::encode(self.wire_c.hash1.clone())) }
-            // check hash is one of these
-            { U256::copy(2) }
-            { U256::equal(0, 1) }
-            OP_TOALTSTACK
-            { U256::equal(0, 1) }
-            OP_FROMALTSTACK
-            OP_BOOLOR
-            OP_NOT // (this time check it is neither of them)
-            // OP_VERIFY
+            OP_TRUE
         }
     }
 }
@@ -232,34 +257,26 @@ mod tests {
         let wire_2 = Wire::new();
         let wire_3 = Wire::new();
         let gate = Gate::new(wire_1, wire_2, wire_3, and);
-        let mut garbled = gate.garbled();
-        let correct = garbled[1].clone();
-        garbled.shuffle(&mut rng());
+
+        let mut correct_garbled = gate.garbled();
+        correct_garbled.shuffle(&mut rng());
+
+        let incorrect_garbled = vec![rand::rng().random::<[u8; 32]>().to_vec(), rand::rng().random::<[u8; 32]>().to_vec(), rand::rng().random::<[u8; 32]>().to_vec(), rand::rng().random::<[u8; 32]>().to_vec()];
 
         let limb_len = 29;
-        let gate_script = gate.script(garbled, correct, limb_len);
 
-        let script = script! {
-            { blake3_push_message_script_with_limb(&gate.wire_b.label1, limb_len) }
-            { blake3_push_message_script_with_limb(&gate.wire_a.label0, limb_len) }
-            { gate_script }
-            OP_NOT
-        };
+        for (expected_result, garbled) in [(false, correct_garbled), (true, incorrect_garbled)] {
+            let gate_script = gate.script(garbled, limb_len);
 
-        println!("script len: {:?}", script.len());
-        let result = execute_script(script);
-        // for (i, a) in result.final_stack.0.iter_str().enumerate() {
-        //     if i % 32 == 31 {
-        //         println!(", {:?}", a);
-        //     }
-        //     else if i % 32 == 0 {
-        //         print!("stack[{}]: {:?}", i / 32, a);
-        //     }
-        //     else {
-        //         print!(", {:?}", a);
-        //     }
-        // }
-        // println!("");
-        assert!(result.success);
+            let script = script! {
+                { blake3_push_message_script_with_limb(&gate.wire_b.label1, limb_len) }
+                { blake3_push_message_script_with_limb(&gate.wire_a.label0, limb_len) }
+                { gate_script }
+            };
+
+            println!("script len: {:?}", script.len());
+            let result = execute_script(script);
+            assert_eq!(expected_result, result.success);
+        }
     }
 }
