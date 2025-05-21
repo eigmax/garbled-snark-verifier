@@ -1,29 +1,151 @@
-use rand::Rng;
+use std::{iter::zip, ops::Add};
+use rand::{seq::SliceRandom, Rng};
 use blake3::hash;
-use bitvm::{bigint::U256, hash::blake3::blake3_compute_script_with_limb, treepp::*, u4::u4_logic::{u4_drop_full_logic_table, u4_drop_full_lookup, u4_full_table_operation, u4_push_full_lookup, u4_push_full_xor_table}};
+use bitvm::{bigint::U256, hash::blake3::blake3_compute_script_with_limb, treepp::*};
 
-use crate::utils::xor;
+pub fn convert_between_blake3_and_normal_form() -> Script {
+    script! {
+        { U256::transform_limbsize(29, 8) }
+        for _ in 0..8 {
+            28 OP_ROLL
+            29 OP_ROLL
+            30 OP_ROLL
+            31 OP_ROLL
+        }
+        { U256::transform_limbsize(8, 29) }
+    }
+}
+
+#[derive(Clone)]
+pub struct S {
+    pub s: [u8; 32],
+}
+
+impl S {
+    pub fn new(s: [u8; 32]) -> Self {
+        Self {
+            s
+        }
+    }
+
+    pub const fn zero() -> Self {
+        Self {
+            s: [0_u8; 32]
+        }
+    }
+
+    pub const fn one() -> Self {
+        let mut s = [0_u8; 32];
+        s[31] = 1;
+        Self {
+            s
+        }
+    }
+
+    pub const fn delta() -> Self {
+        Self {
+            s: [7_u8; 32]
+        }
+    }
+
+    pub fn random() -> Self {
+        Self {
+            s: rand::rng().random::<[u8; 32]>()
+        }
+    }
+
+    pub fn lsb(&self) -> bool {
+        self.s[31] % 2 == 1
+    }
+
+    pub fn neg(&self) -> Self {
+        let mut s = self.s.clone();
+        for i in 0..32 {
+            s[i] = 255 - self.s[i];
+        }
+        let x = Self {
+            s
+        };
+        x + Self::one()
+    }
+
+    pub fn sign_change(&self, selector: bool) -> Self {
+        if selector {
+            self.neg()
+        }
+        else {
+            self.clone()
+        }
+    }
+
+    pub fn hash(&self) -> Self {
+        let h = hash(&self.s);
+        Self {
+            s: *h.as_bytes()
+        }
+    }
+
+    pub fn hash_together(a: Self, b: Self) -> Self {
+        let mut h = a.s.to_vec();
+        h.extend(b.s.to_vec());
+        let hash_h = hash(&h);
+        Self {
+            s: *hash_h.as_bytes()
+        }
+    }
+}
+
+impl Add for S {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let mut s = [0_u8; 32];
+        let mut carry = 0;
+        for (i, (u, v)) in zip(self.s, rhs.s).enumerate().rev() {
+            let x = (u as u32) + (v as u32) + carry;
+            s[i] = (x % 256) as u8;
+            carry = x / 256;
+        }
+        Self {
+            s
+        }
+    }
+}
+
+// global offset, DELTA.lsb()=1;
+static DELTA: S = S::delta();
+const LIMB_LEN: u8 = 29;
+const N_LIMBS: u8 = 9;
 
 pub struct Wire {
-    pub label0: Vec<u8>,
-    pub label1: Vec<u8>,
-    pub hash0: Vec<u8>,
-    pub hash1: Vec<u8>,
+    pub l0: S,
+    pub l1: S,
+    pub hash0: S,
+    pub hash1: S,
 }
 
 impl Wire {
     pub fn new() -> Self {
-        let label0 = rand::rng().random::<[u8; 32]>().to_vec();
-        let label1 = rand::rng().random::<[u8; 32]>().to_vec();
-        let h0 = hash(&label0);
-        let hash0 = h0.as_bytes().to_vec();
-        let h1 = hash(&label1);
-        let hash1 = h1.as_bytes().to_vec();
+        let l0 = S::random();
+        let l1 = l0.clone() + DELTA.sign_change(l0.lsb());
+        let hash0 = l0.hash();
+        let hash1 = l1.hash();
         Self {
-            label0,
-            label1,
+            l0,
+            l1,
             hash0,
             hash1
+        }
+    }
+}
+
+impl Wire {
+    pub fn select(&self, selector: bool) -> S {
+        if selector {
+            self.l1.clone()
+        }
+        else {
+            self.l0.clone()
         }
     }
 }
@@ -45,45 +167,53 @@ impl Gate {
         }
     }
 
-    pub fn garbled(&self) -> Vec<Vec<u8>> {
+    pub fn garbled(&self) -> Vec<S> {
         let mut result = Vec::new();
-        for a in [false, true] {
-            for b in [false, true] {
-                let mut h = if a {self.wire_a.label1.clone()} else {self.wire_a.label0.clone()};
-                h.extend(if b {self.wire_b.label1.clone()} else {self.wire_b.label0.clone()});
-                let hash_h = hash(&h);
-                let hash_ab = hash_h.as_bytes();
-                let c = (self.f)(a, b);
-                result.push(xor(if c {self.wire_c.label1.clone()} else {self.wire_c.label0.clone()}, hash_ab.to_vec()));
-            }
+        let lsb_a = self.wire_a.l0.lsb();
+        let lsb_b = self.wire_b.l0.lsb();
+        for (mi, mj) in [(false, false), (true, false), (false, true), (true, true)] {
+            let i = lsb_a ^ mi;
+            let j = lsb_b ^ mj;
+            let k = (self.f)(i, j);
+            let a = self.wire_a.select(i);
+            let b = self.wire_b.select(j);
+            let c = self.wire_c.select(k);
+            let garbled_row = S::hash_together(a, b) + c.neg();
+            result.push(garbled_row);
         }
         result
     }
 
-    pub fn script(&self, garbled: Vec<Vec<u8>>, limb_len: u8) -> Script {
-        let input_len = 255 / limb_len + 1;
-        // expects label_a and label_b as input, can be executed if none of the rows in the garbled gate passes, operator has to ensure it is a valid garble
+    pub fn script(&self, garbled: Vec<S>) -> Script {
+        let mut hash_a = vec![self.wire_a.hash0.s.clone(), self.wire_a.hash1.s.clone()];
+        hash_a.shuffle(&mut rand::rng());
+        let mut hash_b = vec![self.wire_b.hash0.s.clone(), self.wire_b.hash1.s.clone()];
+        hash_b.shuffle(&mut rand::rng());
+        let mut hash_c = vec![self.wire_c.hash0.s.clone(), self.wire_c.hash1.s.clone()];
+        hash_c.shuffle(&mut rand::rng());
+
+        // inputs: B, A
+        // if Hash(Hash(A||B)-tau_{a+2b}) is not equal to wire_c.hash0 or wire_c.hash1 (a=lsb(A) and b=lsb(B)), this script is executable
         script! {
-            // put a to altstack
-            for _ in 0..2*input_len {
+            // B A
+            for _ in 0..2*N_LIMBS {
                 OP_TOALTSTACK
             }
-            // copy b
-            for _ in 0..2*input_len {
-                { 2*input_len-1 } OP_PICK
+            // B | A
+            for _ in 0..2*N_LIMBS {
+                { 2*N_LIMBS-1 } OP_PICK
             }
-            // put b to altstack
-            for _ in 0..2*input_len {
+            // B B | A
+            for _ in 0..2*N_LIMBS {
                 OP_TOALTSTACK
             }
-            // hash b
-            { blake3_compute_script_with_limb(32, limb_len) }
-            // transform to 9-limb form
-            { U256::transform_limbsize(4, 29) }
-            // push possible hash values (may need to randomize the order)
-            { U256::push_hex(&hex::encode(self.wire_b.hash0.clone())) }
-            { U256::push_hex(&hex::encode(self.wire_b.hash1.clone())) }
-            // check hash is one of these
+            // B | B A
+            { blake3_compute_script_with_limb(32, LIMB_LEN) }
+            { U256::transform_limbsize(4, 29) } // transform to 9-limb form
+            // hB | B A
+            { U256::push_hex(&hex::encode(hash_b[0])) }
+            { U256::push_hex(&hex::encode(hash_b[1])) }
+            // hB hB? hB? | B A
             { U256::copy(2) }
             { U256::equal(0, 1) }
             OP_TOALTSTACK
@@ -91,37 +221,36 @@ impl Gate {
             OP_FROMALTSTACK
             OP_BOOLOR
             OP_VERIFY
-            // pop b and a from altstack
-            for _ in 0..2*input_len {
+            // | B A
+            for _ in 0..2*N_LIMBS {
                 OP_FROMALTSTACK
             }
-            for _ in 0..2*input_len {
+            for _ in 0..2*N_LIMBS {
                 OP_FROMALTSTACK
             }
-            // switch the order
-            for _ in 0..2*input_len {
-                { 4*input_len-1 } OP_ROLL
+            // B A
+            for _ in 0..2*N_LIMBS {
+                { 4*N_LIMBS-1 } OP_ROLL
             }
-            // put b to altstack
-            for _ in 0..2*input_len {
+            // A B
+            for _ in 0..2*N_LIMBS {
                 OP_TOALTSTACK
             }
-            // copy a
-            for _ in 0..2*input_len {
-                { 2*input_len-1 } OP_PICK
+            // A | B
+            for _ in 0..2*N_LIMBS {
+                { 2*N_LIMBS-1 } OP_PICK
             }
-            // put a to altstack
-            for _ in 0..2*input_len {
+            // A A | B
+            for _ in 0..2*N_LIMBS {
                 OP_TOALTSTACK
             }
-            // hash a
-            { blake3_compute_script_with_limb(32, limb_len) }
-            // transform to 9-limb form
-            { U256::transform_limbsize(4, 29) }
-            // push possible hash values (may need to randomize the order)
-            { U256::push_hex(&hex::encode(self.wire_a.hash0.clone())) }
-            { U256::push_hex(&hex::encode(self.wire_a.hash1.clone())) }
-            // check hash is one of these
+            // A | A B
+            { blake3_compute_script_with_limb(32, LIMB_LEN) }
+            { U256::transform_limbsize(4, 29) } // transform to 9-limb form
+            // hA | A B
+            { U256::push_hex(&hex::encode(hash_a[0])) }
+            { U256::push_hex(&hex::encode(hash_a[1])) }
+            // hA hA? hA? | A B
             { U256::copy(2) }
             { U256::equal(0, 1) }
             OP_TOALTSTACK
@@ -129,113 +258,89 @@ impl Gate {
             OP_FROMALTSTACK
             OP_BOOLOR
             OP_VERIFY
-            // pop a and b from altstack and drop appended zeroes
-            for _ in 0..2*input_len {
+            // | A B
+            for _ in 0..2*N_LIMBS {
                 OP_FROMALTSTACK
             }
-            for _ in 0..input_len {
+            for _ in 0..N_LIMBS {
                 OP_DROP
             }
-            for _ in 0..2*input_len {
+            // A | B
+            for _ in 0..2*N_LIMBS {
                 OP_FROMALTSTACK
             }
-            for _ in 0..input_len {
+            for _ in 0..N_LIMBS {
                 OP_DROP
             }
-            // hash a|b
-            { blake3_compute_script_with_limb(64, limb_len) }
-            // put hash to altstack
-            for _ in 0..64 {
-                OP_TOALTSTACK
-            }
-            // push xor table and lookup
-            { u4_push_full_xor_table() }
-            { u4_push_full_lookup()}
-            for i in 0..4 {
-                // put garbled row i
-                for byte in garbled[i].clone() {
-                    { byte / 16 }
-                    { byte % 16 }
-                }
-                // pop hash from altstack
-                for _ in 0..64 {
-                    OP_FROMALTSTACK
-                }
-                // copy hash
-                for _ in 0..64 {
-                    63 OP_PICK
-                }
-                // put hash to altstack
-                for _ in 0..64 {
-                    OP_TOALTSTACK
-                }
-                // zip them
-                for i in 0..64 {
-                    127 OP_ROLL
-                    { 64+i } OP_ROLL
-                }
-                // xor and bring to main stack
-                for j in 0..64 {
-                    { u4_full_table_operation(64*(i as u32)+127-2*j, 64*(i as u32)+127-2*j+16) }
-                    OP_TOALTSTACK
-                }
-                for _ in 0..64 {
-                    OP_FROMALTSTACK
-                }
-            }
-            // pop hash from altstack and drop it
-            for _ in 0..64 {
-                OP_FROMALTSTACK
-                OP_DROP
-            }
-            // put these 4 possible results to altstack
-            for _ in 0..64 {
-                OP_TOALTSTACK
-            }
-            for _ in 0..64 {
-                OP_TOALTSTACK
-            }
-            for _ in 0..64 {
-                OP_TOALTSTACK
-            }
-            for _ in 0..64 {
-                OP_TOALTSTACK
-            }
-            // drop xor table and lookup
-            { u4_drop_full_lookup() }
-            { u4_drop_full_logic_table() }
-            for _ in 0..4 {
-                // take one
-                for _ in 0..64 {
-                    OP_FROMALTSTACK
-                }
-                // prepare it for hashing, pad zeroes and hash it
-                for _ in 0..8 {
-                    57 OP_ROLL
-                    57 OP_ROLL
-                    59 OP_ROLL
-                    59 OP_ROLL
-                    61 OP_ROLL
-                    61 OP_ROLL
-                    63 OP_ROLL
-                    63 OP_ROLL
-                }
-                for _ in 0..64 {
-                    0
-                }
-                { blake3_compute_script_with_limb(32, 4) }
-                // transform to 9-limb form
-                { U256::transform_limbsize(4, 29) }
-                // push possible hash values (may need to randomize the order)
-                { U256::push_hex(&hex::encode(self.wire_c.hash0.clone())) }
-                { U256::push_hex(&hex::encode(self.wire_c.hash1.clone())) }
-                // if it is not one of the possible values, continue, otherwise script is not executable because garble is correct
-                { U256::copy(2) }
-                { U256::notequal(0, 1) }
-                OP_VERIFY
-                { U256::notequal(0, 1) }
-                OP_VERIFY
-            }
+            // A B
+            { U256::copy(0) }
+            { convert_between_blake3_and_normal_form() } 
+            { U256::div2rem() }
+            OP_TOALTSTACK
+            { U256::drop() }
+            { U256::copy(1) }
+            { convert_between_blake3_and_normal_form() } 
+            { U256::div2rem() }
+            OP_TOALTSTACK
+            { U256::drop() }
+            // A B | a b
+            { blake3_compute_script_with_limb(64, LIMB_LEN) }
+            { U256::transform_limbsize(4, 29) }
+            // hAB | a b
+            { U256::push_hex(&hex::encode(garbled[0].s)) }
+            { U256::push_hex(&hex::encode(garbled[1].s)) }
+            { U256::push_hex(&hex::encode(garbled[2].s)) }
+            { U256::push_hex(&hex::encode(garbled[3].s)) }
+            // hAB tau0 tau1 tau2 tau3
+            OP_FROMALTSTACK OP_FROMALTSTACK
+            OP_IF
+                OP_IF
+                // tau3
+                { U256::toaltstack() }
+                { U256::drop() }
+                { U256::drop() }
+                { U256::drop() }
+                { U256::fromaltstack() }
+                OP_ELSE
+                // tau2
+                { U256::drop() }
+                { U256::toaltstack() }
+                { U256::drop() }
+                { U256::drop() }
+                { U256::fromaltstack() }
+                OP_ENDIF
+            OP_ELSE
+                OP_IF
+                // tau1
+                { U256::drop() }
+                { U256::drop() }
+                { U256::toaltstack() }
+                { U256::drop() }
+                { U256::fromaltstack() }
+                OP_ELSE
+                // tau0
+                { U256::drop() }
+                { U256::drop() }
+                { U256::drop() }
+                OP_ENDIF
+            OP_ENDIF
+            // hAB tau_{a+2b}
+            { U256::sub(1, 0) }
+            // C=hAB-tau_{a+2b}
+            { convert_between_blake3_and_normal_form() }
+            for _ in 0..N_LIMBS { 0 }
+            { blake3_compute_script_with_limb(32, LIMB_LEN) }
+            { U256::transform_limbsize(4, 29) } // transform to 9-limb form
+            // hC
+            { U256::copy(0) }
+            // hC hC
+            { U256::push_hex(&hex::encode(hash_c[0])) }
+            // hC hC hC?
+            { U256::notequal(0, 1) } OP_VERIFY
+            // hC
+            { U256::push_hex(&hex::encode(hash_c[1])) }
+            // hC hC?
+            { U256::notequal(0, 1) } OP_VERIFY
             OP_TRUE
         }
     }
@@ -243,10 +348,8 @@ impl Gate {
 
 #[cfg(test)]
 mod tests {
-    use bitvm::hash::blake3::blake3_push_message_script_with_limb;
-
     use super::*;
-    use rand::{seq::SliceRandom, rng};
+    use bitvm::hash::blake3::blake3_push_message_script_with_limb;
 
     #[test]
     fn test_gate() {
@@ -258,25 +361,25 @@ mod tests {
         let wire_3 = Wire::new();
         let gate = Gate::new(wire_1, wire_2, wire_3, and);
 
-        let mut correct_garbled = gate.garbled();
-        correct_garbled.shuffle(&mut rng());
-
-        let incorrect_garbled = vec![rand::rng().random::<[u8; 32]>().to_vec(), rand::rng().random::<[u8; 32]>().to_vec(), rand::rng().random::<[u8; 32]>().to_vec(), rand::rng().random::<[u8; 32]>().to_vec()];
-
-        let limb_len = 29;
+        let correct_garbled = gate.garbled();
+        let incorrect_garbled = vec![S::random(), S::random(), S::random(), S::random()];
 
         for (expected_result, garbled) in [(false, correct_garbled), (true, incorrect_garbled)] {
-            let gate_script = gate.script(garbled, limb_len);
+            let gate_script = gate.script(garbled);
 
-            let script = script! {
-                { blake3_push_message_script_with_limb(&gate.wire_b.label1, limb_len) }
-                { blake3_push_message_script_with_limb(&gate.wire_a.label0, limb_len) }
-                { gate_script }
-            };
+            for a in [gate.wire_a.l0.clone(), gate.wire_a.l1.clone()] {
+                for b in [gate.wire_b.l0.clone(), gate.wire_b.l1.clone()] {
+                    let script = script! {
+                        { blake3_push_message_script_with_limb(&b.s, LIMB_LEN) }
+                        { blake3_push_message_script_with_limb(&a.s, LIMB_LEN) }
+                        { gate_script.clone() }
+                    };
 
-            println!("script len: {:?}", script.len());
-            let result = execute_script(script);
-            assert_eq!(expected_result, result.success);
+                    println!("script len: {:?}", script.len());
+                    let result = execute_script(script);
+                    assert_eq!(expected_result, result.success);
+                }
+            }
         }
     }
 }
