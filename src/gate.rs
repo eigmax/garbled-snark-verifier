@@ -1,4 +1,4 @@
-use std::{iter::zip, ops::Add};
+use std::{cell::RefCell, iter::zip, ops::Add, rc::Rc};
 use rand::{seq::SliceRandom, Rng};
 use blake3::hash;
 use bitvm::{bigint::U256, hash::blake3::blake3_compute_script_with_limb, treepp::*};
@@ -16,7 +16,7 @@ pub fn convert_between_blake3_and_normal_form() -> Script {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct S {
     pub s: [u8; 32],
 }
@@ -117,11 +117,13 @@ static DELTA: S = S::delta();
 const LIMB_LEN: u8 = 29;
 const N_LIMBS: u8 = 9;
 
+#[derive(Clone, Debug)]
 pub struct Wire {
     pub l0: S,
     pub l1: S,
     pub hash0: S,
     pub hash1: S,
+    pub value: Option<bool>,
 }
 
 impl Wire {
@@ -134,7 +136,8 @@ impl Wire {
             l0,
             l1,
             hash0,
-            hash1
+            hash1,
+            value: None,
         }
     }
 }
@@ -148,17 +151,27 @@ impl Wire {
             self.l0.clone()
         }
     }
+
+    pub fn get_value(&self) -> bool {
+        assert!(self.value.is_some());
+        self.value.unwrap()
+    }
+
+    pub fn set_value(&mut self, bit: bool) {
+        assert!(self.value.is_none());
+        self.value = Some(bit);
+    }
 }
 
 pub struct Gate {
-    pub wire_a: Wire,
-    pub wire_b: Wire,
-    pub wire_c: Wire,
+    pub wire_a: Rc<RefCell<Wire>>,
+    pub wire_b: Rc<RefCell<Wire>>,
+    pub wire_c: Rc<RefCell<Wire>>,
     pub f: fn(bool, bool) -> bool,
 }
 
 impl Gate {
-    pub fn new(wire_a: Wire, wire_b: Wire, wire_c: Wire, f: fn(bool, bool) -> bool) -> Self {
+    pub fn new(wire_a: Rc<RefCell<Wire>>, wire_b: Rc<RefCell<Wire>>, wire_c: Rc<RefCell<Wire>>, f: fn(bool, bool) -> bool) -> Self {
         Self {
             wire_a,
             wire_b,
@@ -167,17 +180,51 @@ impl Gate {
         }
     }
 
+    pub fn and(wire_a: Rc<RefCell<Wire>>, wire_b: Rc<RefCell<Wire>>, wire_c: Rc<RefCell<Wire>>) -> Self {
+        fn f(a: bool, b: bool) -> bool {a & b}
+        Self {
+            wire_a,
+            wire_b,
+            wire_c,
+            f,
+        }
+    }
+
+    pub fn xor(wire_a: Rc<RefCell<Wire>>, wire_b: Rc<RefCell<Wire>>, wire_c: Rc<RefCell<Wire>>) -> Self {
+        fn f(a: bool, b: bool) -> bool {a ^ b}
+        Self {
+            wire_a,
+            wire_b,
+            wire_c,
+            f,
+        }
+    }
+
+    pub fn not(wire_a: Rc<RefCell<Wire>>, wire_c: Rc<RefCell<Wire>>) -> Self {
+        fn f(a: bool, b: bool) -> bool {!(a ^ b)}
+        Self {
+            wire_a: wire_a.clone(),
+            wire_b: wire_a,
+            wire_c,
+            f,
+        }
+    }
+
+    pub fn evaluate(&mut self) {
+        self.wire_c.borrow_mut().set_value((self.f)(self.wire_a.borrow().get_value(), self.wire_b.borrow().get_value()));
+    }
+
     pub fn garbled(&self) -> Vec<S> {
         let mut result = Vec::new();
-        let lsb_a = self.wire_a.l0.lsb();
-        let lsb_b = self.wire_b.l0.lsb();
+        let lsb_a = self.wire_a.borrow().l0.lsb();
+        let lsb_b = self.wire_b.borrow().l0.lsb();
         for (mi, mj) in [(false, false), (true, false), (false, true), (true, true)] {
             let i = lsb_a ^ mi;
             let j = lsb_b ^ mj;
             let k = (self.f)(i, j);
-            let a = self.wire_a.select(i);
-            let b = self.wire_b.select(j);
-            let c = self.wire_c.select(k);
+            let a = self.wire_a.borrow().select(i);
+            let b = self.wire_b.borrow().select(j);
+            let c = self.wire_c.borrow().select(k);
             let garbled_row = S::hash_together(a, b) + c.neg();
             result.push(garbled_row);
         }
@@ -185,11 +232,11 @@ impl Gate {
     }
 
     pub fn script(&self, garbled: Vec<S>) -> Script {
-        let mut hash_a = vec![self.wire_a.hash0.s.clone(), self.wire_a.hash1.s.clone()];
+        let mut hash_a = vec![self.wire_a.borrow().hash0.s.clone(), self.wire_a.borrow().hash1.s.clone()];
         hash_a.shuffle(&mut rand::rng());
-        let mut hash_b = vec![self.wire_b.hash0.s.clone(), self.wire_b.hash1.s.clone()];
+        let mut hash_b = vec![self.wire_b.borrow().hash0.s.clone(), self.wire_b.borrow().hash1.s.clone()];
         hash_b.shuffle(&mut rand::rng());
-        let mut hash_c = vec![self.wire_c.hash0.s.clone(), self.wire_c.hash1.s.clone()];
+        let mut hash_c = vec![self.wire_c.borrow().hash0.s.clone(), self.wire_c.borrow().hash1.s.clone()];
         hash_c.shuffle(&mut rand::rng());
 
         script! {                                                  // B A
@@ -294,9 +341,9 @@ mod tests {
         fn and(a: bool, b: bool) -> bool {
             return a & b;
         }
-        let wire_1 = Wire::new();
-        let wire_2 = Wire::new();
-        let wire_3 = Wire::new();
+        let wire_1 = Rc::new(RefCell::new(Wire::new()));
+        let wire_2 = Rc::new(RefCell::new(Wire::new()));
+        let wire_3 = Rc::new(RefCell::new(Wire::new()));
         let gate = Gate::new(wire_1, wire_2, wire_3, and);
 
         let correct_garbled = gate.garbled();
@@ -305,8 +352,8 @@ mod tests {
         for (expected_result, garbled) in [(false, correct_garbled), (true, incorrect_garbled)] {
             let gate_script = gate.script(garbled);
 
-            for a in [gate.wire_a.l0.clone(), gate.wire_a.l1.clone()] {
-                for b in [gate.wire_b.l0.clone(), gate.wire_b.l1.clone()] {
+            for a in [gate.wire_a.borrow().l0.clone(), gate.wire_a.borrow().l1.clone()] {
+                for b in [gate.wire_b.borrow().l0.clone(), gate.wire_b.borrow().l1.clone()] {
                     let script = script! {
                         { U256::push_hex(&hex::encode(&b.s)) }
                         { U256::push_hex(&hex::encode(&a.s)) }
