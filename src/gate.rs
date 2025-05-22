@@ -192,107 +192,53 @@ impl Gate {
         let mut hash_c = vec![self.wire_c.hash0.s.clone(), self.wire_c.hash1.s.clone()];
         hash_c.shuffle(&mut rand::rng());
 
-        // inputs: B, A
-        // if Hash(Hash(A||B)-tau_{a+2b}) is not equal to wire_c.hash0 or wire_c.hash1 (a=lsb(A) and b=lsb(B)), this script is executable
-        script! {
-            // B A
-            for _ in 0..2*N_LIMBS {
-                OP_TOALTSTACK
-            }
-            // B | A
-            for _ in 0..2*N_LIMBS {
-                { 2*N_LIMBS-1 } OP_PICK
-            }
-            // B B | A
-            for _ in 0..2*N_LIMBS {
-                OP_TOALTSTACK
-            }
-            // B | B A
+        script! {                                                  // B A
+            { U256::copy(0) }                                      // B A A
+            { U256::div2rem() }                                    // B A halfA a
+            OP_TOALTSTACK { U256::drop() }                         // B A | a
+            { U256::copy(1) }                                      // B A B | a
+            { U256::div2rem() }                                    // B A halfB b | a
+            OP_TOALTSTACK { U256::drop() }                         // B A | b a
+            { convert_between_blake3_and_normal_form() }           // B A' | b a
+            { U256::toaltstack() }                                 // B | A' b a
+            { convert_between_blake3_and_normal_form() }           // B' | A' b a
+            { U256::copy(0) } { U256::toaltstack() }               // B' | B' A' b a
+            for _ in 0..N_LIMBS {0}                                // B'0 | B' A' b a
             { blake3_compute_script_with_limb(32, LIMB_LEN) }
-            { U256::transform_limbsize(4, 29) } // transform to 9-limb form
-            // hB | B A
+            { U256::transform_limbsize(4, LIMB_LEN.into()) }       // hB | B' A' b a
             { U256::push_hex(&hex::encode(hash_b[0])) }
-            { U256::push_hex(&hex::encode(hash_b[1])) }
-            // hB hB? hB? | B A
+            { U256::push_hex(&hex::encode(hash_b[1])) }            // hB hB? hB? | B' A' b a
             { U256::copy(2) }
             { U256::equal(0, 1) }
             OP_TOALTSTACK
             { U256::equal(0, 1) }
             OP_FROMALTSTACK
             OP_BOOLOR
-            OP_VERIFY
-            // | B A
-            for _ in 0..2*N_LIMBS {
-                OP_FROMALTSTACK
-            }
-            for _ in 0..2*N_LIMBS {
-                OP_FROMALTSTACK
-            }
-            // B A
-            for _ in 0..2*N_LIMBS {
-                { 4*N_LIMBS-1 } OP_ROLL
-            }
-            // A B
-            for _ in 0..2*N_LIMBS {
-                OP_TOALTSTACK
-            }
-            // A | B
-            for _ in 0..2*N_LIMBS {
-                { 2*N_LIMBS-1 } OP_PICK
-            }
-            // A A | B
-            for _ in 0..2*N_LIMBS {
-                OP_TOALTSTACK
-            }
-            // A | A B
+            OP_VERIFY                                              // | B' A' b a
+            { U256::fromaltstack() } { U256::fromaltstack() }      // B' A' | b a
+            { U256::roll(1) }                                      // A' B' | b a
+            { U256::toaltstack() }                                 // A' | B' b a
+            { U256::copy(0) } { U256::toaltstack() }               // A' | A' B' b a
+            for _ in 0..N_LIMBS {0}                                // A'0 | A' B' b a
             { blake3_compute_script_with_limb(32, LIMB_LEN) }
-            { U256::transform_limbsize(4, 29) } // transform to 9-limb form
-            // hA | A B
+            { U256::transform_limbsize(4, LIMB_LEN.into()) }       // hA | A' B' b a
             { U256::push_hex(&hex::encode(hash_a[0])) }
-            { U256::push_hex(&hex::encode(hash_a[1])) }
-            // hA hA? hA? | A B
+            { U256::push_hex(&hex::encode(hash_a[1])) }            // hA hA? hA? | A' B' b a
             { U256::copy(2) }
             { U256::equal(0, 1) }
             OP_TOALTSTACK
             { U256::equal(0, 1) }
             OP_FROMALTSTACK
             OP_BOOLOR
-            OP_VERIFY
-            // | A B
-            for _ in 0..2*N_LIMBS {
-                OP_FROMALTSTACK
-            }
-            for _ in 0..N_LIMBS {
-                OP_DROP
-            }
-            // A | B
-            for _ in 0..2*N_LIMBS {
-                OP_FROMALTSTACK
-            }
-            for _ in 0..N_LIMBS {
-                OP_DROP
-            }
-            // A B
-            { U256::copy(0) }
-            { convert_between_blake3_and_normal_form() } 
-            { U256::div2rem() }
-            OP_TOALTSTACK
-            { U256::drop() }
-            { U256::copy(1) }
-            { convert_between_blake3_and_normal_form() } 
-            { U256::div2rem() }
-            OP_TOALTSTACK
-            { U256::drop() }
-            // A B | a b
+            OP_VERIFY                                              // | A' B' b a
+            { U256::fromaltstack() } { U256::fromaltstack() }      // A' B' | b a
             { blake3_compute_script_with_limb(64, LIMB_LEN) }
-            { U256::transform_limbsize(4, 29) }
-            // hAB | a b
+            { U256::transform_limbsize(4, LIMB_LEN.into()) }       // hAB | b a
             { U256::push_hex(&hex::encode(garbled[0].s)) }
             { U256::push_hex(&hex::encode(garbled[1].s)) }
             { U256::push_hex(&hex::encode(garbled[2].s)) }
-            { U256::push_hex(&hex::encode(garbled[3].s)) }
-            // hAB tau0 tau1 tau2 tau3
-            OP_FROMALTSTACK OP_FROMALTSTACK
+            { U256::push_hex(&hex::encode(garbled[3].s)) }         // hAB tau0 tau1 tau2 tau3 | b a
+            OP_FROMALTSTACK OP_FROMALTSTACK OP_SWAP                // hAB tau0 tau1 tau2 tau3 a b
             OP_IF
                 OP_IF
                 // tau3
@@ -323,24 +269,17 @@ impl Gate {
                 { U256::drop() }
                 { U256::drop() }
                 OP_ENDIF
-            OP_ENDIF
-            // hAB tau_{a+2b}
-            { U256::sub(1, 0) }
-            // C=hAB-tau_{a+2b}
-            { convert_between_blake3_and_normal_form() }
-            for _ in 0..N_LIMBS { 0 }
+            OP_ENDIF                                               // hAB tau
+            { U256::sub(1, 0) }                                    // C=hAB-tau
+            { convert_between_blake3_and_normal_form() }           // C'
+            for _ in 0..N_LIMBS {0}                                // C'0
             { blake3_compute_script_with_limb(32, LIMB_LEN) }
-            { U256::transform_limbsize(4, 29) } // transform to 9-limb form
-            // hC
-            { U256::copy(0) }
-            // hC hC
-            { U256::push_hex(&hex::encode(hash_c[0])) }
-            // hC hC hC?
-            { U256::notequal(0, 1) } OP_VERIFY
-            // hC
-            { U256::push_hex(&hex::encode(hash_c[1])) }
-            // hC hC?
-            { U256::notequal(0, 1) } OP_VERIFY
+            { U256::transform_limbsize(4, 29) }                    // hC
+            { U256::copy(0) }                                      // hC hC
+            { U256::push_hex(&hex::encode(hash_c[0])) }            // hC hC hC?
+            { U256::notequal(0, 1) } OP_VERIFY                     // hC
+            { U256::push_hex(&hex::encode(hash_c[1])) }            // hC hC?
+            { U256::notequal(0, 1) } OP_VERIFY                     // 
             OP_TRUE
         }
     }
@@ -349,7 +288,6 @@ impl Gate {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bitvm::hash::blake3::blake3_push_message_script_with_limb;
 
     #[test]
     fn test_gate() {
@@ -370,11 +308,10 @@ mod tests {
             for a in [gate.wire_a.l0.clone(), gate.wire_a.l1.clone()] {
                 for b in [gate.wire_b.l0.clone(), gate.wire_b.l1.clone()] {
                     let script = script! {
-                        { blake3_push_message_script_with_limb(&b.s, LIMB_LEN) }
-                        { blake3_push_message_script_with_limb(&a.s, LIMB_LEN) }
+                        { U256::push_hex(&hex::encode(&b.s)) }
+                        { U256::push_hex(&hex::encode(&a.s)) }
                         { gate_script.clone() }
                     };
-
                     println!("script len: {:?}", script.len());
                     let result = execute_script(script);
                     assert_eq!(expected_result, result.success);
