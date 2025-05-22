@@ -16,7 +16,7 @@ pub fn convert_between_blake3_and_normal_form() -> Script {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct S {
     pub s: [u8; 32],
 }
@@ -124,6 +124,7 @@ pub struct Wire {
     pub hash0: S,
     pub hash1: S,
     pub value: Option<bool>,
+    pub label: Option<S>,
 }
 
 impl Wire {
@@ -138,11 +139,16 @@ impl Wire {
             hash0,
             hash1,
             value: None,
+            label: None,
         }
     }
-}
 
-impl Wire {
+    pub fn public_data(&self) -> Vec<S> {
+        let mut hashs = vec![self.hash0.clone(), self.hash1.clone()];
+        hashs.shuffle(&mut rand::rng());
+        hashs
+    }
+
     pub fn select(&self, selector: bool) -> S {
         if selector {
             self.l1.clone()
@@ -160,9 +166,19 @@ impl Wire {
     pub fn set_value(&mut self, bit: bool) {
         assert!(self.value.is_none());
         self.value = Some(bit);
+        self.set_label(if bit {self.l1.clone()} else {self.l0.clone()});
+    }
+
+    pub fn set_label(&mut self, label: S) {
+        self.label = Some(label);
+    }
+
+    pub fn get_label(&self) -> S {
+        self.label.clone().unwrap()
     }
 }
 
+#[derive(Clone)]
 pub struct Gate {
     pub wire_a: Rc<RefCell<Wire>>,
     pub wire_b: Rc<RefCell<Wire>>,
@@ -210,6 +226,10 @@ impl Gate {
         }
     }
 
+    pub fn public_data(&self) -> (Vec<S>, Vec<S>, Vec<S>, Vec<S>) {
+        (self.garbled(), self.wire_a.borrow().public_data(), self.wire_b.borrow().public_data(), self.wire_c.borrow().public_data())
+    }
+
     pub fn evaluate(&mut self) {
         self.wire_c.borrow_mut().set_value((self.f)(self.wire_a.borrow().get_value(), self.wire_b.borrow().get_value()));
     }
@@ -231,13 +251,17 @@ impl Gate {
         result
     }
 
-    pub fn script(&self, garbled: Vec<S>) -> Script {
-        let mut hash_a = vec![self.wire_a.borrow().hash0.s.clone(), self.wire_a.borrow().hash1.s.clone()];
-        hash_a.shuffle(&mut rand::rng());
-        let mut hash_b = vec![self.wire_b.borrow().hash0.s.clone(), self.wire_b.borrow().hash1.s.clone()];
-        hash_b.shuffle(&mut rand::rng());
-        let mut hash_c = vec![self.wire_c.borrow().hash0.s.clone(), self.wire_c.borrow().hash1.s.clone()];
-        hash_c.shuffle(&mut rand::rng());
+    pub fn check_garble(&self, garble: Vec<S>, hash_c: Vec<S>) -> (bool, S) {
+        let a = self.wire_a.borrow().get_label();
+        let b = self.wire_b.borrow().get_label();
+        let row = garble[(if a.lsb() {1} else {0})+2*(if b.lsb() {1} else {0})].clone();
+        let c = S::hash_together(a, b) + row.neg();
+        let hc = c.hash();
+        (hc == hash_c[0] || hc == hash_c[1], c)
+    }
+
+    pub fn script(public_data: (Vec<S>, Vec<S>, Vec<S>, Vec<S>)) -> Script {
+        let (garbled, hash_a, hash_b, hash_c) = public_data;
 
         script! {                                                  // B A
             { U256::copy(0) }                                      // B A A
@@ -253,8 +277,8 @@ impl Gate {
             for _ in 0..N_LIMBS {0}                                // B'0 | B' A' b a
             { blake3_compute_script_with_limb(32, LIMB_LEN) }
             { U256::transform_limbsize(4, LIMB_LEN.into()) }       // hB | B' A' b a
-            { U256::push_hex(&hex::encode(hash_b[0])) }
-            { U256::push_hex(&hex::encode(hash_b[1])) }            // hB hB? hB? | B' A' b a
+            { U256::push_hex(&hex::encode(hash_b[0].s)) }
+            { U256::push_hex(&hex::encode(hash_b[1].s)) }            // hB hB? hB? | B' A' b a
             { U256::copy(2) }
             { U256::equal(0, 1) }
             OP_TOALTSTACK
@@ -269,8 +293,8 @@ impl Gate {
             for _ in 0..N_LIMBS {0}                                // A'0 | A' B' b a
             { blake3_compute_script_with_limb(32, LIMB_LEN) }
             { U256::transform_limbsize(4, LIMB_LEN.into()) }       // hA | A' B' b a
-            { U256::push_hex(&hex::encode(hash_a[0])) }
-            { U256::push_hex(&hex::encode(hash_a[1])) }            // hA hA? hA? | A' B' b a
+            { U256::push_hex(&hex::encode(hash_a[0].s)) }
+            { U256::push_hex(&hex::encode(hash_a[1].s)) }            // hA hA? hA? | A' B' b a
             { U256::copy(2) }
             { U256::equal(0, 1) }
             OP_TOALTSTACK
@@ -323,9 +347,9 @@ impl Gate {
             { blake3_compute_script_with_limb(32, LIMB_LEN) }
             { U256::transform_limbsize(4, 29) }                    // hC
             { U256::copy(0) }                                      // hC hC
-            { U256::push_hex(&hex::encode(hash_c[0])) }            // hC hC hC?
+            { U256::push_hex(&hex::encode(hash_c[0].s)) }            // hC hC hC?
             { U256::notequal(0, 1) } OP_VERIFY                     // hC
-            { U256::push_hex(&hex::encode(hash_c[1])) }            // hC hC?
+            { U256::push_hex(&hex::encode(hash_c[1].s)) }            // hC hC?
             { U256::notequal(0, 1) } OP_VERIFY                     // 
             OP_TRUE
         }
@@ -338,22 +362,19 @@ mod tests {
 
     #[test]
     fn test_gate() {
-        fn and(a: bool, b: bool) -> bool {
-            return a & b;
-        }
         let wire_1 = Rc::new(RefCell::new(Wire::new()));
         let wire_2 = Rc::new(RefCell::new(Wire::new()));
         let wire_3 = Rc::new(RefCell::new(Wire::new()));
-        let gate = Gate::new(wire_1, wire_2, wire_3, and);
+        let gate = Gate::and(wire_1, wire_2, wire_3);
 
-        let correct_garbled = gate.garbled();
-        let incorrect_garbled = vec![S::random(), S::random(), S::random(), S::random()];
+        let public_data = gate.public_data();
+        let mut incorrect_public_data = public_data.clone();
+        incorrect_public_data.0 = vec![S::random(), S::random(), S::random(), S::random()];
 
-        for (expected_result, garbled) in [(false, correct_garbled), (true, incorrect_garbled)] {
-            let gate_script = gate.script(garbled);
-
+        for (expected_result, public_data) in [(false, public_data), (true, incorrect_public_data)] {
             for a in [gate.wire_a.borrow().l0.clone(), gate.wire_a.borrow().l1.clone()] {
                 for b in [gate.wire_b.borrow().l0.clone(), gate.wire_b.borrow().l1.clone()] {
+                    let gate_script = Gate::script(public_data.clone());
                     let script = script! {
                         { U256::push_hex(&hex::encode(&b.s)) }
                         { U256::push_hex(&hex::encode(&a.s)) }

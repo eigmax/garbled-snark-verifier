@@ -1,14 +1,5 @@
 use std::{cell::RefCell, fs, rc::Rc};
-use crate::gate::{Gate, Wire};
-
-pub struct Circuit {
-    pub nog: usize,
-    pub now: usize,
-    pub input_sizes: Vec<usize>,
-    pub output_sizes: Vec<usize>,
-    pub wires: Vec<Rc<RefCell<Wire>>>,
-    pub gates: Vec<Gate>
-}
+use crate::{circuit::Circuit, gate::{Gate, Wire}};
 
 pub fn parser(filename: &str) -> Circuit {
     let data = fs::read_to_string(filename).expect("error");
@@ -81,8 +72,8 @@ pub fn parser(filename: &str) -> Circuit {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use rand::{rng, Rng};
+    use super::*;
 
     #[test]
     fn test_bristol_adder() {
