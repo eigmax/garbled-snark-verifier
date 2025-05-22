@@ -1,2 +1,3 @@
 pub mod gate;
-pub mod utils;
+pub mod circuit;
+pub mod bristol;
