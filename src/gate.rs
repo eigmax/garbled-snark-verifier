@@ -49,9 +49,7 @@ impl S {
     }
 
     pub fn random() -> Self {
-        Self {
-            s: rand::rng().random::<[u8; 32]>()
-        }
+        Self::new(rand::rng().random::<[u8; 32]>())
     }
 
     pub fn lsb(&self) -> bool {
@@ -63,10 +61,7 @@ impl S {
         for i in 0..32 {
             s[i] = 255 - self.s[i];
         }
-        let x = Self {
-            s
-        };
-        x + Self::one()
+        Self::new(s) + Self::one()
     }
 
     pub fn sign_change(&self, selector: bool) -> Self {
@@ -79,19 +74,13 @@ impl S {
     }
 
     pub fn hash(&self) -> Self {
-        let h = hash(&self.s);
-        Self {
-            s: *h.as_bytes()
-        }
+        Self::new(*hash(&self.s).as_bytes())
     }
 
     pub fn hash_together(a: Self, b: Self) -> Self {
         let mut h = a.s.to_vec();
         h.extend(b.s.to_vec());
-        let hash_h = hash(&h);
-        Self {
-            s: *hash_h.as_bytes()
-        }
+        Self::new(*hash(&h).as_bytes())
     }
 }
 
@@ -112,8 +101,6 @@ impl Add for S {
     }
 }
 
-// global offset, DELTA.lsb()=1;
-static DELTA: S = S::delta();
 const LIMB_LEN: u8 = 29;
 const N_LIMBS: u8 = 9;
 
@@ -130,7 +117,7 @@ pub struct Wire {
 impl Wire {
     pub fn new() -> Self {
         let l0 = S::random();
-        let l1 = l0.clone() + DELTA.sign_change(l0.lsb());
+        let l1 = l0.clone() + S::delta().sign_change(l0.lsb());
         let hash0 = l0.hash();
         let hash1 = l1.hash();
         Self {
@@ -198,32 +185,17 @@ impl Gate {
 
     pub fn and(wire_a: Rc<RefCell<Wire>>, wire_b: Rc<RefCell<Wire>>, wire_c: Rc<RefCell<Wire>>) -> Self {
         fn f(a: bool, b: bool) -> bool {a & b}
-        Self {
-            wire_a,
-            wire_b,
-            wire_c,
-            f,
-        }
+        Self::new(wire_a, wire_b, wire_c, f)
     }
 
     pub fn xor(wire_a: Rc<RefCell<Wire>>, wire_b: Rc<RefCell<Wire>>, wire_c: Rc<RefCell<Wire>>) -> Self {
         fn f(a: bool, b: bool) -> bool {a ^ b}
-        Self {
-            wire_a,
-            wire_b,
-            wire_c,
-            f,
-        }
+        Self::new(wire_a, wire_b, wire_c, f)
     }
 
     pub fn not(wire_a: Rc<RefCell<Wire>>, wire_c: Rc<RefCell<Wire>>) -> Self {
-        fn f(a: bool, b: bool) -> bool {!(a ^ b)}
-        Self {
-            wire_a: wire_a.clone(),
-            wire_b: wire_a,
-            wire_c,
-            f,
-        }
+        fn f(a: bool, b: bool) -> bool {!(a & b)}
+        Self::new(wire_a.clone(), wire_a.clone(), wire_c, f)
     }
 
     pub fn public_data(&self) -> (Vec<S>, Vec<S>, Vec<S>, Vec<S>) {
@@ -359,6 +331,31 @@ impl Gate {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_s() {
+        let a = S::random();
+        let b = S::random();
+        let c = a.clone() + b.clone();
+        let d = a.neg();
+
+        let script = script! {
+            { U256::push_hex(&hex::encode(&a.s)) }
+            { U256::push_hex(&hex::encode(&b.s)) }
+            { U256::add(0, 1) }
+            { U256::push_hex(&hex::encode(&c.s)) }
+            { U256::equalverify(0, 1) }
+            { U256::push_hex(&hex::encode(&a.s)) }
+            { U256::push_hex(&hex::encode(&d.s)) }
+            { U256::add(0, 1) }
+            { U256::push_hex(&hex::encode(&S::zero().s)) }
+            { U256::equalverify(0, 1) }
+            OP_TRUE
+        };
+        println!("script len: {:?}", script.len());
+        let result = execute_script(script);
+        assert!(result.success);
+    }
 
     #[test]
     fn test_gate() {

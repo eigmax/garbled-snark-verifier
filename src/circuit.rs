@@ -74,8 +74,8 @@ mod tests {
     }
 
     #[test]
-    fn test_circuit_multiplier() {
-        let circuit = Circuit::from_bristol("multiplier64.txt");
+    fn test_circuit_subtracter() {
+        let circuit = Circuit::from_bristol("subtracter64.txt");
 
         let public_data = circuit.public_data();
 
@@ -107,4 +107,39 @@ mod tests {
             }
         }
     }
+
+    // #[test]
+    // fn test_circuit_multiplier() {
+    //     let circuit = Circuit::from_bristol("multiplier64.txt");
+
+    //     let public_data = circuit.public_data();
+
+    //     let mut incorrect_public_data = public_data.clone();
+    //     let u: u32 = rng().random();
+    //     incorrect_public_data[(u as usize) % public_data.len()].0 = vec![S::random(), S::random(), S::random(), S::random()];
+
+    //     circuit.set_input_wires();
+
+    //     for pd in [public_data, incorrect_public_data] {
+    //         let scripts = circuit.scripts(pd.clone());
+            
+    //         for (script, (gate, (garble, _, _, wire_c_public))) in zip(scripts, zip(circuit.gates.clone(), pd)) {
+    //             let (garble_check, c) = gate.check_garble(garble, wire_c_public);
+    //             let s = script! {
+    //                 { U256::push_hex(&hex::encode(&gate.wire_b.borrow().get_label().s)) }
+    //                 { U256::push_hex(&hex::encode(&gate.wire_a.borrow().get_label().s)) }
+    //                 { script }
+    //             };
+    //             let result = execute_script(s);
+    //             if garble_check {
+    //                 gate.wire_c.borrow_mut().set_label(c);
+    //                 assert!(!result.success);
+    //             }
+    //             else {
+    //                 assert!(result.success);
+    //                 break;
+    //             }
+    //         }
+    //     }
+    // }
 }

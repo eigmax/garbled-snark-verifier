@@ -97,7 +97,7 @@ mod tests {
         for bit in result_bits.iter().rev() {
             c = 2 * c + if *bit {1} else {0};
         }
-        assert_eq!(c, a+b);
+        assert_eq!(c, a.wrapping_add(b));
     }
 
     #[test]
@@ -123,6 +123,31 @@ mod tests {
             c = 2 * c + if *bit {1} else {0};
         }
         assert_eq!(c, a.wrapping_mul(b));
+    }
+
+    #[test]
+    fn test_bristol_subtracter() {
+        let adder_circuit = parser("subtracter64.txt");
+        let a: u64 = rng().random();
+        let b: u64 = rng().random();
+        for i in 0..adder_circuit.input_sizes[0] {
+            adder_circuit.wires[i].borrow_mut().set_value((a >> i) & 1 == 1);
+        }
+        for (i, j) in (adder_circuit.input_sizes[0]..(adder_circuit.input_sizes[0]+adder_circuit.input_sizes[1])).enumerate() {
+            adder_circuit.wires[j].borrow_mut().set_value((b >> i) & 1 == 1);
+        }
+        for mut gate in adder_circuit.gates {
+            gate.evaluate();
+        }
+        let mut result_bits = Vec::new();
+        for i in (adder_circuit.now-adder_circuit.output_sizes[0])..adder_circuit.now {
+            result_bits.push(adder_circuit.wires[i].borrow().get_value());
+        }
+        let mut c: u64 = 0;
+        for bit in result_bits.iter().rev() {
+            c = 2 * c + if *bit {1} else {0};
+        }
+        assert_eq!(c, a.wrapping_sub(b));
     }
 }
 
