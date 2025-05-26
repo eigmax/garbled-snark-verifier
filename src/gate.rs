@@ -16,7 +16,7 @@ pub fn convert_between_blake3_and_normal_form() -> Script {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct S {
     pub s: [u8; 32],
 }
@@ -232,7 +232,7 @@ impl Gate {
         (hc == hash_c[0] || hc == hash_c[1], c)
     }
 
-    pub fn script(public_data: (Vec<S>, Vec<S>, Vec<S>, Vec<S>)) -> Script {
+    pub fn script(public_data: (Vec<S>, Vec<S>, Vec<S>, Vec<S>), correct: bool) -> Script {
         let (garbled, hash_a, hash_b, hash_c) = public_data;
 
         script! {                                                  // B A
@@ -250,7 +250,7 @@ impl Gate {
             { blake3_compute_script_with_limb(32, LIMB_LEN) }
             { U256::transform_limbsize(4, LIMB_LEN.into()) }       // hB | B' A' b a
             { U256::push_hex(&hex::encode(hash_b[0].s)) }
-            { U256::push_hex(&hex::encode(hash_b[1].s)) }            // hB hB? hB? | B' A' b a
+            { U256::push_hex(&hex::encode(hash_b[1].s)) }          // hB hB? hB? | B' A' b a
             { U256::copy(2) }
             { U256::equal(0, 1) }
             OP_TOALTSTACK
@@ -266,7 +266,7 @@ impl Gate {
             { blake3_compute_script_with_limb(32, LIMB_LEN) }
             { U256::transform_limbsize(4, LIMB_LEN.into()) }       // hA | A' B' b a
             { U256::push_hex(&hex::encode(hash_a[0].s)) }
-            { U256::push_hex(&hex::encode(hash_a[1].s)) }            // hA hA? hA? | A' B' b a
+            { U256::push_hex(&hex::encode(hash_a[1].s)) }          // hA hA? hA? | A' B' b a
             { U256::copy(2) }
             { U256::equal(0, 1) }
             OP_TOALTSTACK
@@ -318,11 +318,21 @@ impl Gate {
             for _ in 0..N_LIMBS {0}                                // C'0
             { blake3_compute_script_with_limb(32, LIMB_LEN) }
             { U256::transform_limbsize(4, 29) }                    // hC
-            { U256::copy(0) }                                      // hC hC
-            { U256::push_hex(&hex::encode(hash_c[0].s)) }            // hC hC hC?
-            { U256::notequal(0, 1) } OP_VERIFY                     // hC
-            { U256::push_hex(&hex::encode(hash_c[1].s)) }            // hC hC?
-            { U256::notequal(0, 1) } OP_VERIFY                     // 
+            if correct {
+                { U256::copy(0) }                                  // hC hC
+                { U256::push_hex(&hex::encode(hash_c[0].s)) }
+                { U256::equal(0, 1) } OP_TOALTSTACK
+                { U256::push_hex(&hex::encode(hash_c[1].s)) }
+                { U256::equal(0, 1) } OP_FROMALTSTACK
+                OP_BOOLOR OP_VERIFY
+            }
+            else {
+                { U256::copy(0) }                                  // hC hC
+                { U256::push_hex(&hex::encode(hash_c[0].s)) }      // hC hC hC?
+                { U256::notequal(0, 1) } OP_VERIFY                 // hC
+                { U256::push_hex(&hex::encode(hash_c[1].s)) }      // hC hC?
+                { U256::notequal(0, 1) } OP_VERIFY                 // 
+            }
             OP_TRUE
         }
     }
@@ -368,10 +378,11 @@ mod tests {
         let mut incorrect_public_data = public_data.clone();
         incorrect_public_data.0 = vec![S::random(), S::random(), S::random(), S::random()];
 
-        for (expected_result, public_data) in [(false, public_data), (true, incorrect_public_data)] {
+        for (correct, public_data) in [(true, public_data), (false, incorrect_public_data)] {
+            println!("testing {:?} garble", if correct {"correct"} else {"incorrect"});
             for a in [gate.wire_a.borrow().l0.clone(), gate.wire_a.borrow().l1.clone()] {
                 for b in [gate.wire_b.borrow().l0.clone(), gate.wire_b.borrow().l1.clone()] {
-                    let gate_script = Gate::script(public_data.clone());
+                    let gate_script = Gate::script(public_data.clone(), correct);
                     let script = script! {
                         { U256::push_hex(&hex::encode(&b.s)) }
                         { U256::push_hex(&hex::encode(&a.s)) }
@@ -379,7 +390,7 @@ mod tests {
                     };
                     println!("script len: {:?}", script.len());
                     let result = execute_script(script);
-                    assert_eq!(expected_result, result.success);
+                    assert!(result.success);
                 }
             }
         }
