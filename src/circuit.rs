@@ -46,25 +46,21 @@ mod tests {
 
         circuit.set_input_wires();
 
+        let gate_constant_script = Gate::constant_script();
+
         for (correct, pd) in [(true, public_data), (false, incorrect_public_data)] {
             println!("testing {:?} garble", if correct {"correct"} else {"incorrect"});
             for (i, (gate, gpd)) in zip(circuit.gates.clone(), pd).enumerate() {
-                println!("testing gate[{:?}]", i);
                 let (garble, _, _, wire_c_public) = gpd.clone();
                 let (garble_check, c) = gate.check_garble(garble, wire_c_public);
-                println!("garble is {:?}", if garble_check {"correct"} else {"incorrect"});
-                let gate_script = Gate::script(gpd, garble_check);
-                println!("circuit 1 is created");
+                let gate_script = Gate::script(gpd, garble_check, gate_constant_script.clone());
                 let script = script! {
                     { U256::push_hex(&hex::encode(&gate.wire_b.borrow().get_label().s)) }
                     { U256::push_hex(&hex::encode(&gate.wire_a.borrow().get_label().s)) }
-                    { gate_script }
-                };
-                println!("circuit 2 is created");
+                }.push_script(gate_script);
                 let result = execute_script(script);
-                println!("circuit is executed");
                 assert!(result.success);
-                println!("done");
+                println!("testing gate[{:?}], garble is {:?}", i, if garble_check {"correct"} else {"incorrect"});
                 if garble_check {
                     gate.wire_c.borrow_mut().set_label(c);
                 }

@@ -1,4 +1,5 @@
 use std::{cell::RefCell, iter::zip, ops::Add, rc::Rc};
+use bitcoin::ScriptBuf;
 use rand::{seq::SliceRandom, Rng};
 use blake3::hash;
 use bitvm::{bigint::U256, hash::blake3::blake3_compute_script_with_limb, treepp::*};
@@ -232,10 +233,8 @@ impl Gate {
         (hc == hash_c[0] || hc == hash_c[1], c)
     }
 
-    pub fn script(public_data: (Vec<S>, Vec<S>, Vec<S>, Vec<S>), correct: bool) -> Script {
-        let (garbled, hash_a, hash_b, hash_c) = public_data;
-
-        script! {                                                  // B A
+    pub fn constant_script() -> (ScriptBuf, ScriptBuf, ScriptBuf, ScriptBuf) {
+        let s0 = script! {
             { U256::copy(0) }                                      // B A A
             { U256::div2rem() }                                    // B A halfA a
             OP_TOALTSTACK { U256::drop() }                         // B A | a
@@ -249,8 +248,8 @@ impl Gate {
             for _ in 0..N_LIMBS {0}                                // B'0 | B' A' b a
             { blake3_compute_script_with_limb(32, LIMB_LEN) }
             { U256::transform_limbsize(4, LIMB_LEN.into()) }       // hB | B' A' b a
-            { U256::push_hex(&hex::encode(hash_b[0].s)) }
-            { U256::push_hex(&hex::encode(hash_b[1].s)) }          // hB hB? hB? | B' A' b a
+        }.compile();
+        let s1 = script! {
             { U256::copy(2) }
             { U256::equal(0, 1) }
             OP_TOALTSTACK
@@ -265,8 +264,8 @@ impl Gate {
             for _ in 0..N_LIMBS {0}                                // A'0 | A' B' b a
             { blake3_compute_script_with_limb(32, LIMB_LEN) }
             { U256::transform_limbsize(4, LIMB_LEN.into()) }       // hA | A' B' b a
-            { U256::push_hex(&hex::encode(hash_a[0].s)) }
-            { U256::push_hex(&hex::encode(hash_a[1].s)) }          // hA hA? hA? | A' B' b a
+        }.compile();
+        let s2 = script! {
             { U256::copy(2) }
             { U256::equal(0, 1) }
             OP_TOALTSTACK
@@ -277,10 +276,8 @@ impl Gate {
             { U256::fromaltstack() } { U256::fromaltstack() }      // A' B' | b a
             { blake3_compute_script_with_limb(64, LIMB_LEN) }
             { U256::transform_limbsize(4, LIMB_LEN.into()) }       // hAB | b a
-            { U256::push_hex(&hex::encode(garbled[0].s)) }
-            { U256::push_hex(&hex::encode(garbled[1].s)) }
-            { U256::push_hex(&hex::encode(garbled[2].s)) }
-            { U256::push_hex(&hex::encode(garbled[3].s)) }         // hAB tau0 tau1 tau2 tau3 | b a
+        }.compile();
+        let s3 = script! {
             OP_FROMALTSTACK OP_FROMALTSTACK OP_SWAP                // hAB tau0 tau1 tau2 tau3 a b
             OP_IF
                 OP_IF
@@ -318,23 +315,50 @@ impl Gate {
             for _ in 0..N_LIMBS {0}                                // C'0
             { blake3_compute_script_with_limb(32, LIMB_LEN) }
             { U256::transform_limbsize(4, 29) }                    // hC
-            if correct {
-                { U256::copy(0) }                                  // hC hC
-                { U256::push_hex(&hex::encode(hash_c[0].s)) }
-                { U256::equal(0, 1) } OP_TOALTSTACK
-                { U256::push_hex(&hex::encode(hash_c[1].s)) }
-                { U256::equal(0, 1) } OP_FROMALTSTACK
-                OP_BOOLOR OP_VERIFY
-            }
-            else {
-                { U256::copy(0) }                                  // hC hC
-                { U256::push_hex(&hex::encode(hash_c[0].s)) }      // hC hC hC?
-                { U256::notequal(0, 1) } OP_VERIFY                 // hC
-                { U256::push_hex(&hex::encode(hash_c[1].s)) }      // hC hC?
-                { U256::notequal(0, 1) } OP_VERIFY                 // 
-            }
-            OP_TRUE
-        }
+        }.compile();
+        (s0, s1, s2, s3)
+    }
+
+    pub fn script(public_data: (Vec<S>, Vec<S>, Vec<S>, Vec<S>), correct: bool, s: (ScriptBuf, ScriptBuf, ScriptBuf, ScriptBuf)) -> ScriptBuf {
+        let (garbled, hash_a, hash_b, hash_c) = public_data;
+
+        script! {}.push_script(s.0).push_script(
+            script! {
+                { U256::push_hex(&hex::encode(hash_b[0].s)) }
+                { U256::push_hex(&hex::encode(hash_b[1].s)) }          // hB hB? hB? | B' A' b a
+            }.compile()
+        ).push_script(s.1).push_script(
+            script! {
+                { U256::push_hex(&hex::encode(hash_a[0].s)) }
+                { U256::push_hex(&hex::encode(hash_a[1].s)) }          // hA hA? hA? | A' B' b a
+            }.compile()
+        ).push_script(s.2).push_script(
+            script! {
+                { U256::push_hex(&hex::encode(garbled[0].s)) }
+                { U256::push_hex(&hex::encode(garbled[1].s)) }
+                { U256::push_hex(&hex::encode(garbled[2].s)) }
+                { U256::push_hex(&hex::encode(garbled[3].s)) }         // hAB tau0 tau1 tau2 tau3 | b a
+            }.compile()
+        ).push_script(s.3).push_script(
+            script! {
+                if correct {
+                    { U256::copy(0) }                                  // hC hC
+                    { U256::push_hex(&hex::encode(hash_c[0].s)) }
+                    { U256::equal(0, 1) } OP_TOALTSTACK
+                    { U256::push_hex(&hex::encode(hash_c[1].s)) }
+                    { U256::equal(0, 1) } OP_FROMALTSTACK
+                    OP_BOOLOR OP_VERIFY
+                }
+                else {
+                    { U256::copy(0) }                                  // hC hC
+                    { U256::push_hex(&hex::encode(hash_c[0].s)) }      // hC hC hC?
+                    { U256::notequal(0, 1) } OP_VERIFY                 // hC
+                    { U256::push_hex(&hex::encode(hash_c[1].s)) }      // hC hC?
+                    { U256::notequal(0, 1) } OP_VERIFY                 // 
+                }
+                OP_TRUE
+            }.compile()
+        ).compile()
     }
 }
 
@@ -378,16 +402,17 @@ mod tests {
         let mut incorrect_public_data = public_data.clone();
         incorrect_public_data.0 = vec![S::random(), S::random(), S::random(), S::random()];
 
+        let gate_constant_script = Gate::constant_script();
+
         for (correct, public_data) in [(true, public_data), (false, incorrect_public_data)] {
             println!("testing {:?} garble", if correct {"correct"} else {"incorrect"});
             for a in [gate.wire_a.borrow().l0.clone(), gate.wire_a.borrow().l1.clone()] {
                 for b in [gate.wire_b.borrow().l0.clone(), gate.wire_b.borrow().l1.clone()] {
-                    let gate_script = Gate::script(public_data.clone(), correct);
+                    let gate_script = Gate::script(public_data.clone(), correct, gate_constant_script.clone());
                     let script = script! {
                         { U256::push_hex(&hex::encode(&b.s)) }
                         { U256::push_hex(&hex::encode(&a.s)) }
-                        { gate_script.clone() }
-                    };
+                    }.push_script(gate_script.clone());
                     println!("script len: {:?}", script.len());
                     let result = execute_script(script);
                     assert!(result.success);
