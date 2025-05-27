@@ -1,23 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
-use bitcoin::ScriptBuf;
 use bitvm::{bigint::U256, hash::blake3::blake3_compute_script_with_limb, treepp::*};
-use crate::{s::S, wire::Wire};
-
-pub fn convert_between_blake3_and_normal_form() -> Script {
-    script! {
-        { U256::transform_limbsize(29, 8) }
-        for _ in 0..8 {
-            28 OP_ROLL
-            29 OP_ROLL
-            30 OP_ROLL
-            31 OP_ROLL
-        }
-        { U256::transform_limbsize(8, 29) }
-    }
-}
-
-const LIMB_LEN: u8 = 29;
-const N_LIMBS: u8 = 9;
+use crate::{convert_between_blake3_and_normal_form, s::S, wire::Wire, LIMB_LEN, N_LIMBS};
 
 #[derive(Clone)]
 pub struct Gate {
@@ -38,32 +21,47 @@ impl Gate {
     }
 
     pub fn f(&self) -> fn(bool, bool) -> bool {
-        if self.name=="and" {
-            fn and(a: bool, b: bool) -> bool {a & b};
+        if self.name == "and" {
+            fn and(a: bool, b: bool) -> bool {a & b}
             return and;
         }
-        else if self.name=="or" {
-            fn or(a: bool, b: bool) -> bool {a | b};
+        else if self.name == "or" {
+            fn or(a: bool, b: bool) -> bool {a | b}
             return or;
         }
+        else if self.name == "xor" {
+            fn xor(a: bool, b: bool) -> bool {a ^ b}
+            return xor;
+        }
+        else if self.name == "nand" {
+            fn nand(a: bool, b: bool) -> bool {!(a ^ b)}
+            return nand;
+        }
+        else if self.name == "inv" {
+            fn not(a: bool, _b: bool) -> bool {!a}
+            return not;
+        }
         else {
-            fn empty(_a: bool, _b: bool) -> bool {false};
+            fn empty(_a: bool, _b: bool) -> bool {false}
             return empty;
         }
     }
 
     pub fn evaluation_script(&self) -> Script {
-        if self.name=="and" {
+        if self.name == "and" {
             script! { OP_BOOLAND }
         }
-        else if self.name=="or" {
+        else if self.name == "or" {
             script! { OP_BOOLOR }
         }
-        else if self.name=="xor" {
+        else if self.name == "xor" {
             script! { OP_NUMNOTEQUAL }
         }
-        else if self.name=="nand" {
+        else if self.name == "nand" {
             script! { OP_BOOLAND OP_NOT }
+        }
+        else if self.name == "inv" {
+            script! { OP_DROP OP_NOT }
         }
         else {
             script! {}
@@ -76,11 +74,7 @@ impl Gate {
 
     pub fn garbled(&self) -> Vec<S> {
         let mut result = Vec::new();
-        let lsb_a = self.wire_a.borrow().l0.lsb();
-        let lsb_b = self.wire_b.borrow().l0.lsb();
-        for (mi, mj) in [(false, false), (true, false), (false, true), (true, true)] {
-            let i = lsb_a ^ mi;
-            let j = lsb_b ^ mj;
+        for (i, j) in [(false, false), (true, false), (false, true), (true, true)] {
             let k = (self.f())(i, j);
             let a = self.wire_a.borrow().select(i);
             let b = self.wire_b.borrow().select(j);
@@ -91,18 +85,84 @@ impl Gate {
         result
     }
 
-    pub fn check_garble(&self, garble: Vec<S>, hash_c: Vec<S>) -> (bool, S) {
+    pub fn check_garble(&self, garble: Vec<S>, bit: bool) -> (bool, S) {
         let a = self.wire_a.borrow().get_label();
         let b = self.wire_b.borrow().get_label();
-        let row = garble[(if a.lsb() {1} else {0})+2*(if b.lsb() {1} else {0})].clone();
+        let bit_a = self.wire_a.borrow().get_value();
+        let bit_b = self.wire_b.borrow().get_value();
+        let row = garble[(if bit_a {1} else {0})+2*(if bit_b {1} else {0})].clone();
         let c = S::hash_together(a, b) + row.neg();
         let hc = c.hash();
-        (hc == hash_c[0] || hc == hash_c[1], c)
+        (hc == self.wire_c.borrow().select_hash(bit), c)
     }
 
-    pub fn script(public_data: (Vec<S>, Vec<S>, Vec<S>, Vec<S>), correct: bool) -> Script {
-        let (garbled, hash_a, hash_b, hash_c) = public_data;
-        script! {}
+    pub fn script(&self, garbled: Vec<S>, correct: bool) -> Script {
+        script! {                                                     // a bit_a b bit_b
+            { N_LIMBS + 1 } OP_PICK                                   // a bit_a b bit_b bit_a
+            OP_OVER                                                   // a bit_a b bit_b bit_a bit_b
+            OP_TOALTSTACK OP_TOALTSTACK                               // a bit_a b bit_b | bit_a bit_b
+            for _ in 0..N_LIMBS { {2 * N_LIMBS + 1} OP_PICK }         // a bit_a b bit_b a | bit_a bit_b
+            for _ in 0..N_LIMBS { {2 * N_LIMBS} OP_PICK }             // a bit_a b bit_b a b | bit_a bit_b
+            { U256::toaltstack() } { U256::toaltstack() }             // a bit_a b bit_b | a b bit_a bit_b
+            OP_TOALTSTACK { U256::toaltstack() }                      // a bit_a | b bit_b a b bit_a bit_b
+            { self.wire_a.borrow().commitment_script() } OP_VERIFY    // | b bit_b a b bit_a bit_b
+            { U256::fromaltstack() } OP_FROMALTSTACK                  // b bit_b | a b bit_a bit_b
+            { self.wire_b.borrow().commitment_script() } OP_VERIFY    // | a b bit_a bit_b
+            { U256::fromaltstack() }                                  // a | b bit_a bit_b
+            { convert_between_blake3_and_normal_form() }              // a' | b bit_a bit_b
+            { U256::fromaltstack() }                                  // a' b | bit_a bit_b
+            { convert_between_blake3_and_normal_form() }              // a' b' | bit_a bit_b
+            { blake3_compute_script_with_limb(64, LIMB_LEN) }
+            { U256::transform_limbsize(4, LIMB_LEN.into()) }          // hab | bit_a bit_b
+            { U256::push_hex(&hex::encode(garbled[0].s)) }
+            { U256::push_hex(&hex::encode(garbled[1].s)) }
+            { U256::push_hex(&hex::encode(garbled[2].s)) }
+            { U256::push_hex(&hex::encode(garbled[3].s)) }            // hab tau0 tau1 tau2 tau3 | bit_a bit_b
+            OP_FROMALTSTACK OP_FROMALTSTACK                           // hab tau0 tau1 tau2 tau3 bit_a bit_b
+            OP_2DUP OP_TOALTSTACK OP_TOALTSTACK                       // hab tau0 tau1 tau2 tau3 bit_a bit_b | bit_a bit_b
+            OP_IF
+                OP_IF
+                // tau3
+                { U256::toaltstack() }
+                { U256::drop() }
+                { U256::drop() }
+                { U256::drop() }
+                { U256::fromaltstack() }
+                OP_ELSE
+                // tau2
+                { U256::drop() }
+                { U256::toaltstack() }
+                { U256::drop() }
+                { U256::drop() }
+                { U256::fromaltstack() }
+                OP_ENDIF
+            OP_ELSE
+                OP_IF
+                // tau1
+                { U256::drop() }
+                { U256::drop() }
+                { U256::toaltstack() }
+                { U256::drop() }
+                { U256::fromaltstack() }
+                OP_ELSE
+                // tau0
+                { U256::drop() }
+                { U256::drop() }
+                { U256::drop() }
+                OP_ENDIF
+            OP_ENDIF                                               // hab tau | bit_a bit_b
+            { U256::sub(1, 0) }                                    // c=hab-tau | bit_a bit_b
+            OP_FROMALTSTACK OP_FROMALTSTACK                        // c bit_a bit_b
+            { self.evaluation_script() }                           // c bit_c
+            { self.wire_c.borrow().commitment_script() }
+            if correct {
+                OP_VERIFY
+            }
+            else {
+                OP_NOT OP_VERIFY
+            }
+            OP_TRUE
+        }
     }
 }
 
@@ -117,22 +177,26 @@ mod tests {
         let wire_3 = Rc::new(RefCell::new(Wire::new()));
         let gate = Gate::new(wire_1, wire_2, wire_3, "and".to_string());
 
-        let public_data = gate.garbled();
-        let mut incorrect_public_data = public_data.clone();
-        incorrect_public_data  = vec![S::random(), S::random(), S::random(), S::random()];
+        let correct_garbled = gate.garbled();
+        let incorrect_garbled = vec![S::random(), S::random(), S::random(), S::random()];
 
-        for (correct, public_data) in [(true, public_data), (false, incorrect_public_data)] {
+        for (correct, garbled) in [(true, correct_garbled), (false, incorrect_garbled)] {
             println!("testing {:?} garble", if correct {"correct"} else {"incorrect"});
-            for a in [gate.wire_a.borrow().l0.clone(), gate.wire_a.borrow().l1.clone()] {
-                for b in [gate.wire_b.borrow().l0.clone(), gate.wire_b.borrow().l1.clone()] {
-                    // let gate_script = Gate::script(public_data.clone(), correct, gate_constant_script.clone());
-                    // let script = script! {
-                    //     { U256::push_hex(&hex::encode(&b.s)) }
-                    //     { U256::push_hex(&hex::encode(&a.s)) }
-                    // }.push_script(gate_script.clone());
-                    // println!("script len: {:?}", script.len());
-                    // let result = execute_script(script);
-                    // assert!(result.success);
+            for bit_a in [false, true] {
+                for bit_b in [false, true] {
+                    let a = gate.wire_a.borrow().select(bit_a);
+                    let b = gate.wire_b.borrow().select(bit_b);
+                    let gate_script = gate.script(garbled.clone(), correct);
+                    let script = script! {
+                        { U256::push_hex(&hex::encode(&a.s)) }
+                        { if bit_a {1} else {0} }
+                        { U256::push_hex(&hex::encode(&b.s)) }
+                        { if bit_b {1} else {0} }
+                        { gate_script }
+                    };
+                    println!("script len: {:?}", script.len());
+                    let result = execute_script(script);
+                    assert!(result.success);
                 }
             }
         }

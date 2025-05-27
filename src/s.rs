@@ -38,25 +38,12 @@ impl S {
         Self::new(rand::rng().random::<[u8; 32]>())
     }
 
-    pub fn lsb(&self) -> bool {
-        self.s[31] % 2 == 1
-    }
-
     pub fn neg(&self) -> Self {
         let mut s = self.s.clone();
         for i in 0..32 {
             s[i] = 255 - self.s[i];
         }
         Self::new(s) + Self::one()
-    }
-
-    pub fn sign_change(&self, selector: bool) -> Self {
-        if selector {
-            self.neg()
-        }
-        else {
-            self.clone()
-        }
     }
 
     pub fn hash(&self) -> Self {
