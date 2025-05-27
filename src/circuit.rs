@@ -87,9 +87,75 @@ mod tests {
         }
     }
 
+    fn test_circuit_find_incorrect(circuit_filename: &str, correct: bool) {
+        println!("testing {:?}", circuit_filename);
+        let circuit = Circuit::from_bristol(circuit_filename);
+
+        let mut garbled_gates = circuit.garbled_gates();
+        let n = garbled_gates.len();
+
+        if !correct {
+            let u: u32 = rng().random();
+            garbled_gates[(u as usize) % n] = vec![S::random(), S::random(), S::random(), S::random()];
+        }
+
+        circuit.set_input_wires();
+
+        println!("testing {:?} garble", if correct {"correct"} else {"incorrect"});
+
+        for (i, (gate, garble)) in zip(circuit.gates.clone(), garbled_gates).enumerate() {
+            let a = gate.wire_a.borrow().get_label();
+            let b = gate.wire_b.borrow().get_label();
+            let bit_a = gate.wire_a.borrow().get_value();
+            let bit_b = gate.wire_b.borrow().get_value();
+            let bit_c = (gate.f())(bit_a, bit_b);
+            let (garble_check, c) = gate.check_garble(garble.clone(), bit_c);
+
+            println!("testing gate[{:?}], garble is {:?}", i, if garble_check {"correct"} else {"incorrect"});
+
+            if garble_check {
+                gate.wire_c.borrow_mut().set2(bit_c, c);
+                continue;
+            }
+            assert!(!correct);
+        
+            let gate_script = gate.script(garble, garble_check);
+            
+            let script = script! {
+                { U256::push_hex(&hex::encode(&a.s)) }
+                { if bit_a {1} else {0} }
+                { U256::push_hex(&hex::encode(&b.s)) }
+                { if bit_b {1} else {0} }
+                { gate_script }
+            };
+            let result = execute_script(script);
+            assert!(result.success);
+    
+            break;
+        }
+    }
+
+    #[test]
+    fn test_circuit_adder_find_incorrect() {
+        test_circuit_find_incorrect("adder64.txt", true);
+        test_circuit_find_incorrect("adder64.txt", false);
+    }
+
+    #[test]
+    fn test_circuit_subtracter_find_incorrect() {
+        test_circuit_find_incorrect("subtracter64.txt", true);
+        test_circuit_find_incorrect("subtracter64.txt", false);
+    }
+
+    #[test]
+    fn test_circuit_multiplier_find_incorrect() {
+        test_circuit_find_incorrect("multiplier64.txt", true);
+        test_circuit_find_incorrect("multiplier64.txt", false);
+    }
+
     #[test]
     fn test_circuit_adder() {
-        // test_circuit("adder64.txt", true);
+        test_circuit("adder64.txt", true);
         test_circuit("adder64.txt", false);
     }
 
