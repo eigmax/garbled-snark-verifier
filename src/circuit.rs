@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 use rand::{rng, Rng};
-use crate::{bristol::parser, gate::{Gate, Wire, S}};
+use crate::{bristol::parser, gate::Gate, wire::Wire, s::S};
 
 pub struct Circuit {
     pub nog: usize,
