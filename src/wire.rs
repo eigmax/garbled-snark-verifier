@@ -14,7 +14,7 @@ pub struct Wire {
 impl Wire {
     pub fn new() -> Self {
         let l0 = S::random();
-        let l1 = l0.clone() + S::delta().sign_change(l0.lsb());
+        let l1 = S::random();
         let hash0 = l0.hash();
         let hash1 = l1.hash();
         Self {
@@ -28,9 +28,7 @@ impl Wire {
     }
 
     pub fn public_data(&self) -> Vec<S> {
-        let mut hashs = vec![self.hash0.clone(), self.hash1.clone()];
-        hashs.shuffle(&mut rand::rng());
-        hashs
+        vec![self.hash0.clone(), self.hash1.clone()]
     }
 
     pub fn select(&self, selector: bool) -> S {
@@ -47,17 +45,14 @@ impl Wire {
         self.value.unwrap()
     }
 
-    pub fn set_value(&mut self, bit: bool) {
+    pub fn get_label(&self) -> S {
+        assert!(self.value.is_some());
+        self.label.clone().unwrap()
+    }
+
+    pub fn set(&mut self, bit: bool) {
         assert!(self.value.is_none());
         self.value = Some(bit);
-        self.set_label(if bit {self.l1.clone()} else {self.l0.clone()});
-    }
-
-    pub fn set_label(&mut self, label: S) {
-        self.label = Some(label);
-    }
-
-    pub fn get_label(&self) -> S {
-        self.label.clone().unwrap()
+        self.label = Some(self.select(bit));
     }
 }
