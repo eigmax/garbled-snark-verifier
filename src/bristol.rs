@@ -1,5 +1,5 @@
 use std::{cell::RefCell, fs, rc::Rc};
-use crate::{circuit::Circuit, gate::{Gate, Wire}};
+use crate::{circuit::Circuit, gate::Gate, wire::Wire};
 
 pub fn parser(filename: &str) -> Circuit {
     let data = fs::read_to_string(filename).expect("error");
@@ -46,18 +46,8 @@ pub fn parser(filename: &str) -> Circuit {
             output_wires.push(words.next().unwrap().parse().unwrap());
         }
         let gate_type = words.next().unwrap().to_lowercase();
-        if gate_type == "and" {
-            let gate = Gate::and(wires[input_wires[0]].clone(), wires[input_wires[1]].clone(), wires[output_wires[0]].clone());
-            gates.push(gate);
-        }
-        else if gate_type == "xor" {
-            let gate = Gate::xor(wires[input_wires[0]].clone(), wires[input_wires[1]].clone(), wires[output_wires[0]].clone());
-            gates.push(gate);
-        }
-        else if gate_type == "inv" {
-            let gate = Gate::not(wires[input_wires[0]].clone(), wires[output_wires[0]].clone());
-            gates.push(gate);
-        }
+        let gate = Gate::new(wires[input_wires[0]].clone(), wires[input_wires[1]].clone(), wires[output_wires[0]].clone(), gate_type);
+        gates.push(gate);
         i += 1;
     }
     Circuit {
@@ -81,10 +71,10 @@ mod tests {
         let a: u64 = rng().random();
         let b: u64 = rng().random();
         for i in 0..adder_circuit.input_sizes[0] {
-            adder_circuit.wires[i].borrow_mut().set_value((a >> i) & 1 == 1);
+            adder_circuit.wires[i].borrow_mut().set((a >> i) & 1 == 1);
         }
         for (i, j) in (adder_circuit.input_sizes[0]..(adder_circuit.input_sizes[0]+adder_circuit.input_sizes[1])).enumerate() {
-            adder_circuit.wires[j].borrow_mut().set_value((b >> i) & 1 == 1);
+            adder_circuit.wires[j].borrow_mut().set((b >> i) & 1 == 1);
         }
         for mut gate in adder_circuit.gates {
             gate.evaluate();
@@ -106,10 +96,10 @@ mod tests {
         let a: u64 = rng().random();
         let b: u64 = rng().random();
         for i in 0..adder_circuit.input_sizes[0] {
-            adder_circuit.wires[i].borrow_mut().set_value((a >> i) & 1 == 1);
+            adder_circuit.wires[i].borrow_mut().set((a >> i) & 1 == 1);
         }
         for (i, j) in (adder_circuit.input_sizes[0]..(adder_circuit.input_sizes[0]+adder_circuit.input_sizes[1])).enumerate() {
-            adder_circuit.wires[j].borrow_mut().set_value((b >> i) & 1 == 1);
+            adder_circuit.wires[j].borrow_mut().set((b >> i) & 1 == 1);
         }
         for mut gate in adder_circuit.gates {
             gate.evaluate();
@@ -131,10 +121,10 @@ mod tests {
         let a: u64 = rng().random();
         let b: u64 = rng().random();
         for i in 0..adder_circuit.input_sizes[0] {
-            adder_circuit.wires[i].borrow_mut().set_value((a >> i) & 1 == 1);
+            adder_circuit.wires[i].borrow_mut().set((a >> i) & 1 == 1);
         }
         for (i, j) in (adder_circuit.input_sizes[0]..(adder_circuit.input_sizes[0]+adder_circuit.input_sizes[1])).enumerate() {
-            adder_circuit.wires[j].borrow_mut().set_value((b >> i) & 1 == 1);
+            adder_circuit.wires[j].borrow_mut().set((b >> i) & 1 == 1);
         }
         for mut gate in adder_circuit.gates {
             gate.evaluate();
