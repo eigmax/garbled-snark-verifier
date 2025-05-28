@@ -5,6 +5,7 @@ pub mod wire;
 pub mod gate;
 pub mod circuit;
 pub mod bristol;
+pub mod circuits;
 
 pub fn convert_between_blake3_and_normal_form() -> Script {
     script! {
