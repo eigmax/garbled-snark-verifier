@@ -114,10 +114,10 @@ impl Gate {
             { convert_between_blake3_and_normal_form() }              // a' b' | bit_a bit_b
             { blake3_compute_script_with_limb(64, LIMB_LEN) }
             { U256::transform_limbsize(4, LIMB_LEN.into()) }          // hab | bit_a bit_b
-            { U256::push_hex(&hex::encode(garbled[0].s)) }
-            { U256::push_hex(&hex::encode(garbled[1].s)) }
-            { U256::push_hex(&hex::encode(garbled[2].s)) }
-            { U256::push_hex(&hex::encode(garbled[3].s)) }            // hab tau0 tau1 tau2 tau3 | bit_a bit_b
+            { U256::push_hex(&hex::encode(garbled[0].0)) }
+            { U256::push_hex(&hex::encode(garbled[1].0)) }
+            { U256::push_hex(&hex::encode(garbled[2].0)) }
+            { U256::push_hex(&hex::encode(garbled[3].0)) }            // hab tau0 tau1 tau2 tau3 | bit_a bit_b
             OP_FROMALTSTACK OP_FROMALTSTACK                           // hab tau0 tau1 tau2 tau3 bit_a bit_b
             OP_2DUP OP_TOALTSTACK OP_TOALTSTACK                       // hab tau0 tau1 tau2 tau3 bit_a bit_b | bit_a bit_b
             OP_IF
@@ -188,9 +188,9 @@ mod tests {
                     let b = gate.wire_b.borrow().select(bit_b);
                     let gate_script = gate.script(garbled.clone(), correct);
                     let script = script! {
-                        { U256::push_hex(&hex::encode(&a.s)) }
+                        { U256::push_hex(&hex::encode(&a.0)) }
                         { if bit_a {1} else {0} }
-                        { U256::push_hex(&hex::encode(&b.s)) }
+                        { U256::push_hex(&hex::encode(&b.0)) }
                         { if bit_b {1} else {0} }
                         { gate_script }
                     };

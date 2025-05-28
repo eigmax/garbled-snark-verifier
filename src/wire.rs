@@ -80,9 +80,9 @@ impl Wire {
             { U256::transform_limbsize(4, LIMB_LEN.into()) }       // hx | bit_x
             OP_FROMALTSTACK                                        // hx bit_x
             OP_IF
-                { U256::push_hex(&hex::encode(self.hash1.s)) }
+                { U256::push_hex(&hex::encode(self.hash1.0)) }
             OP_ELSE
-                { U256::push_hex(&hex::encode(self.hash0.s)) }
+                { U256::push_hex(&hex::encode(self.hash0.0)) }
             OP_ENDIF                                               // hx hash
             { U256::equal(0, 1) }
         }
