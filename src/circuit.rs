@@ -16,12 +16,6 @@ impl Circuit {
         parser(filename)
     }
 
-    pub fn public_data(&self) -> (Vec<Vec<S>>, Vec<Vec<S>>) {
-        let wire_public = self.wires.iter().map(|wire| wire.borrow().public_data()).collect();
-        let gate_public= self.gates.iter().map(|gate| gate.garbled()).collect();
-        (wire_public, gate_public)
-    }
-
     pub fn garbled_gates(&self) -> Vec<Vec<S>> {
         self.gates.iter().map(|gate| gate.garbled()).collect()
     }

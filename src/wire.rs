@@ -27,10 +27,6 @@ impl Wire {
         }
     }
 
-    pub fn public_data(&self) -> Vec<S> {
-        vec![self.hash0.clone(), self.hash1.clone()]
-    }
-
     pub fn select(&self, selector: bool) -> S {
         if selector {
             self.l1.clone()
