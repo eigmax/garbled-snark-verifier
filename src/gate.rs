@@ -1,6 +1,6 @@
-use std::{cell::RefCell, rc::Rc};
+use crate::bag::*;
 use bitvm::{bigint::U256, hash::blake3::blake3_compute_script_with_limb, treepp::*};
-use crate::{convert_between_blake3_and_normal_form, s::S, wire::Wire, LIMB_LEN, N_LIMBS};
+use crate::{bit_to_usize, convert_between_blake3_and_normal_form, LIMB_LEN, N_LIMBS};
 
 #[derive(Clone)]
 pub struct Gate {
@@ -21,50 +21,24 @@ impl Gate {
     }
 
     pub fn f(&self) -> fn(bool, bool) -> bool {
-        if self.name == "and" {
-            fn and(a: bool, b: bool) -> bool {a & b}
-            return and;
-        }
-        else if self.name == "or" {
-            fn or(a: bool, b: bool) -> bool {a | b}
-            return or;
-        }
-        else if self.name == "xor" {
-            fn xor(a: bool, b: bool) -> bool {a ^ b}
-            return xor;
-        }
-        else if self.name == "nand" {
-            fn nand(a: bool, b: bool) -> bool {!(a ^ b)}
-            return nand;
-        }
-        else if self.name == "inv" {
-            fn not(a: bool, _b: bool) -> bool {!a}
-            return not;
-        }
-        else {
-            fn empty(_a: bool, _b: bool) -> bool {false}
-            return empty;
+        match self.name.as_str() {
+            "and"         => { fn  and(a: bool, b: bool) -> bool {a & b}     and }
+            "or"          => { fn   or(a: bool, b: bool) -> bool {a | b}      or }
+            "xor"         => { fn  xor(a: bool, b: bool) -> bool {a ^ b}     xor }
+            "nand"        => { fn nand(a: bool, b: bool) -> bool {!(a ^ b)} nand }
+            "inv" | "not" => { fn  not(a: bool, _b: bool) -> bool {!a}       not }
+            _             => { panic!("this gate type is not allowed");          }
         }
     }
 
     pub fn evaluation_script(&self) -> Script {
-        if self.name == "and" {
-            script! { OP_BOOLAND }
-        }
-        else if self.name == "or" {
-            script! { OP_BOOLOR }
-        }
-        else if self.name == "xor" {
-            script! { OP_NUMNOTEQUAL }
-        }
-        else if self.name == "nand" {
-            script! { OP_BOOLAND OP_NOT }
-        }
-        else if self.name == "inv" {
-            script! { OP_DROP OP_NOT }
-        }
-        else {
-            script! {}
+        match self.name.as_str() {
+            "and"         => script! { OP_BOOLAND },
+            "or"          => script! { OP_BOOLOR },
+            "xor"         => script! { OP_NUMNOTEQUAL },
+            "nand"        => script! { OP_BOOLAND OP_NOT },
+            "inv" | "not" => script! { OP_DROP OP_NOT },
+            _             => panic!("this gate type is not allowed")
         }
     }
     
@@ -73,24 +47,20 @@ impl Gate {
     }
 
     pub fn garbled(&self) -> Vec<S> {
-        let mut result = Vec::new();
-        for (i, j) in [(false, false), (true, false), (false, true), (true, true)] {
-            let k = (self.f())(i, j);
-            let a = self.wire_a.borrow().select(i);
-            let b = self.wire_b.borrow().select(j);
+        [(false, false), (true, false), (false, true), (true, true)].iter().map(|(i, j)| {
+            let k = (self.f())(*i, *j);
+            let a = self.wire_a.borrow().select(*i);
+            let b = self.wire_b.borrow().select(*j);
             let c = self.wire_c.borrow().select(k);
-            let garbled_row = S::hash_together(a, b) + c.neg();
-            result.push(garbled_row);
-        }
-        result
+            S::hash_together(a, b) + c.neg()
+        }).collect()
     }
 
     pub fn check_garble(&self, garble: Vec<S>, bit: bool) -> (bool, S) {
         let a = self.wire_a.borrow().get_label();
         let b = self.wire_b.borrow().get_label();
-        let bit_a = self.wire_a.borrow().get_value();
-        let bit_b = self.wire_b.borrow().get_value();
-        let row = garble[(if bit_a {1} else {0})+2*(if bit_b {1} else {0})].clone();
+        let index = bit_to_usize(self.wire_a.borrow().get_value()) + 2 * bit_to_usize(self.wire_b.borrow().get_value());
+        let row = garble[index].clone();
         let c = S::hash_together(a, b) + row.neg();
         let hc = c.hash();
         (hc == self.wire_c.borrow().select_hash(bit), c)
@@ -182,22 +152,20 @@ mod tests {
 
         for (correct, garbled) in [(true, correct_garbled), (false, incorrect_garbled)] {
             println!("testing {:?} garble", if correct {"correct"} else {"incorrect"});
-            for bit_a in [false, true] {
-                for bit_b in [false, true] {
-                    let a = gate.wire_a.borrow().select(bit_a);
-                    let b = gate.wire_b.borrow().select(bit_b);
-                    let gate_script = gate.script(garbled.clone(), correct);
-                    let script = script! {
-                        { U256::push_hex(&hex::encode(&a.0)) }
-                        { if bit_a {1} else {0} }
-                        { U256::push_hex(&hex::encode(&b.0)) }
-                        { if bit_b {1} else {0} }
-                        { gate_script }
-                    };
-                    println!("script len: {:?}", script.len());
-                    let result = execute_script(script);
-                    assert!(result.success);
-                }
+            for (bit_a, bit_b) in [(false, false), (true, false), (false, true), (true, true)] {
+                let a = gate.wire_a.borrow().select(bit_a);
+                let b = gate.wire_b.borrow().select(bit_b);
+                let gate_script = gate.script(garbled.clone(), correct);
+                let script = script! {
+                    { U256::push_hex(&hex::encode(&a.0)) }
+                    { if bit_a {1} else {0} }
+                    { U256::push_hex(&hex::encode(&b.0)) }
+                    { if bit_b {1} else {0} }
+                    { gate_script }
+                };
+                println!("script len: {:?}", script.len());
+                let result = execute_script(script);
+                assert!(result.success);
             }
         }
     }

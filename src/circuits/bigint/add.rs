@@ -44,7 +44,7 @@ pub fn adder_2bit(input_wires: Vec<Rc<RefCell<Wire>>>) -> (Vec<Rc<RefCell<Wire>>
 mod tests {
     use num_bigint::BigUint;
     use rand::{rng, Rng};
-    use crate::{bit_to_u8, circuits::bigint::U254};
+    use crate::{bit_to_usize, circuits::bigint::U254};
     use super::*;
 
     fn random_biguint() -> BigUint {
@@ -107,8 +107,8 @@ mod tests {
             gate.evaluate();
         }
 
-        let d = bit_to_u8(wire_e.borrow().get_value()) + 2 * bit_to_u8(wire_f.borrow().get_value()) + 4 * bit_to_u8(wire_g.borrow().get_value());
-        assert_eq!(c, d);
+        let d = bit_to_usize(wire_e.borrow().get_value()) + 2 * bit_to_usize(wire_f.borrow().get_value()) + 4 * bit_to_usize(wire_g.borrow().get_value());
+        assert_eq!(c, d as u8);
     }
 
 
