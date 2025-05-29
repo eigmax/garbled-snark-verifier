@@ -8,6 +8,7 @@ pub mod bristol;
 pub mod circuits;
 
 pub mod bag {
+    pub use crate::s::S;
     pub use crate::wire::Wire;
     pub use crate::gate::Gate;
     pub use crate::circuit::Circuit;
@@ -27,7 +28,7 @@ pub fn convert_between_blake3_and_normal_form() -> Script {
     }
 }
 
-pub fn bit_to_u8(bit: bool) -> u8 {
+pub fn bit_to_usize(bit: bool) -> usize {
     if bit {1} else {0}
 }
 

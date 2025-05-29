@@ -3,8 +3,8 @@ use bitvm::{bigint::U256, hash::blake3::blake3_compute_script_with_limb, treepp:
 
 #[derive(Clone, Debug)]
 pub struct Wire {
-    pub l0: S,
-    pub l1: S,
+    pub label0: S,
+    pub label1: S,
     pub hash0: S,
     pub hash1: S,
     pub value: Option<bool>,
@@ -13,13 +13,13 @@ pub struct Wire {
 
 impl Wire {
     pub fn new() -> Self {
-        let l0 = S::random();
-        let l1 = S::random();
-        let hash0 = l0.hash();
-        let hash1 = l1.hash();
+        let label0 = S::random();
+        let label1 = S::random();
+        let hash0 = label0.hash();
+        let hash1 = label1.hash();
         Self {
-            l0,
-            l1,
+            label0,
+            label1,
             hash0,
             hash1,
             value: None,
@@ -29,10 +29,10 @@ impl Wire {
 
     pub fn select(&self, selector: bool) -> S {
         if selector {
-            self.l1.clone()
+            self.label1.clone()
         }
         else {
-            self.l0.clone()
+            self.label0.clone()
         }
     }
 

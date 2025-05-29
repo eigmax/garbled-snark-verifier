@@ -26,7 +26,7 @@ impl Fq {
 #[cfg(test)]
 mod tests {
     use num_bigint::BigUint;
-    use rand::{Rng};
+    use rand::Rng;
     use super::*;
 
     fn random_fq() -> ark_bn254::Fq {

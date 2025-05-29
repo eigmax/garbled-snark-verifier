@@ -1,5 +1,5 @@
-use std::{cell::RefCell, fs, rc::Rc};
-use crate::{circuit::Circuit, gate::Gate, wire::Wire};
+use std::fs;
+use crate::bag::*;
 
 pub fn parser(filename: &str) -> Circuit {
     let data = fs::read_to_string(filename).expect("error");
