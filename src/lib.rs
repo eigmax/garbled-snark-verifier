@@ -20,5 +20,9 @@ pub fn convert_between_blake3_and_normal_form() -> Script {
     }
 }
 
+pub fn bit_to_u8(bit: bool) -> u8 {
+    if bit {1} else {0}
+}
+
 const LIMB_LEN: u8 = 29;
 const N_LIMBS: u8 = 9;

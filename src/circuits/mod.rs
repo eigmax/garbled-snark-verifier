@@ -68,7 +68,46 @@ pub fn adder_254bit(input_wires: Vec<Rc<RefCell<Wire>>>) -> (Vec<Rc<RefCell<Wire
 
 #[cfg(test)]
 mod tests {
+    use num_bigint::BigUint;
+    use rand::{rng, Rng};
+    use crate::bit_to_u8;
+
     use super::*;
+
+    fn random_biguint() -> BigUint {
+        BigUint::from_bytes_le(&rand::rng().random::<[u8; 32]>())
+    }
+
+    fn bits_from_biguint(u: BigUint) -> Vec<bool> {
+        let bytes = u.to_bytes_le();
+        let mut bits = Vec::new();
+        for byte in bytes {
+            for i in 0..8 {
+                bits.push(((byte >> i) & 1) == 1)
+            }
+        }
+        bits
+    }
+
+    fn biguint_from_bits(bits: Vec<bool>) -> BigUint {
+        let zero = BigUint::ZERO;
+        let one = BigUint::from(1_u8);
+        let mut u = zero.clone();
+        for bit in bits.iter().rev() {
+            u = u.clone() + u.clone() + if *bit {one.clone()} else {zero.clone()};
+        }
+        u
+    }
+
+    #[test]
+    fn test_random_biguint() {
+        let u = random_biguint();
+        println!("u: {:?}", u);
+        let b = bits_from_biguint(u.clone());
+        let v = biguint_from_bits(b);
+        println!("v: {:?}", v);
+        assert_eq!(u, v);
+    }
 
     #[test]
     fn test_adder_2bit() {
@@ -82,18 +121,21 @@ mod tests {
         let wire_f = wires[1].clone();
         let wire_g = wires[2].clone();
 
-        wire_a.borrow_mut().set(false);
-        wire_b.borrow_mut().set(true);
-        wire_c.borrow_mut().set(true);
-        wire_d.borrow_mut().set(true);
+        let a = rng().random::<u8>() % 4;
+        let b = rng().random::<u8>() % 4;
+        let c = a + b;
+
+        wire_a.borrow_mut().set((a & 1) == 1);
+        wire_b.borrow_mut().set((a & 2) == 1);
+        wire_c.borrow_mut().set((b & 1) == 1);
+        wire_d.borrow_mut().set((b & 2) == 1);
 
         for mut gate in gates {
             gate.evaluate();
         }
 
-        println!("bit0: {:?}", wire_e.borrow().get_value());
-        println!("bit1: {:?}", wire_f.borrow().get_value());
-        println!("bit2: {:?}", wire_g.borrow().get_value());
+        let d = bit_to_u8(wire_e.borrow().get_value()) + 2 * bit_to_u8(wire_f.borrow().get_value()) + 4 * bit_to_u8(wire_g.borrow().get_value());
+        assert_eq!(c, d);
     }
 }
 
