@@ -26,11 +26,11 @@ impl Fq {
 #[cfg(test)]
 mod tests {
     use num_bigint::BigUint;
-    use rand::Rng;
+    use rand::{rng, Rng};
     use super::*;
 
     fn random_fq() -> ark_bn254::Fq {
-        let u = BigUint::from_bytes_le(&rand::rng().random::<[u8; 32]>()) % Fq::modulus_as_biguint();
+        let u = BigUint::from_bytes_le(&rng().random::<[u8; 32]>()) % Fq::modulus_as_biguint();
         ark_bn254::Fq::from(u)
     }
 

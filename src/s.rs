@@ -1,5 +1,5 @@
 use std::{iter::zip, ops::Add};
-use rand::Rng;
+use rand::{rng, Rng};
 use blake3::hash;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -13,7 +13,7 @@ impl S {
     }
 
     pub fn random() -> Self {
-        Self(rand::rng().random::<[u8; 32]>())
+        Self(rng().random::<[u8; 32]>())
     }
 
     pub fn neg(&self) -> Self {
