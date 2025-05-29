@@ -5,6 +5,14 @@ pub mod wire;
 pub mod gate;
 pub mod circuit;
 pub mod bristol;
+pub mod circuits;
+
+pub mod bag {
+    pub use crate::wire::Wire;
+    pub use crate::gate::Gate;
+    pub use crate::circuit::Circuit;
+    pub use std::{cell::RefCell, rc::Rc};
+}
 
 pub fn convert_between_blake3_and_normal_form() -> Script {
     script! {
@@ -17,6 +25,10 @@ pub fn convert_between_blake3_and_normal_form() -> Script {
         }
         { U256::transform_limbsize(8, 29) }
     }
+}
+
+pub fn bit_to_u8(bit: bool) -> u8 {
+    if bit {1} else {0}
 }
 
 const LIMB_LEN: u8 = 29;
