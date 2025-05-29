@@ -7,6 +7,13 @@ pub mod circuit;
 pub mod bristol;
 pub mod circuits;
 
+pub mod bag {
+    pub use crate::wire::Wire;
+    pub use crate::gate::Gate;
+    pub use crate::circuit::Circuit;
+    pub use std::{cell::RefCell, rc::Rc};
+}
+
 pub fn convert_between_blake3_and_normal_form() -> Script {
     script! {
         { U256::transform_limbsize(29, 8) }
