@@ -1324,6 +1324,8 @@ dependencies = [
 name = "toy-garbled"
 version = "0.1.0"
 dependencies = [
+ "ark-bn254",
+ "ark-std",
  "bitcoin",
  "bitcoin-script",
  "bitcoin-script-stack",

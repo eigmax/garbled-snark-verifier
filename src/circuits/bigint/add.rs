@@ -1,7 +1,7 @@
 use crate::{bag::*, circuits::utils::{full_adder, half_adder}};
 use super::BigIntImpl;
 
-impl<const N_BITS: u32> BigIntImpl<N_BITS> {
+impl<const N_BITS: usize> BigIntImpl<N_BITS> {
     pub fn add(input_wires: Vec<Rc<RefCell<Wire>>>) -> (Vec<Rc<RefCell<Wire>>>, Vec<Gate>) {
         todo!()
     }
