@@ -48,6 +48,24 @@ pub fn adder_2bit(input_wires: Vec<Rc<RefCell<Wire>>>) -> (Vec<Rc<RefCell<Wire>>
     (vec![wire_e, wire_g, wire_h], gates)
 }
 
+pub fn adder_254bit(input_wires: Vec<Rc<RefCell<Wire>>>) -> (Vec<Rc<RefCell<Wire>>>, Vec<Gate>) {
+    assert_eq!(input_wires.len(), 2*254);
+    let mut output_gates = Vec::new();
+    let mut output_wires=Vec::new();
+
+    let (wires, gates) = half_adder(vec![input_wires[0].clone(), input_wires[254].clone()]);
+    output_wires.push(wires[0].clone());
+    output_gates.extend(gates);
+    let mut carry_wire = wires[1].clone();
+    for i in 1..254{
+        let (wires, gates) = full_adder(vec![input_wires[i].clone(), input_wires[i+254].clone(),carry_wire]);
+        output_wires.push(wires[0].clone());
+        output_gates.extend(gates);
+        carry_wire = wires[1].clone();
+    }
+    (output_wires, output_gates)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
