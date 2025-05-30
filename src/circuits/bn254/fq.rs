@@ -53,6 +53,35 @@ impl Fq {
         (output_wires, circuit_gates)
     }
 
+pub fn double(mut input_wires: Vec<Rc<RefCell<Wire>>>) -> (Vec<Rc<RefCell<Wire>>>, Vec<Gate>) {
+        assert_eq!(input_wires.len(),U254::N_BITS);
+        let mut circuit_gates = Vec::new();
+        let shift_wire = Rc::new(RefCell::new(Wire::new()));
+        shift_wire.borrow_mut().set(false);
+        let u = input_wires.pop().unwrap();
+        let mut shifted_wires = vec![shift_wire];
+        shifted_wires.extend(input_wires);
+        let c = Fq::negative_modulus_as_biguint();
+        let (mut wires_2 , gates_1) = U254::add_constant(shifted_wires.clone(), c);
+        wires_2.pop();
+        let not_u = Rc::new(RefCell::new(Wire::new()));
+        let gate_3 = Gate::new(u.clone(), u.clone(), not_u.clone(), "inv".to_string());
+        let (v, gates_2) = U254::less_than_constant(shifted_wires.clone(), Fq::modulus_as_biguint());
+        let selector = Rc::new(RefCell::new(Wire::new()));
+        let gate_4 = Gate::new(not_u.clone(), v[0].clone(), selector.clone(), "and".to_string());
+        shifted_wires.extend(wires_2);
+        shifted_wires.push(selector);
+        let (output_wires, gates_5) = U254::select(shifted_wires);
+        circuit_gates.extend(gates_1);
+        circuit_gates.extend(gates_2);
+        circuit_gates.push(gate_3);
+        circuit_gates.push(gate_4);
+        circuit_gates.extend(gates_5);
+        (output_wires, circuit_gates)
+    }
+
+
+
     pub fn mul(input_wires: Vec<Rc<RefCell<Wire>>>) -> (Vec<Rc<RefCell<Wire>>>, Vec<Gate>) {
         todo!()
     }
@@ -80,6 +109,24 @@ mod tests {
             input_wires.push(wire)
         }
         let (output_wires, gates) = Fq::add(input_wires);
+        for mut gate in gates {
+            gate.evaluate();
+        }
+        let d = fq_from_bits(output_wires.iter().map(|output_wire| { output_wire.borrow().get_value() }).collect());
+        assert_eq!(c, d);
+    }
+
+    #[test]
+    fn test_fq_double() {
+        let a = random_fq();
+        let c = a + a;
+        let mut input_wires = Vec::new();
+        for bit in bits_from_fq(a) {
+            let wire = Rc::new(RefCell::new(Wire::new()));
+            wire.borrow_mut().set(bit);
+            input_wires.push(wire)
+        }
+        let (output_wires, gates) = Fq::double(input_wires);
         for mut gate in gates {
             gate.evaluate();
         }
