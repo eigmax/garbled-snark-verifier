@@ -28,6 +28,21 @@ impl Fq {
         bits_from_biguint(Fq::negative_modulus_as_biguint())
     }
 
+    pub fn self_or_zero(input_wires: Vec<Rc<RefCell<Wire>>>) -> (Vec<Rc<RefCell<Wire>>>, Vec<Gate>) {
+        assert_eq!(input_wires.len(), U254::N_BITS + 1);
+        let mut circuit_gates = Vec::new();
+        let mut output_wires = Vec::new();
+        let mut self_wires = input_wires.clone();
+        let selector = self_wires.pop().unwrap();
+        for i in 0..U254::N_BITS {
+            let wire = Rc::new(RefCell::new(Wire::new()));
+            let gate = Gate::new(self_wires[i].clone(), selector.clone(), wire.clone(), "and".to_string());
+            circuit_gates.push(gate);
+            output_wires.push(wire);
+        }
+        (output_wires, circuit_gates)
+    }
+
     pub fn add(input_wires: Vec<Rc<RefCell<Wire>>>) -> (Vec<Rc<RefCell<Wire>>>, Vec<Gate>) {
         assert_eq!(input_wires.len(),2*U254::N_BITS);
         let mut circuit_gates = Vec::new();
@@ -53,7 +68,7 @@ impl Fq {
         (output_wires, circuit_gates)
     }
 
-pub fn double(mut input_wires: Vec<Rc<RefCell<Wire>>>) -> (Vec<Rc<RefCell<Wire>>>, Vec<Gate>) {
+    pub fn double(mut input_wires: Vec<Rc<RefCell<Wire>>>) -> (Vec<Rc<RefCell<Wire>>>, Vec<Gate>) {
         assert_eq!(input_wires.len(),U254::N_BITS);
         let mut circuit_gates = Vec::new();
         let shift_wire = Rc::new(RefCell::new(Wire::new()));
@@ -80,10 +95,34 @@ pub fn double(mut input_wires: Vec<Rc<RefCell<Wire>>>) -> (Vec<Rc<RefCell<Wire>>
         (output_wires, circuit_gates)
     }
 
-
-
     pub fn mul(input_wires: Vec<Rc<RefCell<Wire>>>) -> (Vec<Rc<RefCell<Wire>>>, Vec<Gate>) {
-        todo!()
+        assert_eq!(input_wires.len(), 2*U254::N_BITS);
+        let mut circuit_gates = Vec::new();
+        let mut a_wires = Vec::new();
+        let mut b_wires = Vec::new();
+        for i in 0..U254::N_BITS {
+            a_wires.push(input_wires[i].clone());
+            b_wires.push(input_wires[i+U254::N_BITS].clone());
+        }
+        let mut a_wires_with_selector = a_wires.clone();
+        a_wires_with_selector.push(b_wires[U254::N_BITS - 1].clone());
+        let (a_or_zero_wires, a_or_zero_gates) = Fq::self_or_zero(a_wires_with_selector);
+        circuit_gates.extend(a_or_zero_gates);
+        let mut result = a_or_zero_wires.clone();
+        for b_wire in b_wires.iter().rev().skip(1) {
+            let (double_wires, double_gates) = Fq::double(result.clone());
+            circuit_gates.extend(double_gates);
+            let mut a_wires_with_selector_i = a_wires.clone();
+            a_wires_with_selector_i.push(b_wire.clone());
+            let (a_or_zero_wires_i, a_or_zero_gates_i) = Fq::self_or_zero(a_wires_with_selector_i);
+            circuit_gates.extend(a_or_zero_gates_i);
+            let mut add_inputs = double_wires.clone();
+            add_inputs.extend(a_or_zero_wires_i.clone());
+            let (add_wires, add_gates) = Fq::add(add_inputs);
+            circuit_gates.extend(add_gates);
+            result = add_wires;
+        }
+        (result, circuit_gates)
     }
 }
 
@@ -127,6 +166,31 @@ mod tests {
             input_wires.push(wire)
         }
         let (output_wires, gates) = Fq::double(input_wires);
+        for mut gate in gates {
+            gate.evaluate();
+        }
+        let d = fq_from_bits(output_wires.iter().map(|output_wire| { output_wire.borrow().get_value() }).collect());
+        assert_eq!(c, d);
+    }
+
+    #[test]
+    fn test_fq_mul() {
+        let a = random_fq();
+        let b = random_fq();
+        let c = a * b;
+        let mut input_wires = Vec::new();
+        for bit in bits_from_fq(a) {
+            let wire = Rc::new(RefCell::new(Wire::new()));
+            wire.borrow_mut().set(bit);
+            input_wires.push(wire)
+        }
+        for bit in bits_from_fq(b) {
+            let wire = Rc::new(RefCell::new(Wire::new()));
+            wire.borrow_mut().set(bit);
+            input_wires.push(wire)
+        }
+        let (output_wires, gates) = Fq::mul(input_wires);
+        println!("gate count: {:?}", gates.len());
         for mut gate in gates {
             gate.evaluate();
         }
