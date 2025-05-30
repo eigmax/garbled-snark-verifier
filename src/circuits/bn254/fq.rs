@@ -25,47 +25,8 @@ impl Fq {
 
 #[cfg(test)]
 mod tests {
-    use num_bigint::BigUint;
-    use rand::{rng, Rng};
+    use crate::circuits::bn254::utils::tests::{bits_from_fq, fq_from_bits, random_fq};
     use super::*;
-
-    fn random_fq() -> ark_bn254::Fq {
-        let u = BigUint::from_bytes_le(&rng().random::<[u8; 32]>()) % Fq::modulus_as_biguint();
-        ark_bn254::Fq::from(u)
-    }
-
-    fn bits_from_fq(u: ark_bn254::Fq) -> Vec<bool> {
-        let bytes = BigUint::from(u).to_bytes_le();
-        let mut bits = Vec::new();
-        for byte in bytes {
-            for i in 0..8 {
-                bits.push(((byte >> i) & 1) == 1)
-            }
-        }
-        bits.pop();
-        bits.pop();
-        bits
-    }
-
-    fn fq_from_bits(bits: Vec<bool>) -> ark_bn254::Fq {
-        let zero = BigUint::ZERO;
-        let one = BigUint::from(1_u8);
-        let mut u = zero.clone();
-        for bit in bits.iter().rev() {
-            u = u.clone() + u.clone() + if *bit {one.clone()} else {zero.clone()};
-        }
-        ark_bn254::Fq::from(u)
-    }
-
-    #[test]
-    fn test_random_fq() {
-        let u = random_fq();
-        println!("u: {:?}", u);
-        let b = bits_from_fq(u.clone());
-        let v = fq_from_bits(b);
-        println!("v: {:?}", v);
-        assert_eq!(u, v);
-    }
 
     #[test]
     fn test_fq_add() {

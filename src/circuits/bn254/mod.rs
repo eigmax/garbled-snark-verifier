@@ -1,5 +1,6 @@
 use super::bigint::U254;
 
+pub mod utils;
 pub mod fq;
 
 pub trait Fp254Impl {
