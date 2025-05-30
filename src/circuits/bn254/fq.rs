@@ -38,22 +38,10 @@ impl Fq {
         wires_2.pop();
         let not_u = Rc::new(RefCell::new(Wire::new()));
         let gate_3 = Gate::new(u.clone(), u.clone(), not_u.clone(), "inv".to_string());
-        let mut p_wires = Vec::new();
-        for bit in Fq::modulus_as_bits() {
-            let wire_p = Rc::new(RefCell::new(Wire::new()));
-            wire_p.borrow_mut().set(bit);
-            p_wires.push(wire_p);
-        }
-        p_wires.pop();
-        p_wires.pop();
-        p_wires.extend(wires_1.clone());
-        let (v, gates_4) = U254::greater_than(p_wires);
+        let (v, gates_4) = U254::less_than_constant(wires_1.clone(), Fq::modulus_as_biguint());
         let selector = Rc::new(RefCell::new(Wire::new()));
         let gate_5 = Gate::new(not_u.clone(), v[0].clone(), selector.clone(), "and".to_string());
         wires_1.extend(wires_2);
-        let not_selector = Rc::new(RefCell::new(Wire::new()));
-        let gate_x = Gate::new(selector.clone(), selector.clone(), not_selector.clone(), "inv".to_string());
-        // wires_1.push(not_selector);
         wires_1.push(selector);
         let (output_wires, gates_6) = U254::select(wires_1);
         circuit_gates.extend(gates_1);
@@ -61,7 +49,6 @@ impl Fq {
         circuit_gates.push(gate_3);
         circuit_gates.extend(gates_4);
         circuit_gates.push(gate_5);
-        circuit_gates.push(gate_x);
         circuit_gates.extend(gates_6);
         (output_wires, circuit_gates)
     }

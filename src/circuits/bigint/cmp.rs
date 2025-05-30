@@ -1,3 +1,5 @@
+use num_bigint::BigUint;
+
 use crate::circuits::bigint::U254;
 use crate::{bag::*, circuits::basic::selector};
 use super::BigIntImpl;
@@ -25,6 +27,24 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         add_wires.extend(not_wires);
 
         let (wires, gates) = U254::add(add_wires);
+        circuit_gates.extend(gates);
+        (vec![wires[U254::N_BITS].clone()], circuit_gates)
+    
+    }
+
+    pub fn less_than_constant(input_wires: Vec<Rc<RefCell<Wire>>>, c: BigUint) -> (Vec<Rc<RefCell<Wire>>>, Vec<Gate>) {
+        assert_eq!(input_wires.len(), N_BITS);
+        let mut circuit_gates = Vec::new();
+        let mut not_wires=Vec::new();
+
+        for i in 0..U254::N_BITS {
+            let new_wire = Rc::new(RefCell::new(Wire::new()));
+            let gate =Gate::new(input_wires[i].clone(),input_wires[i].clone(),new_wire.clone(),"inv".to_string());
+            not_wires.push(new_wire);
+            circuit_gates.push(gate);
+        }
+
+        let (wires, gates) = U254::add_constant(not_wires, c);
         circuit_gates.extend(gates);
         (vec![wires[U254::N_BITS].clone()], circuit_gates)
     
@@ -81,6 +101,36 @@ mod tests {
 
         assert_eq!(a>b, output_wires[0].borrow().get_value());
     }
+
+    #[test]
+    fn test_greater_than_constant() {
+        let mut input_wires = Vec::new();
+        let mut bits1= Vec::new();
+        let mut bits2= Vec::new();
+        for _ in 0..U254::N_BITS {
+            let bit = rng().random::<bool>();
+            let new_wire = Rc::new(RefCell::new(Wire::new()));
+            new_wire.borrow_mut().set(bit);
+            input_wires.push(new_wire);
+            bits1.push(bit);
+        }
+        for _ in 0..U254::N_BITS {
+            let bit = rng().random::<bool>();
+            bits2.push(bit);
+        }
+
+        let a = biguint_from_bits(bits1);
+        let b = biguint_from_bits(bits2);
+
+        let (output_wires, gates) = U254::less_than_constant(input_wires, b.clone());
+
+        for mut gate in gates {
+            gate.evaluate();
+        }
+
+        assert_eq!(a<b, output_wires[0].borrow().get_value());
+    }
+
 
     #[test]
     fn test_select() {

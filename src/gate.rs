@@ -39,6 +39,7 @@ impl Gate {
             "xor"         => script! { OP_NUMNOTEQUAL },
             "nand"        => script! { OP_BOOLAND OP_NOT },
             "inv" | "not" => script! { OP_DROP OP_NOT },
+            "xnor"        => script! { OP_NUMNOTEQUAL OP_NOT },
             _             => panic!("this gate type is not allowed")
         }
     }

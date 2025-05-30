@@ -8,7 +8,10 @@ pub fn random_fq() -> ark_bn254::Fq {
 }
 
 pub fn bits_from_fq(u: ark_bn254::Fq) -> Vec<bool> {
-    let bytes = BigUint::from(u).to_bytes_le();
+    let mut bytes = BigUint::from(u).to_bytes_le();
+    for _ in bytes.len()..32 {
+        bytes.push(0_u8);
+    }
     let mut bits = Vec::new();
     for byte in bytes {
         for i in 0..8 {
