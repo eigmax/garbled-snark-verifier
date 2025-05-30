@@ -56,7 +56,6 @@ mod tests {
             gate.evaluate();
         }
         let d = fq2_from_bits(output_wires.iter().map(|output_wire| { output_wire.borrow().get_value() }).collect());
-        println!("{:?} , {:?}" , c , d);
         assert_eq!(c, d);
     }    
 }
