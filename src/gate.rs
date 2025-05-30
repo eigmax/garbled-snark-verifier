@@ -25,8 +25,9 @@ impl Gate {
             "and"         => { fn  and(a: bool, b: bool) -> bool {a & b}     and }
             "or"          => { fn   or(a: bool, b: bool) -> bool {a | b}      or }
             "xor"         => { fn  xor(a: bool, b: bool) -> bool {a ^ b}     xor }
-            "nand"        => { fn nand(a: bool, b: bool) -> bool {!(a ^ b)} nand }
+            "nand"        => { fn nand(a: bool, b: bool) -> bool {!(a & b)} nand }
             "inv" | "not" => { fn  not(a: bool, _b: bool) -> bool {!a}       not }
+            "xnor"        => { fn xnor(a: bool, b: bool) -> bool {!(a ^ b)} xnor }
             _             => { panic!("this gate type is not allowed");          }
         }
     }

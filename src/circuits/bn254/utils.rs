@@ -1,36 +1,38 @@
+use num_bigint::BigUint;
+use rand::{rng, Rng};
+use crate::circuits::bn254::fq::Fq;
+
+pub fn random_fq() -> ark_bn254::Fq {
+    let u = BigUint::from_bytes_le(&rng().random::<[u8; 32]>()) % Fq::modulus_as_biguint();
+    ark_bn254::Fq::from(u)
+}
+
+pub fn bits_from_fq(u: ark_bn254::Fq) -> Vec<bool> {
+    let bytes = BigUint::from(u).to_bytes_le();
+    let mut bits = Vec::new();
+    for byte in bytes {
+        for i in 0..8 {
+            bits.push(((byte >> i) & 1) == 1)
+        }
+    }
+    bits.pop();
+    bits.pop();
+    bits
+}
+
+pub fn fq_from_bits(bits: Vec<bool>) -> ark_bn254::Fq {
+    let zero = BigUint::ZERO;
+    let one = BigUint::from(1_u8);
+    let mut u = zero.clone();
+    for bit in bits.iter().rev() {
+        u = u.clone() + u.clone() + if *bit {one.clone()} else {zero.clone()};
+    }
+    ark_bn254::Fq::from(u)
+}
+
 #[cfg(test)]
 pub mod tests {
-    use num_bigint::BigUint;
-    use rand::{rng, Rng};
-    use crate::circuits::bn254::fq::Fq;
-
-    pub fn random_fq() -> ark_bn254::Fq {
-        let u = BigUint::from_bytes_le(&rng().random::<[u8; 32]>()) % Fq::modulus_as_biguint();
-        ark_bn254::Fq::from(u)
-    }
-
-    pub fn bits_from_fq(u: ark_bn254::Fq) -> Vec<bool> {
-        let bytes = BigUint::from(u).to_bytes_le();
-        let mut bits = Vec::new();
-        for byte in bytes {
-            for i in 0..8 {
-                bits.push(((byte >> i) & 1) == 1)
-            }
-        }
-        bits.pop();
-        bits.pop();
-        bits
-    }
-
-    pub fn fq_from_bits(bits: Vec<bool>) -> ark_bn254::Fq {
-        let zero = BigUint::ZERO;
-        let one = BigUint::from(1_u8);
-        let mut u = zero.clone();
-        for bit in bits.iter().rev() {
-            u = u.clone() + u.clone() + if *bit {one.clone()} else {zero.clone()};
-        }
-        ark_bn254::Fq::from(u)
-    }
+    use super::*;
 
     #[test]
     fn test_random_fq() {
