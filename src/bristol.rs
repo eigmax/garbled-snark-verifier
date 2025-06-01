@@ -1,7 +1,7 @@
 use std::fs;
 use crate::bag::*;
 
-pub fn parser(filename: &str) -> Circuit {
+pub fn parser(filename: &str) -> CircuitBristol {
     let data = fs::read_to_string(filename).expect("error");
     let mut lines = data.lines();
 
@@ -50,7 +50,7 @@ pub fn parser(filename: &str) -> Circuit {
         gates.push(gate);
         i += 1;
     }
-    Circuit {
+    CircuitBristol {
         nog,
         now,
         input_sizes,

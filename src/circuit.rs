@@ -2,7 +2,7 @@ use rand::{rng, Rng};
 use crate::{bristol::parser};
 use crate::bag::*;
 
-pub struct Circuit {
+pub struct CircuitBristol {
     pub nog: usize,
     pub now: usize,
     pub input_sizes: Vec<usize>,
@@ -11,7 +11,7 @@ pub struct Circuit {
     pub gates: Vec<Gate>
 }
 
-impl Circuit {
+impl CircuitBristol {
     pub fn from_bristol(filename: &str) -> Self {
         parser(filename)
     }
@@ -36,7 +36,7 @@ mod tests {
 
     fn test_circuit(circuit_filename: &str, correct: bool) {
         println!("testing {:?}", circuit_filename);
-        let circuit = Circuit::from_bristol(circuit_filename);
+        let circuit = CircuitBristol::from_bristol(circuit_filename);
 
         let mut garbled_gates = circuit.garbled_gates();
         let n = garbled_gates.len();
@@ -83,7 +83,7 @@ mod tests {
 
     fn test_circuit_find_incorrect(circuit_filename: &str, correct: bool) {
         println!("testing {:?}", circuit_filename);
-        let circuit = Circuit::from_bristol(circuit_filename);
+        let circuit = CircuitBristol::from_bristol(circuit_filename);
 
         let mut garbled_gates = circuit.garbled_gates();
         let n = garbled_gates.len();

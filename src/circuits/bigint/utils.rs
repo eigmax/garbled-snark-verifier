@@ -1,6 +1,8 @@
 use std::str::FromStr;
 use num_bigint::BigUint;
 use rand::{rng, Rng};
+use crate::bag::*;
+use super::U254;
 
 pub fn random_biguint() -> BigUint {
     BigUint::from_bytes_le(&rng().random::<[u8; 32]>())
@@ -29,6 +31,22 @@ pub fn biguint_from_bits(bits: Vec<bool>) -> BigUint {
         u = u.clone() + u.clone() + if *bit {one.clone()} else {zero.clone()};
     }
     u
+}
+
+pub fn wires_for_u254() -> Wires {
+    (0..U254::N_BITS).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect()
+}
+
+pub fn wires_set_from_u254(u: BigUint) -> Wires {
+    bits_from_biguint(u)[0..U254::N_BITS].iter().map(|bit| {
+        let wire = Rc::new(RefCell::new(Wire::new()));
+        wire.borrow_mut().set(*bit);
+        wire
+    }).collect()
+}
+
+pub fn biguint_from_wires(wires: Wires) -> BigUint {
+    biguint_from_bits(wires.iter().map(|wire| {wire.borrow().get_value()}).collect())
 }
 
 #[cfg(test)]
