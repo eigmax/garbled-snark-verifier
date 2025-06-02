@@ -2,7 +2,7 @@ pub mod basic;
 pub mod bigint;
 pub mod bn254;
 
-use crate::bag::{Wires, Gate};
+use crate::bag::{Gate, Wires, Wirex};
 
 pub struct Circuit(Wires, Vec<Gate>);
 
@@ -22,6 +22,14 @@ impl Circuit {
 
     pub fn add(&mut self, gate: Gate) {
         self.1.push(gate);
+    }
+
+    pub fn add_wire(&mut self, wire: Wirex) {
+        self.0.push(wire);
+    }
+
+    pub fn add_wires(&mut self, wires: Wires) {
+        self.0.extend(wires);
     }
 }
 

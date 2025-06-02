@@ -17,7 +17,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         }
 
         let wires = circuit.extend(U254::add(a, not_b));
-        circuit.0.push(wires[N_BITS].clone());
+        circuit.add_wire(wires[N_BITS].clone());
         circuit
     }
 
@@ -32,7 +32,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         }
 
         let wires = circuit.extend(U254::add_constant(not_a, b));
-        circuit.0.push(wires[N_BITS].clone());
+        circuit.add_wire(wires[N_BITS].clone());
         circuit
     }
 
@@ -43,7 +43,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         
         for i in 0..U254::N_BITS {
             let wires = circuit.extend(selector(a[i].clone(), b[i].clone(), s.clone()));
-            circuit.0.push(wires[0].clone());
+            circuit.add_wire(wires[0].clone());
         }
         circuit
     }

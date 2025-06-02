@@ -8,14 +8,14 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         assert_eq!(b.len(), N_BITS);
         let mut circuit = Circuit::empty();
         let wires = circuit.extend(half_adder(a[0].clone(), b[0].clone()));
-        circuit.0.push(wires[0].clone());
+        circuit.add_wire(wires[0].clone());
         let mut carry = wires[1].clone();
         for i in 1..N_BITS {
             let wires = circuit.extend(full_adder(a[i].clone(), b[i].clone(),carry));
-            circuit.0.push(wires[0].clone());
+            circuit.add_wire(wires[0].clone());
             carry = wires[1].clone();
         }
-        circuit.0.push(carry);
+        circuit.add_wire(carry);
         circuit
     }
 
@@ -34,12 +34,12 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
 
         for i in 0..N_BITS {
             if i < first_one {
-                circuit.0.push(a[i].clone());
+                circuit.add_wire(a[i].clone());
             }
             else if i == first_one {
                 let wire = Rc::new(RefCell::new(Wire::new()));
                 circuit.add(Gate::new(a[i].clone(), a[i].clone(), wire.clone(), "inv".to_string()));
-                circuit.0.push(wire);
+                circuit.add_wire(wire);
                 carry = a[i].clone(); 
             }
             else {
@@ -48,7 +48,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
                     let wire_2 = Rc::new(RefCell::new(Wire::new()));
                     circuit.add(Gate::new(a[i].clone(), carry.clone(), wire_1.clone(), "xnor".to_string()));
                     circuit.add(Gate::new(a[i].clone(), carry.clone(), wire_2.clone(), "or".to_string()));
-                    circuit.0.push(wire_1);
+                    circuit.add_wire(wire_1);
                     carry = wire_2;
                 }
                 else {
@@ -56,12 +56,12 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
                     let wire_2 = Rc::new(RefCell::new(Wire::new()));
                     circuit.add(Gate::new(a[i].clone(), carry.clone(), wire_1.clone(), "xor".to_string()));
                     circuit.add(Gate::new(a[i].clone(), carry.clone(), wire_2.clone(), "and".to_string()));
-                    circuit.0.push(wire_1);
+                    circuit.add_wire(wire_1);
                     carry = wire_2;
                 }
             }
         }
-        circuit.0.push(carry);
+        circuit.add_wire(carry);
         circuit
     }
 }

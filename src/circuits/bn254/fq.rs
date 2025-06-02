@@ -38,7 +38,7 @@ impl Fq {
         for i in 0..U254::N_BITS {
             circuit.add(Gate::new(a[i].clone(), s.clone(), result[i].clone(), "and".to_string()));
         }
-        circuit.0.extend(result);
+        circuit.add_wires(result);
         circuit
     }
 
@@ -58,7 +58,7 @@ impl Fq {
         let s = Rc::new(RefCell::new(Wire::new()));
         circuit.add(Gate::new(not_u.clone(), v.clone(), s.clone(), "and".to_string()));
         let wires_3 = circuit.extend(U254::select(wires_1, wires_2, s));
-        circuit.0.extend(wires_3);
+        circuit.add_wires(wires_3);
         circuit
     }
 
@@ -77,7 +77,7 @@ impl Fq {
         let s = Rc::new(RefCell::new(Wire::new()));
         circuit.add(Gate::new(not_u.clone(), v.clone(), s.clone(), "and".to_string()));
         let wires_3 = circuit.extend(U254::select(wires_1, wires_2, s));
-        circuit.0.extend(wires_3);
+        circuit.add_wires(wires_3);
         circuit
     }
 
@@ -91,7 +91,7 @@ impl Fq {
         }
 
         let wires = circuit.extend(Fq::add_constant(not_a, ark_bn254::Fq::from(1) - ark_bn254::Fq::from(Fq::not_modulus_as_biguint())));
-        circuit.0.extend(wires);
+        circuit.add_wires(wires);
         circuit
     }
 
@@ -102,7 +102,7 @@ impl Fq {
 
         let neg_b = circuit.extend(Fq::neg(b));
         let result = circuit.extend(Fq::add(a, neg_b));
-        circuit.0.extend(result);
+        circuit.add_wires(result);
         circuit
     }
 
@@ -125,7 +125,7 @@ impl Fq {
         let s = Rc::new(RefCell::new(Wire::new()));
         circuit.add(Gate::new(not_u.clone(), v.clone(), s.clone(), "and".to_string()));
         let result = circuit.extend(U254::select(shifted_wires, wires_2, s));
-        circuit.0.extend(result);
+        circuit.add_wires(result);
         circuit
     }
 
@@ -141,7 +141,7 @@ impl Fq {
             let a_or_zero_i = circuit.extend(Fq::self_or_zero(a.clone(), b_wire.clone()));
             result = circuit.extend(Fq::add(result_double, a_or_zero_i));
         }
-        circuit.0.extend(result);
+        circuit.add_wires(result);
         circuit
     }
 
@@ -165,7 +165,7 @@ impl Fq {
                 result = result_double;
             }
         }
-        circuit.0.extend(result);
+        circuit.add_wires(result);
         circuit
     }
 
@@ -180,7 +180,7 @@ impl Fq {
             let a_or_zero_i = circuit.extend(Fq::self_or_zero(a.clone(), a_wire.clone()));
             result = circuit.extend(Fq::add(result_double, a_or_zero_i));
         }
-        circuit.0.extend(result);
+        circuit.add_wires(result);
         circuit
     }
 }
