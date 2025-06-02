@@ -11,8 +11,7 @@ pub mod bag {
     pub use crate::s::S;
     pub use crate::wire::Wire;
     pub use crate::gate::Gate;
-    pub use crate::circuit::CircuitBristol;
-    pub use crate::circuits::Circuit;
+    pub use crate::circuit::Circuit;
     pub use std::{cell::RefCell, rc::Rc};
     pub type Wirex = Rc<RefCell<Wire>>;
     pub type Wires = Vec<Wirex>;

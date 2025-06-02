@@ -1,29 +1,47 @@
-use rand::{rng, Rng};
-use crate::{bristol::parser};
 use crate::bag::*;
 
-pub struct CircuitBristol {
-    pub nog: usize,
-    pub now: usize,
-    pub input_sizes: Vec<usize>,
-    pub output_sizes: Vec<usize>,
-    pub wires: Vec<Rc<RefCell<Wire>>>,
-    pub gates: Vec<Gate>
-}
+pub struct Circuit(pub Wires, pub Vec<Gate>);
 
-impl CircuitBristol {
-    pub fn from_bristol(filename: &str) -> Self {
-        parser(filename)
+impl Circuit {
+    pub fn empty() -> Self {
+        Self(Vec::new(), Vec::new())
+    }
+
+    pub fn new(wires: Wires, gates: Vec<Gate>) -> Self {
+        Self(wires, gates)
     }
 
     pub fn garbled_gates(&self) -> Vec<Vec<S>> {
-        self.gates.iter().map(|gate| gate.garbled()).collect()
+        self.1.iter().map(|gate| gate.garbled()).collect()
     }
 
-    pub fn set_input_wires(&self) {
-        for i in 0..self.input_sizes.iter().sum() {
-            self.wires[i].borrow_mut().set(rng().random());
-        }
+    pub fn extend(&mut self, circuit: Self) -> Wires {
+        self.1.extend(circuit.1);
+        circuit.0
+    }
+
+    pub fn add(&mut self, gate: Gate) {
+        self.1.push(gate);
+    }
+
+    pub fn add_wire(&mut self, wire: Wirex) {
+        self.0.push(wire);
+    }
+
+    pub fn add_wires(&mut self, wires: Wires) {
+        self.0.extend(wires);
+    }
+
+    pub fn gate_count(&self) -> usize {
+        self.1.len()
+    }
+
+    // this makes tests run longer, comment out if you want to use it
+    pub fn print_gate_type_counts(&self) {
+        // for gate_type in ["and", "nand", "or", "xor", "xnor", "not"] {
+        //     println!("{:?}\t: {:?}", gate_type, self.1.iter().filter(|gate| gate.name == gate_type).count());
+        // }
+        // println!("total gate count: {:?}", self.gate_count());
     }
 }
 
@@ -32,11 +50,12 @@ mod tests {
     use std::iter::zip;
     use bitvm::bigint::U256;
     use bitvm::treepp::*;
-    use super::*;
+    use rand::{rng, Rng};
+    use crate::{bristol::parser, s::S};
 
     fn test_circuit(circuit_filename: &str, correct: bool) {
         println!("testing {:?}", circuit_filename);
-        let circuit = CircuitBristol::from_bristol(circuit_filename);
+        let (circuit, inputs, _outputs) = parser(circuit_filename);
 
         let mut garbled_gates = circuit.garbled_gates();
         let n = garbled_gates.len();
@@ -46,11 +65,15 @@ mod tests {
             garbled_gates[(u as usize) % n] = vec![S::random(), S::random(), S::random(), S::random()];
         }
 
-        circuit.set_input_wires();
+        for input in inputs {
+            for input_wire in input {
+                input_wire.borrow_mut().set(rng().random());
+            }
+        }
 
         println!("testing {:?} garble", if correct {"correct"} else {"incorrect"});
 
-        for (i, (gate, garble)) in zip(circuit.gates.clone(), garbled_gates).enumerate() {
+        for (i, (gate, garble)) in zip(circuit.1.clone(), garbled_gates).enumerate() {
             let a = gate.wire_a.borrow().get_label();
             let b = gate.wire_b.borrow().get_label();
             let bit_a = gate.wire_a.borrow().get_value();
@@ -83,7 +106,7 @@ mod tests {
 
     fn test_circuit_find_incorrect(circuit_filename: &str, correct: bool) {
         println!("testing {:?}", circuit_filename);
-        let circuit = CircuitBristol::from_bristol(circuit_filename);
+        let (circuit, inputs, _outputs) = parser(circuit_filename);
 
         let mut garbled_gates = circuit.garbled_gates();
         let n = garbled_gates.len();
@@ -93,11 +116,15 @@ mod tests {
             garbled_gates[(u as usize) % n] = vec![S::random(), S::random(), S::random(), S::random()];
         }
 
-        circuit.set_input_wires();
+        for input in inputs {
+            for input_wire in input {
+                input_wire.borrow_mut().set(rng().random());
+            }
+        }
 
         println!("testing {:?} garble", if correct {"correct"} else {"incorrect"});
 
-        for (i, (gate, garble)) in zip(circuit.gates.clone(), garbled_gates).enumerate() {
+        for (i, (gate, garble)) in zip(circuit.1.clone(), garbled_gates).enumerate() {
             let a = gate.wire_a.borrow().get_label();
             let b = gate.wire_b.borrow().get_label();
             let bit_a = gate.wire_a.borrow().get_value();
@@ -130,27 +157,15 @@ mod tests {
     }
 
     #[test]
-    fn test_circuit_adder_find_incorrect() {
-        test_circuit_find_incorrect("adder64.txt", true);
-        test_circuit_find_incorrect("adder64.txt", false);
-    }
-
-    #[test]
-    fn test_circuit_subtracter_find_incorrect() {
-        test_circuit_find_incorrect("subtracter64.txt", true);
-        test_circuit_find_incorrect("subtracter64.txt", false);
-    }
-
-    #[test]
-    fn test_circuit_multiplier_find_incorrect() {
-        test_circuit_find_incorrect("multiplier64.txt", true);
-        test_circuit_find_incorrect("multiplier64.txt", false);
-    }
-
-    #[test]
     fn test_circuit_adder() {
         test_circuit("adder64.txt", true);
         test_circuit("adder64.txt", false);
+    }
+
+    #[test]
+    fn test_circuit_adder_find_incorrect() {
+        test_circuit_find_incorrect("adder64.txt", true);
+        test_circuit_find_incorrect("adder64.txt", false);
     }
 
     #[test]
@@ -160,8 +175,20 @@ mod tests {
     }
 
     #[test]
+    fn test_circuit_subtracter_find_incorrect() {
+        test_circuit_find_incorrect("subtracter64.txt", true);
+        test_circuit_find_incorrect("subtracter64.txt", false);
+    }
+
+    #[test]
     fn test_circuit_multiplier() {
         test_circuit("multiplier64.txt", true);
         test_circuit("multiplier64.txt", false);
+    }
+
+    #[test]
+    fn test_circuit_multiplier_find_incorrect() {
+        test_circuit_find_incorrect("multiplier64.txt", true);
+        test_circuit_find_incorrect("multiplier64.txt", false);
     }
 }

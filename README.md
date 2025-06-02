@@ -1,4 +1,4 @@
-# Garbled Circuits in Bridge Design
+# Garbled SNARK Verifier Circuit
 
 A: operator, B: verifier
 
@@ -36,5 +36,5 @@ A: operator, B: verifier
 
 **bristol.rs**: contains the parser for parsing the bristol circuit files, several examples (adder64, subtracter64, multiplier64) are provided.
 
-**circuit**: this folder contains all the circuit functions. At the end, it will contain the circuit for groth16 proof verification. 
+**circuits**: this folder contains all the circuit functions. At the end, it will contain the circuit for groth16 proof verification. 
 

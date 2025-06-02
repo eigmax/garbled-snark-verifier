@@ -1,7 +1,7 @@
 use std::fs;
 use crate::bag::*;
 
-pub fn parser(filename: &str) -> CircuitBristol {
+pub fn parser(filename: &str) -> (Circuit, Vec<Wires>, Vec<Wires>) {
     let data = fs::read_to_string(filename).expect("error");
     let mut lines = data.lines();
 
@@ -46,18 +46,38 @@ pub fn parser(filename: &str) -> CircuitBristol {
             output_wires.push(words.next().unwrap().parse().unwrap());
         }
         let gate_type = words.next().unwrap().to_lowercase();
-        let gate = Gate::new(wires[input_wires[0]].clone(), wires[input_wires[1]].clone(), wires[output_wires[0]].clone(), gate_type);
+        let gate = Gate::new(wires[input_wires[0]].clone(), if noi == 1 { wires[input_wires[0]].clone() } else { wires[input_wires[1]].clone() }, wires[output_wires[0]].clone(), gate_type);
         gates.push(gate);
         i += 1;
     }
-    CircuitBristol {
-        nog,
-        now,
-        input_sizes,
-        output_sizes,
-        wires,
-        gates,
+    let c = Circuit::new(wires.clone(), gates);
+
+    let mut inputs = Vec::new();
+    let wires_copy = wires.clone();
+    let mut wires_iter = wires_copy.iter();
+    for input_size in input_sizes {
+        let mut input = Vec::new();
+        for _ in 0..input_size {
+            input.push(wires_iter.next().unwrap().clone());
+        }
+        inputs.push(input);
     }
+
+    let mut outputs = Vec::new();
+    let mut wires_reversed = wires.clone();
+    wires_reversed.reverse();
+    let mut wires_iter = wires_reversed.iter();
+    for output_size in output_sizes.iter().rev() {
+        let mut output = Vec::new();
+        for _ in 0..*output_size {
+            output.push(wires_iter.next().unwrap().clone());
+        }
+        output.reverse();
+        outputs.push(output);
+    }
+    outputs.reverse();
+
+    (c, inputs, outputs)
 }
 
 #[cfg(test)]
@@ -67,21 +87,21 @@ mod tests {
 
     #[test]
     fn test_bristol_adder() {
-        let adder_circuit = parser("adder64.txt");
+        let (circuit, inputs, outputs) = parser("adder64.txt");
         let a: u64 = rng().random();
         let b: u64 = rng().random();
-        for i in 0..adder_circuit.input_sizes[0] {
-            adder_circuit.wires[i].borrow_mut().set((a >> i) & 1 == 1);
+        for (i, wire) in inputs[0].iter().enumerate() {
+            wire.borrow_mut().set((a >> i) & 1 == 1);
         }
-        for (i, j) in (adder_circuit.input_sizes[0]..(adder_circuit.input_sizes[0]+adder_circuit.input_sizes[1])).enumerate() {
-            adder_circuit.wires[j].borrow_mut().set((b >> i) & 1 == 1);
+        for (i, wire) in inputs[1].iter().enumerate() {
+            wire.borrow_mut().set((b >> i) & 1 == 1);
         }
-        for mut gate in adder_circuit.gates {
+        for mut gate in circuit.1 {
             gate.evaluate();
         }
         let mut result_bits = Vec::new();
-        for i in (adder_circuit.now-adder_circuit.output_sizes[0])..adder_circuit.now {
-            result_bits.push(adder_circuit.wires[i].borrow().get_value());
+        for wire in outputs[0].clone() {
+            result_bits.push(wire.borrow().get_value());
         }
         let mut c: u64 = 0;
         for bit in result_bits.iter().rev() {
@@ -92,21 +112,21 @@ mod tests {
 
     #[test]
     fn test_bristol_multiplier() {
-        let adder_circuit = parser("multiplier64.txt");
+        let (circuit, inputs, outputs) = parser("multiplier64.txt");
         let a: u64 = rng().random();
         let b: u64 = rng().random();
-        for i in 0..adder_circuit.input_sizes[0] {
-            adder_circuit.wires[i].borrow_mut().set((a >> i) & 1 == 1);
+        for (i, wire) in inputs[0].iter().enumerate() {
+            wire.borrow_mut().set((a >> i) & 1 == 1);
         }
-        for (i, j) in (adder_circuit.input_sizes[0]..(adder_circuit.input_sizes[0]+adder_circuit.input_sizes[1])).enumerate() {
-            adder_circuit.wires[j].borrow_mut().set((b >> i) & 1 == 1);
+        for (i, wire) in inputs[1].iter().enumerate() {
+            wire.borrow_mut().set((b >> i) & 1 == 1);
         }
-        for mut gate in adder_circuit.gates {
+        for mut gate in circuit.1 {
             gate.evaluate();
         }
         let mut result_bits = Vec::new();
-        for i in (adder_circuit.now-adder_circuit.output_sizes[0])..adder_circuit.now {
-            result_bits.push(adder_circuit.wires[i].borrow().get_value());
+        for wire in outputs[0].clone() {
+            result_bits.push(wire.borrow().get_value());
         }
         let mut c: u64 = 0;
         for bit in result_bits.iter().rev() {
@@ -117,21 +137,21 @@ mod tests {
 
     #[test]
     fn test_bristol_subtracter() {
-        let adder_circuit = parser("subtracter64.txt");
+        let (circuit, inputs, outputs) = parser("subtracter64.txt");
         let a: u64 = rng().random();
         let b: u64 = rng().random();
-        for i in 0..adder_circuit.input_sizes[0] {
-            adder_circuit.wires[i].borrow_mut().set((a >> i) & 1 == 1);
+        for (i, wire) in inputs[0].iter().enumerate() {
+            wire.borrow_mut().set((a >> i) & 1 == 1);
         }
-        for (i, j) in (adder_circuit.input_sizes[0]..(adder_circuit.input_sizes[0]+adder_circuit.input_sizes[1])).enumerate() {
-            adder_circuit.wires[j].borrow_mut().set((b >> i) & 1 == 1);
+        for (i, wire) in inputs[1].iter().enumerate() {
+            wire.borrow_mut().set((b >> i) & 1 == 1);
         }
-        for mut gate in adder_circuit.gates {
+        for mut gate in circuit.1 {
             gate.evaluate();
         }
         let mut result_bits = Vec::new();
-        for i in (adder_circuit.now-adder_circuit.output_sizes[0])..adder_circuit.now {
-            result_bits.push(adder_circuit.wires[i].borrow().get_value());
+        for wire in outputs[0].clone() {
+            result_bits.push(wire.borrow().get_value());
         }
         let mut c: u64 = 0;
         for bit in result_bits.iter().rev() {
@@ -140,4 +160,3 @@ mod tests {
         assert_eq!(c, a.wrapping_sub(b));
     }
 }
-
