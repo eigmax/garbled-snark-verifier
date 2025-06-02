@@ -219,7 +219,7 @@ mod tests {
         let a = random_fq2();
         let b = random_fq2();
         let circuit = Fq2::add(wires_set_from_fq2(a.clone()), wires_set_from_fq2(b.clone()));
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -231,7 +231,7 @@ mod tests {
     fn test_fq2_neg() {
         let a = random_fq2();
         let circuit = Fq2::neg(wires_set_from_fq2(a.clone()));
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -244,7 +244,7 @@ mod tests {
         let a = random_fq2();
         let b = random_fq2();
         let circuit = Fq2::sub(wires_set_from_fq2(a.clone()), wires_set_from_fq2(b.clone()));
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -256,7 +256,7 @@ mod tests {
     fn test_fq2_double() {
         let a = random_fq2();
         let circuit = Fq2::double(wires_set_from_fq2(a.clone()));
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -268,7 +268,7 @@ mod tests {
     fn test_fq2_triple() {
         let a = random_fq2();
         let circuit = Fq2::triple(wires_set_from_fq2(a.clone()));
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -281,7 +281,7 @@ mod tests {
         let a = random_fq2();
         let b = random_fq2();
         let circuit = Fq2::mul(wires_set_from_fq2(a.clone()), wires_set_from_fq2(b.clone()));
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -294,7 +294,7 @@ mod tests {
         let a = random_fq2();
         let b = random_fq2();
         let circuit = Fq2::mul_by_constant(wires_set_from_fq2(a.clone()), b.clone());
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -307,7 +307,7 @@ mod tests {
         let a = random_fq2();
         let b = random_fq();
         let circuit = Fq2::mul_by_constant_fq(wires_set_from_fq2(a.clone()), b.clone());
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -319,7 +319,7 @@ mod tests {
     fn test_fq2_mul_by_nonresiude() {
         let a = random_fq2();
         let circuit = Fq2::mul_by_nonresidue(wires_set_from_fq2(a.clone()));
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -331,7 +331,7 @@ mod tests {
     fn test_fq2_square() {
         let a = random_fq2();
         let circuit = Fq2::square(wires_set_from_fq2(a.clone()));
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -344,7 +344,7 @@ mod tests {
         let a = random_fq2();
 
         let circuit = Fq2::frobenius(wires_set_from_fq2(a.clone()), 0);
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -352,7 +352,7 @@ mod tests {
         assert_eq!(c, a.frobenius_map(0));
 
         let circuit = Fq2::frobenius(wires_set_from_fq2(a.clone()), 1);
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }

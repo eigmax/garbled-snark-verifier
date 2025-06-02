@@ -38,7 +38,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
             }
             else if i == first_one {
                 let wire = Rc::new(RefCell::new(Wire::new()));
-                circuit.add(Gate::new(a[i].clone(), a[i].clone(), wire.clone(), "inv".to_string()));
+                circuit.add(Gate::new(a[i].clone(), a[i].clone(), wire.clone(), "not".to_string()));
                 circuit.add_wire(wire);
                 carry = a[i].clone(); 
             }
@@ -75,7 +75,7 @@ mod tests {
         let a = random_u254();
         let b = random_u254();
         let circuit = U254::add(wires_set_from_u254(a.clone()), wires_set_from_u254(b.clone()));
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -88,7 +88,7 @@ mod tests {
         let a = random_u254();
         let b = random_u254();
         let circuit = U254::add_constant(wires_set_from_u254(a.clone()), b.clone());
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }

@@ -27,7 +27,7 @@ pub fn selector(a: Wirex, b: Wirex, c: Wirex) -> Circuit {
     let e = Rc::new(RefCell::new(Wire::new()));
     let f = Rc::new(RefCell::new(Wire::new()));
     let g = Rc::new(RefCell::new(Wire::new()));
-    let gate_1 = Gate::new(c.clone(), c.clone(), e.clone(), "inv".to_string());
+    let gate_1 = Gate::new(c.clone(), c.clone(), e.clone(), "not".to_string());
     let gate_2 = Gate::new(a.clone(), c.clone(), d.clone(), "nand".to_string());
     let gate_3 = Gate::new(e.clone(), b.clone(), f.clone(), "nand".to_string());
     let gate_4 = Gate::new(d.clone(), f.clone(), g.clone(), "nand".to_string());

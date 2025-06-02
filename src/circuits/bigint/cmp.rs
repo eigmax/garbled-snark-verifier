@@ -13,7 +13,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         let not_b = wires_for_u254();
 
         for i in 0..U254::N_BITS{
-            circuit.add(Gate::new(b[i].clone(), b[i].clone(), not_b[i].clone(), "inv".to_string()));
+            circuit.add(Gate::new(b[i].clone(), b[i].clone(), not_b[i].clone(), "not".to_string()));
         }
 
         let wires = circuit.extend(U254::add(a, not_b));
@@ -28,7 +28,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         let not_a = wires_for_u254();
 
         for i in 0..U254::N_BITS {
-            circuit.add(Gate::new(a[i].clone(),a[i].clone(), not_a[i].clone(), "inv".to_string()));
+            circuit.add(Gate::new(a[i].clone(),a[i].clone(), not_a[i].clone(), "not".to_string()));
         }
 
         let wires = circuit.extend(U254::add_constant(not_a, b));
@@ -59,7 +59,7 @@ mod tests {
         let a = random_u254();
         let b = random_u254();
         let circuit = U254::greater_than(wires_set_from_u254(a.clone()), wires_set_from_u254(b.clone()));
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -71,7 +71,7 @@ mod tests {
         let a = random_u254();
         let b = random_u254();
         let circuit = U254::less_than_constant(wires_set_from_u254(a.clone()), b.clone());
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }

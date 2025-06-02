@@ -54,7 +54,7 @@ impl Fq {
         let mut wires_2 = circuit.extend(U254::add_constant(wires_1.clone(), c));
         wires_2.pop();
         let not_u = Rc::new(RefCell::new(Wire::new()));
-        circuit.add(Gate::new(u.clone(), u.clone(), not_u.clone(), "inv".to_string()));
+        circuit.add(Gate::new(u.clone(), u.clone(), not_u.clone(), "not".to_string()));
         let v = circuit.extend(U254::less_than_constant(wires_1.clone(), Fq::modulus_as_biguint()))[0].clone();
         let s = Rc::new(RefCell::new(Wire::new()));
         circuit.add(Gate::new(not_u.clone(), v.clone(), s.clone(), "and".to_string()));
@@ -78,7 +78,7 @@ impl Fq {
         let mut wires_2 = circuit.extend(U254::add_constant(wires_1.clone(), c));
         wires_2.pop();
         let not_u = Rc::new(RefCell::new(Wire::new()));
-        circuit.add(Gate::new(u.clone(), u.clone(), not_u.clone(), "inv".to_string()));
+        circuit.add(Gate::new(u.clone(), u.clone(), not_u.clone(), "not".to_string()));
         let v = circuit.extend(U254::less_than_constant(wires_1.clone(), Fq::modulus_as_biguint()))[0].clone();
         let s = Rc::new(RefCell::new(Wire::new()));
         circuit.add(Gate::new(not_u.clone(), v.clone(), s.clone(), "and".to_string()));
@@ -126,7 +126,7 @@ impl Fq {
         let mut wires_2 = circuit.extend(U254::add_constant(shifted_wires.clone(), c));
         wires_2.pop();
         let not_u = Rc::new(RefCell::new(Wire::new()));
-        circuit.add(Gate::new(u.clone(), u.clone(), not_u.clone(), "inv".to_string()));
+        circuit.add(Gate::new(u.clone(), u.clone(), not_u.clone(), "not".to_string()));
         let v = circuit.extend(U254::less_than_constant(shifted_wires.clone(), Fq::modulus_as_biguint()))[0].clone();
         let s = Rc::new(RefCell::new(Wire::new()));
         circuit.add(Gate::new(not_u.clone(), v.clone(), s.clone(), "and".to_string()));
@@ -216,7 +216,7 @@ mod tests {
         let a = random_fq();
         let b = random_fq();
         let circuit = Fq::add(wires_set_from_fq(a.clone()), wires_set_from_fq(b.clone()));
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -229,7 +229,7 @@ mod tests {
         let a = random_fq();
         let b = random_fq();
         let circuit = Fq::add_constant(wires_set_from_fq(a.clone()), b.clone());
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -241,7 +241,7 @@ mod tests {
     fn test_fq_neg() {
         let a = random_fq();
         let circuit = Fq::neg(wires_set_from_fq(a.clone()));
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -254,7 +254,7 @@ mod tests {
         let a = random_fq();
         let b = random_fq();
         let circuit = Fq::sub(wires_set_from_fq(a.clone()), wires_set_from_fq(b.clone()));
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -266,7 +266,7 @@ mod tests {
     fn test_fq_double() {
         let a = random_fq();
         let circuit = Fq::double(wires_set_from_fq(a.clone()));
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -278,7 +278,7 @@ mod tests {
     fn test_fq_triple() {
         let a = random_fq();
         let circuit = Fq::triple(wires_set_from_fq(a.clone()));
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -291,7 +291,7 @@ mod tests {
         let a = random_fq();
         let b = random_fq();
         let circuit = Fq::mul(wires_set_from_fq(a.clone()), wires_set_from_fq(b.clone()));
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -304,7 +304,7 @@ mod tests {
         let a = random_fq();
         let b = random_fq();
         let circuit = Fq::mul_by_constant(wires_set_from_fq(a.clone()), b.clone());
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -316,7 +316,7 @@ mod tests {
     fn test_fq_square() {
         let a = random_fq();
         let circuit = Fq::square(wires_set_from_fq(a.clone()));
-        println!("gate count: {:?}", circuit.1.len());
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
