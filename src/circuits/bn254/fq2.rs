@@ -1,3 +1,5 @@
+use ark_ff::{Field, Fp2Config};
+
 use crate::{bag::*, circuits::bn254::fq::Fq};
 
 pub struct Fq2;
@@ -123,6 +125,11 @@ impl Fq2 {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
 
+        if b == ark_bn254::Fq2::ONE {
+            circuit.add_wires(a);
+            return circuit;
+        }
+
         let a_c0 = a[0..Fq::N_BITS].to_vec();
         let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
 
@@ -169,6 +176,19 @@ impl Fq2 {
         let wires_8 = circuit.extend(Fq::sub(wires_7.clone(), wires_5.clone()));
         circuit.add_wires(wires_6);
         circuit.add_wires(wires_8);
+        circuit
+    }
+
+    pub fn frobenius(a: Wires, i: usize) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+
+        let result = circuit.extend(Fq::mul_by_constant(a_c1, ark_bn254::Fq2Config::FROBENIUS_COEFF_FP2_C1[i % ark_bn254::Fq2Config::FROBENIUS_COEFF_FP2_C1.len()]));
+        circuit.0.extend(a_c0);
+        circuit.0.extend(result);
         circuit
     }
 }
@@ -289,5 +309,26 @@ mod tests {
         }
         let c = fq2_from_wires(circuit.0);
         assert_eq!(c, a * a);
+    }
+
+    #[test]
+    fn test_fq2_frobenius() {
+        let a = random_fq2();
+
+        let circuit = Fq2::frobenius(wires_set_from_fq2(a.clone()), 0);
+        println!("gate count: {:?}", circuit.1.len());
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = fq2_from_wires(circuit.0);
+        assert_eq!(c, a.frobenius_map(0));
+
+        let circuit = Fq2::frobenius(wires_set_from_fq2(a.clone()), 1);
+        println!("gate count: {:?}", circuit.1.len());
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = fq2_from_wires(circuit.0);
+        assert_eq!(c, a.frobenius_map(1));
     }
 }

@@ -1,4 +1,5 @@
 use std::str::FromStr;
+use ark_ff::Field;
 use num_bigint::BigUint;
 use crate::{bag::*, circuits::{bigint::{utils::bits_from_biguint, U254}, bn254::utils::{bits_from_fq, wires_for_fq}}};
 use super::Fp254Impl;
@@ -158,6 +159,11 @@ impl Fq {
     pub fn mul_by_constant(a: Wires, b: ark_bn254::Fq) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
+
+        if b == ark_bn254::Fq::ONE {
+            circuit.add_wires(a);
+            return circuit;
+        }
 
         let b_bits = bits_from_fq(b);
         let mut i = U254::N_BITS - 1;

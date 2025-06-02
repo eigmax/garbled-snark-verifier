@@ -1,13 +1,10 @@
-use std::result;
-
 use crate::{bag::*, circuits::bn254::fq2::Fq2};
-use super::fq::Fq;
-use ark_ff::fields::AdditiveGroup;
+use ark_ff::{fields::AdditiveGroup, Fp6Config};
 
 pub struct Fq6;
 
 impl Fq6 {
-    pub const N_BITS: usize = 6 * Fq::N_BITS;
+    pub const N_BITS: usize = 3 * Fq2::N_BITS;
 
     pub fn add(a: Wires, b: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
@@ -242,6 +239,23 @@ impl Fq6 {
         circuit
     }
 
+    pub fn mul_by_constant_fq2(a: Wires, b: ark_bn254::Fq2) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq2::N_BITS].to_vec();
+        let a_c1 = a[Fq2::N_BITS..2*Fq2::N_BITS].to_vec();
+        let a_c2 = a[2*Fq2::N_BITS..3*Fq2::N_BITS].to_vec();
+
+        let c0 = circuit.extend(Fq2::mul_by_constant(a_c0, b));
+        let c1 = circuit.extend(Fq2::mul_by_constant(a_c1, b));
+        let c2 = circuit.extend(Fq2::mul_by_constant(a_c2, b));
+        circuit.add_wires(c0);
+        circuit.add_wires(c1);
+        circuit.add_wires(c2);
+        circuit
+    }
+
     pub fn square(a: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
@@ -275,12 +289,33 @@ impl Fq6 {
         circuit.add_wires(c2);
         circuit
     }
+
+    pub fn frobenius(a: Wires, i: usize) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq2::N_BITS].to_vec();
+        let a_c1 = a[Fq2::N_BITS..2*Fq2::N_BITS].to_vec();
+        let a_c2 = a[2*Fq2::N_BITS..3*Fq2::N_BITS].to_vec();
+
+        let frobenius_a_c0 = circuit.extend(Fq2::frobenius(a_c0, i));
+        let frobenius_a_c1 = circuit.extend(Fq2::frobenius(a_c1, i));
+        let frobenius_a_c2 = circuit.extend(Fq2::frobenius(a_c2, i));
+        let frobenius_a_c1_updated = circuit.extend(Fq2::mul_by_constant(frobenius_a_c1, ark_bn254::Fq6Config::FROBENIUS_COEFF_FP6_C1[i % ark_bn254::Fq6Config::FROBENIUS_COEFF_FP6_C1.len()]));
+        let frobenius_a_c2_updated = circuit.extend(Fq2::mul_by_constant(frobenius_a_c2, ark_bn254::Fq6Config::FROBENIUS_COEFF_FP6_C2[i % ark_bn254::Fq6Config::FROBENIUS_COEFF_FP6_C2.len()]));
+        circuit.0.extend(frobenius_a_c0);
+        circuit.0.extend(frobenius_a_c1_updated);
+        circuit.0.extend(frobenius_a_c2_updated);
+        circuit
+    }
 }
 
 
 #[cfg(test)]
 mod tests {
-    use crate::circuits::bn254::utils::{ fq6_from_wires, random_fq6, wires_set_from_fq6};
+    use ark_ff::Field;
+
+    use crate::circuits::bn254::utils::{ fq6_from_wires, random_fq2, random_fq6, wires_set_from_fq6};
     use super::*;
 
     #[test]
@@ -372,6 +407,19 @@ mod tests {
     }
 
     #[test]
+    fn test_fq6_mul_by_constant_fq2() {
+        let a = random_fq6();
+        let b = random_fq2();
+        let circuit = Fq6::mul_by_constant_fq2(wires_set_from_fq6(a.clone()), b);
+        println!("gate count: {:?}", circuit.1.len());
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = fq6_from_wires(circuit.0);
+        assert_eq!(c, a * ark_bn254::Fq6::new(b, ark_bn254::Fq2::ZERO, ark_bn254::Fq2::ZERO));
+    }
+
+    #[test]
     fn test_fq6_square() {
         let a = random_fq6();
         let circuit = Fq6::square(wires_set_from_fq6(a.clone()));
@@ -383,31 +431,24 @@ mod tests {
         assert_eq!(c, a * a);
     }
 
+    #[test]
+    fn test_fq6_frobenius() {
+        let a = random_fq6();
 
-    // #[test]
-    // fn test_fq2_mul_by_constant() {
-    //     let a = random_fq2();
-    //     let b = random_fq2();
-    //     let circuit = Fq2::mul_by_constant(wires_set_from_fq2(a.clone()), b.clone());
-    //     println!("gate count: {:?}", circuit.1.len());
-    //     for mut gate in circuit.1 {
-    //         gate.evaluate();
-    //     }
-    //     let c = fq2_from_wires(circuit.0);
-    //     assert_eq!(c, a * b);
-    // }
+        let circuit = Fq6::frobenius(wires_set_from_fq6(a.clone()), 0);
+        println!("gate count: {:?}", circuit.1.len());
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = fq6_from_wires(circuit.0);
+        assert_eq!(c, a.frobenius_map(0));
 
-    // #[test]
-    // fn test_fq2_square() {
-    //     let a = random_fq2();
-    //     let circuit = Fq2::square(wires_set_from_fq2(a.clone()));
-    //     println!("gate count: {:?}", circuit.1.len());
-    //     for mut gate in circuit.1 {
-    //         gate.evaluate();
-    //     }
-    //     let c = fq2_from_wires(circuit.0);
-    //     assert_eq!(c, a * a);
-    // }
+        let circuit = Fq6::frobenius(wires_set_from_fq6(a.clone()), 1);
+        println!("gate count: {:?}", circuit.1.len());
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = fq6_from_wires(circuit.0);
+        assert_eq!(c, a.frobenius_map(1));
+    }
 }
-
-

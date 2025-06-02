@@ -1,6 +1,6 @@
 use num_bigint::BigUint;
 use rand::{rng, Rng};
-use crate::circuits::bn254::{fq::Fq, fq2::Fq2, fq6::Fq6};
+use crate::circuits::bn254::{fq::Fq, fq2::Fq2, fq6::Fq6, fq12::Fq12};
 use crate::bag::*;
 
 pub fn random_fq() -> ark_bn254::Fq {
@@ -118,6 +118,39 @@ pub fn fq6_from_wires(wires: Wires) -> ark_bn254::Fq6 {
     fq6_from_bits(wires.iter().map(|wire| {wire.borrow().get_value()}).collect())
 }
 
+pub fn random_fq12() -> ark_bn254::Fq12 {
+    ark_bn254::Fq12::new(random_fq6(), random_fq6())
+}
+
+pub fn bits_from_fq12(u: ark_bn254::Fq12) -> Vec<bool> {
+    let mut bits = Vec::new();
+    bits.extend(bits_from_fq6(u.c0));
+    bits.extend(bits_from_fq6(u.c1));
+    bits
+}
+
+pub fn fq12_from_bits(bits: Vec<bool>) -> ark_bn254::Fq12 {
+    let bits1 = &bits[0..Fq6::N_BITS].to_vec();
+    let bits2 = &bits[Fq6::N_BITS..Fq6::N_BITS*2].to_vec();
+    ark_bn254::Fq12::new(fq6_from_bits(bits1.clone()), fq6_from_bits(bits2.clone()))
+}
+
+pub fn wires_for_fq12() -> Wires {
+    (0..Fq12::N_BITS).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect()
+}
+
+pub fn wires_set_from_fq12(u: ark_bn254::Fq12) -> Wires {
+    bits_from_fq12(u)[0..Fq12::N_BITS].iter().map(|bit| {
+        let wire = Rc::new(RefCell::new(Wire::new()));
+        wire.borrow_mut().set(*bit);
+        wire
+    }).collect()
+}
+
+pub fn fq12_from_wires(wires: Wires) -> ark_bn254::Fq12 {
+    fq12_from_bits(wires.iter().map(|wire| {wire.borrow().get_value()}).collect())
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -148,6 +181,16 @@ pub mod tests {
         println!("u: {:?}", u);
         let b = bits_from_fq6(u.clone());
         let v = fq6_from_bits(b);
+        println!("v: {:?}", v);
+        assert_eq!(u, v);
+    }
+
+    #[test]
+    fn test_random_fq12() {
+        let u = random_fq12();
+        println!("u: {:?}", u);
+        let b = bits_from_fq12(u.clone());
+        let v = fq12_from_bits(b);
         println!("v: {:?}", v);
         assert_eq!(u, v);
     }
