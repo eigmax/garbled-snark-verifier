@@ -271,6 +271,38 @@ impl Fq6 {
         circuit
     }
 
+    pub fn mul_by_01(a: Wires, c0: Wires, c1: Wires) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        assert_eq!(c0.len(), Fq2::N_BITS);
+        assert_eq!(c1.len(), Fq2::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq2::N_BITS].to_vec();
+        let a_c1 = a[Fq2::N_BITS..2*Fq2::N_BITS].to_vec();
+        let a_c2 = a[2*Fq2::N_BITS..3*Fq2::N_BITS].to_vec();
+
+        let wires_1 = circuit.extend(Fq2::mul(a_c0.clone(), c0.clone()));
+        let wires_2 = circuit.extend(Fq2::mul(a_c1.clone(), c1.clone()));
+        let wires_3 = circuit.extend(Fq2::add(a_c1.clone(), a_c2.clone()));
+        let wires_4 = circuit.extend(Fq2::mul(wires_3.clone(), c1.clone()));
+        let wires_5 = circuit.extend(Fq2::sub(wires_4.clone(), wires_2.clone()));
+        let wires_6 = circuit.extend(Fq2::mul_by_nonresidue(wires_5.clone()));
+        let wires_7 = circuit.extend(Fq2::add(wires_6.clone(), wires_1.clone()));
+        let wires_8 = circuit.extend(Fq2::add(a_c0.clone(), a_c1.clone()));
+        let wires_9 = circuit.extend(Fq2::add(c0.clone(), c1.clone()));
+        let wires_10 = circuit.extend(Fq2::mul(wires_8.clone(), wires_9.clone()));
+        let wires_11 = circuit.extend(Fq2::sub(wires_10.clone(), wires_1.clone()));
+        let wires_12 = circuit.extend(Fq2::sub(wires_11.clone(), wires_2.clone()));
+        let wires_13 = circuit.extend(Fq2::add(a_c0.clone(), a_c2.clone()));
+        let wires_14 = circuit.extend(Fq2::mul(wires_13.clone(), c0.clone()));
+        let wires_15 = circuit.extend(Fq2::sub(wires_14.clone(), wires_1.clone()));
+        let wires_16 = circuit.extend(Fq2::add(wires_15.clone(), wires_2.clone()));
+        circuit.add_wires(wires_7);
+        circuit.add_wires(wires_12);
+        circuit.add_wires(wires_16);
+        circuit
+    }
+
     pub fn square(a: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
@@ -330,7 +362,7 @@ impl Fq6 {
 mod tests {
     use ark_ff::{Field, Fp12Config};
 
-    use crate::circuits::bn254::utils::{ fq6_from_wires, random_fq2, random_fq6, wires_set_from_fq6};
+    use crate::circuits::bn254::utils::{ fq6_from_wires, random_fq2, random_fq6, wires_set_from_fq2, wires_set_from_fq6};
     use super::*;
 
     #[test]
@@ -446,6 +478,22 @@ mod tests {
         let mut a_nonresiude = a.clone();
         ark_bn254::Fq12Config::mul_fp6_by_nonresidue_in_place(&mut a_nonresiude);
         assert_eq!(c, a_nonresiude);
+    }
+
+    #[test]
+    fn test_fq6_mul_by_01() {
+        let a = random_fq6();
+        let c0 = random_fq2();
+        let c1 = random_fq2();
+        let circuit = Fq6::mul_by_01(wires_set_from_fq6(a.clone()), wires_set_from_fq2(c0.clone()), wires_set_from_fq2(c1.clone()));
+        println!("gate count: {:?}", circuit.1.len());
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = fq6_from_wires(circuit.0);
+        let mut b = a;
+        b.mul_by_01(&c0, &c1);
+        assert_eq!(c, b);
     }
 
     #[test]

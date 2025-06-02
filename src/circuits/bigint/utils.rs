@@ -13,7 +13,10 @@ pub fn random_u254() -> BigUint {
 }
 
 pub fn bits_from_biguint(u: BigUint) -> Vec<bool> {
-    let bytes = u.to_bytes_le();
+    let mut bytes = u.to_bytes_le();
+    for _ in bytes.len()..32 {
+        bytes.push(0_u8);
+    }
     let mut bits = Vec::new();
     for byte in bytes {
         for i in 0..8 {

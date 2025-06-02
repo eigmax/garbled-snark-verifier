@@ -23,6 +23,20 @@ impl Fq2 {
         circuit
     }
 
+    pub fn add_constant(a: Wires, b: ark_bn254::Fq2) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+
+        let wires_1 = circuit.extend(Fq::add_constant(a_c0, b.c0));
+        let wires_2 = circuit.extend(Fq::add_constant(a_c1, b.c1));
+        circuit.add_wires(wires_1);
+        circuit.add_wires(wires_2);
+        circuit
+    }
+
     pub fn neg(a: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
