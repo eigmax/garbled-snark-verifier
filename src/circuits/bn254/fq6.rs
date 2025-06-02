@@ -256,6 +256,21 @@ impl Fq6 {
         circuit
     }
 
+    pub fn mul_by_nonresidue(a: Wires) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq2::N_BITS].to_vec();
+        let a_c1 = a[Fq2::N_BITS..2*Fq2::N_BITS].to_vec();
+        let a_c2 = a[2*Fq2::N_BITS..3*Fq2::N_BITS].to_vec();
+        let u = circuit.extend(Fq2::mul_by_nonresidue(a_c2));
+
+        circuit.add_wires(u);
+        circuit.add_wires(a_c0);
+        circuit.add_wires(a_c1);
+        circuit
+    }
+
     pub fn square(a: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
