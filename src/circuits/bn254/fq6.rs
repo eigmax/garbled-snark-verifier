@@ -328,7 +328,7 @@ impl Fq6 {
 
 #[cfg(test)]
 mod tests {
-    use ark_ff::Field;
+    use ark_ff::{Field, Fp12Config};
 
     use crate::circuits::bn254::utils::{ fq6_from_wires, random_fq2, random_fq6, wires_set_from_fq6};
     use super::*;
@@ -432,6 +432,20 @@ mod tests {
         }
         let c = fq6_from_wires(circuit.0);
         assert_eq!(c, a * ark_bn254::Fq6::new(b, ark_bn254::Fq2::ZERO, ark_bn254::Fq2::ZERO));
+    }
+
+    #[test]
+    fn test_fq6_mul_by_nonresidue() {
+        let a = random_fq6();
+        let circuit = Fq6::mul_by_nonresidue(wires_set_from_fq6(a.clone()));
+        println!("gate count: {:?}", circuit.1.len());
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = fq6_from_wires(circuit.0);
+        let mut a_nonresiude = a.clone();
+        ark_bn254::Fq12Config::mul_fp6_by_nonresidue_in_place(&mut a_nonresiude);
+        assert_eq!(c, a_nonresiude);
     }
 
     #[test]
