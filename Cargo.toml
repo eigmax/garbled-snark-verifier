@@ -21,4 +21,4 @@ bitvm = { git = "https://github.com/chainwayxyz/BitVM" }
 hex = "0.4.3"
 ark-bn254 = { version = "0.5.0", features = ["curve", "scalar_field"], default-features = false }
 ark-std = { version = "0.5.0", default-features = false, features = ["print-trace"] }
-
+ark-ff = "0.5.0"

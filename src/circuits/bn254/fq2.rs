@@ -65,6 +65,37 @@ impl Fq2 {
         circuit
     }
 
+    pub fn triple(a: Wires) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_2 = circuit.extend(Fq2::double(a.clone()));
+        let a_3 = circuit.extend(Fq2::add(a_2, a));
+        circuit.add_wires(a_3);
+        circuit
+    }
+
+    pub fn mul_by_nonresidue(a: Wires) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+
+        let a0_3 = circuit.extend(Fq::triple(a_c0.clone()));
+        let a0_9 = circuit.extend(Fq::triple(a0_3.clone()));
+
+        let a1_3 = circuit.extend(Fq::triple(a_c1.clone()));
+        let a1_9 = circuit.extend(Fq::triple(a1_3.clone()));
+
+        let u = circuit.extend(Fq::sub(a0_9.clone(), a_c1.clone()));
+        let v = circuit.extend(Fq::add(a1_9.clone(), a_c0.clone()));
+
+        circuit.add_wires(u);
+        circuit.add_wires(v);
+        circuit
+    }
+
     pub fn mul(a: Wires, b: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         assert_eq!(b.len(), Self::N_BITS);
@@ -107,6 +138,20 @@ impl Fq2 {
         circuit
     }
 
+    pub fn mul_by_constant_fq(a: Wires, b: ark_bn254::Fq) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+
+        let wires_1 = circuit.extend(Fq::mul_by_constant(a_c0.clone(), b.clone()));
+        let wires_2 = circuit.extend(Fq::mul_by_constant(a_c1.clone(), b.clone()));
+        circuit.add_wires(wires_1);
+        circuit.add_wires(wires_2);
+        circuit
+    }
+
     pub fn square(a: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
@@ -130,7 +175,7 @@ impl Fq2 {
 
 #[cfg(test)]
 mod tests {
-    use crate::circuits::bn254::utils::{fq2_from_wires, random_fq2, wires_set_from_fq2};
+    use crate::circuits::bn254::utils::{fq2_from_wires, random_fq, random_fq2, wires_set_from_fq2};
     use super::*;
 
     #[test]
@@ -184,6 +229,18 @@ mod tests {
     }
 
     #[test]
+    fn test_fq2_triple() {
+        let a = random_fq2();
+        let circuit = Fq2::triple(wires_set_from_fq2(a.clone()));
+        println!("gate count: {:?}", circuit.1.len());
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = fq2_from_wires(circuit.0);
+        assert_eq!(c, a + a + a);
+    }
+
+    #[test]
     fn test_fq2_mul() {
         let a = random_fq2();
         let b = random_fq2();
@@ -207,6 +264,19 @@ mod tests {
         }
         let c = fq2_from_wires(circuit.0);
         assert_eq!(c, a * b);
+    }
+
+    #[test]
+    fn test_fq2_mul_by_constant_fq() {
+        let a = random_fq2();
+        let b = random_fq();
+        let circuit = Fq2::mul_by_constant_fq(wires_set_from_fq2(a.clone()), b.clone());
+        println!("gate count: {:?}", circuit.1.len());
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = fq2_from_wires(circuit.0);
+        assert_eq!(c, a * ark_bn254::Fq2::new(b, ark_bn254::Fq::from(0)));
     }
 
     #[test]

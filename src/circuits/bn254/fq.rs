@@ -129,6 +129,16 @@ impl Fq {
         circuit
     }
 
+    pub fn triple(a: Wires) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_2 = circuit.extend(Fq::double(a.clone()));
+        let a_3 = circuit.extend(Fq::add(a_2, a));
+        circuit.add_wires(a_3);
+        circuit
+    }
+
     pub fn mul(a: Wires, b: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         assert_eq!(b.len(), Self::N_BITS);
@@ -251,6 +261,18 @@ mod tests {
         }
         let c = fq_from_wires(circuit.0);
         assert_eq!(c, a + a);
+    }
+
+    #[test]
+    fn test_fq_triple() {
+        let a = random_fq();
+        let circuit = Fq::triple(wires_set_from_fq(a.clone()));
+        println!("gate count: {:?}", circuit.1.len());
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = fq_from_wires(circuit.0);
+        assert_eq!(c, a + a + a);
     }
 
     #[test]
