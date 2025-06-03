@@ -37,7 +37,7 @@ impl Fq {
 
         let result = wires_for_fq();
         for i in 0..U254::N_BITS {
-            circuit.add(Gate::new(a[i].clone(), s.clone(), result[i].clone(), "and".to_string()));
+            circuit.add(Gate::and(a[i].clone(), s.clone(), result[i].clone()));
         }
         circuit.add_wires(result);
         circuit
@@ -54,10 +54,10 @@ impl Fq {
         let mut wires_2 = circuit.extend(U254::add_constant(wires_1.clone(), c));
         wires_2.pop();
         let not_u = Rc::new(RefCell::new(Wire::new()));
-        circuit.add(Gate::new(u.clone(), u.clone(), not_u.clone(), "not".to_string()));
+        circuit.add(Gate::not(u.clone(), not_u.clone()));
         let v = circuit.extend(U254::less_than_constant(wires_1.clone(), Fq::modulus_as_biguint()))[0].clone();
         let s = Rc::new(RefCell::new(Wire::new()));
-        circuit.add(Gate::new(not_u.clone(), v.clone(), s.clone(), "and".to_string()));
+        circuit.add(Gate::and(not_u.clone(), v.clone(), s.clone()));
         let wires_3 = circuit.extend(U254::select(wires_1, wires_2, s));
         circuit.add_wires(wires_3);
         circuit
@@ -78,10 +78,10 @@ impl Fq {
         let mut wires_2 = circuit.extend(U254::add_constant(wires_1.clone(), c));
         wires_2.pop();
         let not_u = Rc::new(RefCell::new(Wire::new()));
-        circuit.add(Gate::new(u.clone(), u.clone(), not_u.clone(), "not".to_string()));
+        circuit.add(Gate::not(u.clone(), not_u.clone()));
         let v = circuit.extend(U254::less_than_constant(wires_1.clone(), Fq::modulus_as_biguint()))[0].clone();
         let s = Rc::new(RefCell::new(Wire::new()));
-        circuit.add(Gate::new(not_u.clone(), v.clone(), s.clone(), "and".to_string()));
+        circuit.add(Gate::and(not_u.clone(), v.clone(), s.clone()));
         let wires_3 = circuit.extend(U254::select(wires_1, wires_2, s));
         circuit.add_wires(wires_3);
         circuit
@@ -93,7 +93,7 @@ impl Fq {
 
         let not_a = wires_for_fq();
         for i in 0..U254::N_BITS {
-            circuit.add(Gate::new(a[i].clone(), a[i].clone(), not_a[i].clone(), "not".to_string()));
+            circuit.add(Gate::not(a[i].clone(), not_a[i].clone()));
         }
 
         let wires = circuit.extend(Fq::add_constant(not_a, ark_bn254::Fq::from(1) - ark_bn254::Fq::from(Fq::not_modulus_as_biguint())));
@@ -126,10 +126,10 @@ impl Fq {
         let mut wires_2 = circuit.extend(U254::add_constant(shifted_wires.clone(), c));
         wires_2.pop();
         let not_u = Rc::new(RefCell::new(Wire::new()));
-        circuit.add(Gate::new(u.clone(), u.clone(), not_u.clone(), "not".to_string()));
+        circuit.add(Gate::not(u.clone(), not_u.clone()));
         let v = circuit.extend(U254::less_than_constant(shifted_wires.clone(), Fq::modulus_as_biguint()))[0].clone();
         let s = Rc::new(RefCell::new(Wire::new()));
-        circuit.add(Gate::new(not_u.clone(), v.clone(), s.clone(), "and".to_string()));
+        circuit.add(Gate::and(not_u.clone(), v.clone(), s.clone()));
         let result = circuit.extend(U254::select(shifted_wires, wires_2, s));
         circuit.add_wires(result);
         circuit

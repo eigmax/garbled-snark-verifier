@@ -38,7 +38,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
             }
             else if i == first_one {
                 let wire = Rc::new(RefCell::new(Wire::new()));
-                circuit.add(Gate::new(a[i].clone(), a[i].clone(), wire.clone(), "not".to_string()));
+                circuit.add(Gate::not(a[i].clone(), wire.clone()));
                 circuit.add_wire(wire);
                 carry = a[i].clone(); 
             }
@@ -46,16 +46,16 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
                 if b_bits[i] {
                     let wire_1 = Rc::new(RefCell::new(Wire::new()));
                     let wire_2 = Rc::new(RefCell::new(Wire::new()));
-                    circuit.add(Gate::new(a[i].clone(), carry.clone(), wire_1.clone(), "xnor".to_string()));
-                    circuit.add(Gate::new(a[i].clone(), carry.clone(), wire_2.clone(), "or".to_string()));
+                    circuit.add(Gate::xnor(a[i].clone(), carry.clone(), wire_1.clone()));
+                    circuit.add(Gate::or(a[i].clone(), carry.clone(), wire_2.clone()));
                     circuit.add_wire(wire_1);
                     carry = wire_2;
                 }
                 else {
                     let wire_1 = Rc::new(RefCell::new(Wire::new()));
                     let wire_2 = Rc::new(RefCell::new(Wire::new()));
-                    circuit.add(Gate::new(a[i].clone(), carry.clone(), wire_1.clone(), "xor".to_string()));
-                    circuit.add(Gate::new(a[i].clone(), carry.clone(), wire_2.clone(), "and".to_string()));
+                    circuit.add(Gate::xor(a[i].clone(), carry.clone(), wire_1.clone()));
+                    circuit.add(Gate::and(a[i].clone(), carry.clone(), wire_2.clone()));
                     circuit.add_wire(wire_1);
                     carry = wire_2;
                 }

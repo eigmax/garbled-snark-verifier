@@ -20,6 +20,30 @@ impl Gate {
         }
     }
 
+    pub fn and(wire_a: Rc<RefCell<Wire>>, wire_b: Rc<RefCell<Wire>>, wire_c: Rc<RefCell<Wire>>) -> Self {
+        Self::new(wire_a, wire_b, wire_c, "and".to_string())
+    }
+
+    pub fn nand(wire_a: Rc<RefCell<Wire>>, wire_b: Rc<RefCell<Wire>>, wire_c: Rc<RefCell<Wire>>) -> Self {
+        Self::new(wire_a, wire_b, wire_c, "nand".to_string())
+    }
+
+    pub fn or(wire_a: Rc<RefCell<Wire>>, wire_b: Rc<RefCell<Wire>>, wire_c: Rc<RefCell<Wire>>) -> Self {
+        Self::new(wire_a, wire_b, wire_c, "or".to_string())
+    }
+
+    pub fn xor(wire_a: Rc<RefCell<Wire>>, wire_b: Rc<RefCell<Wire>>, wire_c: Rc<RefCell<Wire>>) -> Self {
+        Self::new(wire_a, wire_b, wire_c, "xor".to_string())
+    }
+
+    pub fn xnor(wire_a: Rc<RefCell<Wire>>, wire_b: Rc<RefCell<Wire>>, wire_c: Rc<RefCell<Wire>>) -> Self {
+        Self::new(wire_a, wire_b, wire_c, "xnor".to_string())
+    }
+
+    pub fn not(wire_a: Rc<RefCell<Wire>>, wire_c: Rc<RefCell<Wire>>) -> Self {
+        Self::new(wire_a.clone(), wire_a.clone(), wire_c, "not".to_string())
+    }
+
     pub fn f(&self) -> fn(bool, bool) -> bool {
         match self.name.as_str() {
             "and"         => { fn  and(a: bool, b: bool) -> bool {a & b}     and }
@@ -147,7 +171,7 @@ mod tests {
         let wire_1 = Rc::new(RefCell::new(Wire::new()));
         let wire_2 = Rc::new(RefCell::new(Wire::new()));
         let wire_3 = Rc::new(RefCell::new(Wire::new()));
-        let gate = Gate::new(wire_1, wire_2, wire_3, "and".to_string());
+        let gate = Gate::and(wire_1, wire_2, wire_3);
 
         let correct_garbled = gate.garbled();
         let incorrect_garbled = vec![S::random(), S::random(), S::random(), S::random()];
