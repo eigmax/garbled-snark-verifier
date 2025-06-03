@@ -26,7 +26,11 @@ A: operator, B: verifier
 
 ## Code Explanation
 
+### Core Folder
+
 **s.rs**: contains **S** struct which is a basic wrapper around the type [u8; 32] that the all labels and hashes have.
+
+**utils.rs**: contains a few utility functions
 
 **wire.rs**: contains **Wire** struct which has randomly generated labels for value 0 and value 1, and their hashes. It also has useful getter and setter functions. Importantly, wires have *commitment_script*s which appears in every gate script for every wire of that gate.
 
@@ -36,5 +40,13 @@ A: operator, B: verifier
 
 **bristol.rs**: contains the parser for parsing the bristol circuit files, several examples (adder64, subtracter64, multiplier64) are provided.
 
-**circuits**: this folder contains all the circuit functions. At the end, it will contain the circuit for groth16 proof verification. 
+### Circuits Folder
+
+this folder contains all the circuit functions. At the end, it will contain the circuit for groth16 proof verification.
+
+**basic.rs**: contains basic circuits like half adder etc.
+
+**bigint**: contains u254 circuits
+
+**bn254**: contains circuits related to bn254 curve such as field arithmetic circuits etc.
 

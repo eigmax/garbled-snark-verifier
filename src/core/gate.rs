@@ -1,6 +1,6 @@
 use crate::bag::*;
 use bitvm::{bigint::U256, hash::blake3::blake3_compute_script_with_limb, treepp::*};
-use crate::{bit_to_usize, convert_between_blake3_and_normal_form, LIMB_LEN, N_LIMBS};
+use crate::core::utils::{bit_to_usize, convert_between_blake3_and_normal_form, LIMB_LEN, N_LIMBS};
 
 #[derive(Clone)]
 pub struct Gate {

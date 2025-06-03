@@ -87,7 +87,7 @@ mod tests {
 
     #[test]
     fn test_bristol_adder() {
-        let (circuit, inputs, outputs) = parser("adder64.txt");
+        let (circuit, inputs, outputs) = parser("src/core/bristol-examples/adder64.txt");
         let a: u64 = rng().random();
         let b: u64 = rng().random();
         for (i, wire) in inputs[0].iter().enumerate() {
@@ -112,7 +112,7 @@ mod tests {
 
     #[test]
     fn test_bristol_multiplier() {
-        let (circuit, inputs, outputs) = parser("multiplier64.txt");
+        let (circuit, inputs, outputs) = parser("src/core/bristol-examples/multiplier64.txt");
         let a: u64 = rng().random();
         let b: u64 = rng().random();
         for (i, wire) in inputs[0].iter().enumerate() {
@@ -137,7 +137,7 @@ mod tests {
 
     #[test]
     fn test_bristol_subtracter() {
-        let (circuit, inputs, outputs) = parser("subtracter64.txt");
+        let (circuit, inputs, outputs) = parser("src/core/bristol-examples/subtracter64.txt");
         let a: u64 = rng().random();
         let b: u64 = rng().random();
         for (i, wire) in inputs[0].iter().enumerate() {

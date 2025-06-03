@@ -172,6 +172,7 @@ impl Fq12 {
 #[cfg(test)]
 mod tests {
     use ark_ff::Field;
+    use serial_test::serial;
     use crate::circuits::bn254::utils::{fq12_from_wires, random_fq12, random_fq2, wires_set_from_fq12, wires_set_from_fq2};
     use super::*;
 
@@ -226,6 +227,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_fq12_mul() {
         let a = random_fq12();
         let b = random_fq12();
@@ -239,6 +241,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_fq12_mul_by_constant() {
         let a = random_fq12();
         let b = random_fq12();
@@ -252,6 +255,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_fq12_mul_by_34() {
         let a = random_fq12();
         let c3 = random_fq2();
@@ -268,6 +272,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_fq12_square() {
         let a = random_fq12();
         let circuit = Fq12::square(wires_set_from_fq12(a.clone()));
@@ -280,6 +285,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_fq12_frobenius() {
         let a = random_fq12();
 

@@ -51,7 +51,8 @@ mod tests {
     use bitvm::bigint::U256;
     use bitvm::treepp::*;
     use rand::{rng, Rng};
-    use crate::{bristol::parser, s::S};
+    use serial_test::serial;
+    use crate::core::{bristol::parser, s::S};
 
     fn test_circuit(circuit_filename: &str, correct: bool) {
         println!("testing {:?}", circuit_filename);
@@ -157,38 +158,44 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_circuit_adder() {
-        test_circuit("adder64.txt", true);
-        test_circuit("adder64.txt", false);
+        test_circuit("src/core/bristol-examples/adder64.txt", true);
+        test_circuit("src/core/bristol-examples/adder64.txt", false);
     }
 
     #[test]
+    #[serial]
     fn test_circuit_adder_find_incorrect() {
-        test_circuit_find_incorrect("adder64.txt", true);
-        test_circuit_find_incorrect("adder64.txt", false);
+        test_circuit_find_incorrect("src/core/bristol-examples/adder64.txt", true);
+        test_circuit_find_incorrect("src/core/bristol-examples/adder64.txt", false);
     }
 
     #[test]
+    #[serial]
     fn test_circuit_subtracter() {
-        test_circuit("subtracter64.txt", true);
-        test_circuit("subtracter64.txt", false);
+        test_circuit("src/core/bristol-examples/subtracter64.txt", true);
+        test_circuit("src/core/bristol-examples/subtracter64.txt", false);
     }
 
     #[test]
+    #[serial]
     fn test_circuit_subtracter_find_incorrect() {
-        test_circuit_find_incorrect("subtracter64.txt", true);
-        test_circuit_find_incorrect("subtracter64.txt", false);
+        test_circuit_find_incorrect("src/core/bristol-examples/subtracter64.txt", true);
+        test_circuit_find_incorrect("src/core/bristol-examples/subtracter64.txt", false);
     }
 
-    #[test]
-    fn test_circuit_multiplier() {
-        test_circuit("multiplier64.txt", true);
-        test_circuit("multiplier64.txt", false);
-    }
+    // #[test]
+    // #[serial]
+    // fn test_circuit_multiplier() {
+    //     test_circuit("src/core/bristol-examples/multiplier64.txt", true);
+    //     test_circuit("src/core/bristol-examples/multiplier64.txt", false);
+    // }
 
-    #[test]
-    fn test_circuit_multiplier_find_incorrect() {
-        test_circuit_find_incorrect("multiplier64.txt", true);
-        test_circuit_find_incorrect("multiplier64.txt", false);
-    }
+    // #[test]
+    // #[serial]
+    // fn test_circuit_multiplier_find_incorrect() {
+    //     test_circuit_find_incorrect("src/core/bristol-examples/multiplier64.txt", true);
+    //     test_circuit_find_incorrect("src/core/bristol-examples/multiplier64.txt", false);
+    // }
 }

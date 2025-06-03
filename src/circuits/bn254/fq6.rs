@@ -361,6 +361,7 @@ impl Fq6 {
 #[cfg(test)]
 mod tests {
     use ark_ff::{Field, Fp12Config};
+    use serial_test::serial;
 
     use crate::circuits::bn254::utils::{ fq6_from_wires, random_fq2, random_fq6, wires_set_from_fq2, wires_set_from_fq6};
     use super::*;
@@ -428,6 +429,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_fq6_mul() {
         let a = random_fq6();
         let b = random_fq6();
@@ -481,6 +483,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_fq6_mul_by_01() {
         let a = random_fq6();
         let c0 = random_fq2();
@@ -497,6 +500,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_fq6_square() {
         let a = random_fq6();
         let circuit = Fq6::square(wires_set_from_fq6(a.clone()));

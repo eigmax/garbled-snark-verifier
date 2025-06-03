@@ -1,4 +1,5 @@
-use crate::{convert_between_blake3_and_normal_form, s::S, LIMB_LEN, N_LIMBS};
+use crate::core::{s::S};
+use crate::core::utils::{convert_between_blake3_and_normal_form, LIMB_LEN, N_LIMBS};
 use bitvm::{bigint::U256, hash::blake3::blake3_compute_script_with_limb, treepp::*};
 
 #[derive(Clone, Debug)]
