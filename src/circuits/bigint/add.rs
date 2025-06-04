@@ -108,17 +108,20 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
             circuit.add(Gate::not(select[i].clone(), not_select[i].clone()));
         }
 
-        let k = wires_for_u254();
-        for i in 0..N_BITS-1 {
-            circuit.add(Gate::and(not_select[i].clone(), a[i+1].clone(), k[i].clone()));
+        let mut k = wires_for_u254();
+        k[0] = a[0].clone();
+        for i in 1..N_BITS {
+            circuit.add(Gate::and(not_select[i-1].clone(), a[i].clone(), k[i].clone()));
         }
 
-        let mut result = wires_for_u254();
+        let mut results = Vec::new();
+        results.push(a);
         for i in 0..N_BITS {
-            let half_result = circuit.extend(Self::half(result.clone()));
-            result = circuit.extend( Self::select( result.clone(), half_result, select[i].clone()));
+            let half_result = circuit.extend(Self::half(results[i].clone()));
+            let result = circuit.extend( Self::select( results[i].clone(), half_result, select[i].clone()));
+            results.push(result);
         }
-        circuit.add_wires(result.clone());
+        circuit.add_wires(results[N_BITS].clone());
         circuit.add_wires(k.clone());
         circuit
     }
@@ -202,6 +205,6 @@ mod tests {
         println!("c= {:?}" , c);
         println!("d= {:?}" , d);
         println!("cd= {:?}" ,c.clone()* d.clone());
-        assert_eq!(a , c.clone() *d.clone() + c*d.clone());
+        assert_eq!(a , c *d);
     }
 }
