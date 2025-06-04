@@ -227,6 +227,36 @@ impl Fq {
         circuit.add_wires(result);
         circuit
     }
+
+    // pub fn inverse(a: Wires) -> Circuit {
+    //     assert_eq!(a.len(), Self::N_BITS);
+    //     let mut circuit = Circuit::empty();
+
+    //     let u = Vec::new();
+
+
+    //     for i in 0..2*Fq::N_BITS {
+
+
+
+
+    //     }
+
+
+
+
+
+
+
+
+    //     // divide result by 2^k 
+
+
+
+
+    //     circuit.add_wires(result);
+    //     circuit
+    // }
 }
 
 #[cfg(test)]

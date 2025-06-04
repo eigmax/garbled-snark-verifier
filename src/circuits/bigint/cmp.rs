@@ -88,6 +88,18 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         }
         circuit
     }
+
+    pub fn self_or_zero(a: Wires, s: Wirex) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let result = wires_for_u254();
+        for i in 0..Self::N_BITS {
+            circuit.add(Gate::and(a[i].clone(), s.clone(), result[i].clone()));
+        }
+        circuit.add_wires(result);
+        circuit
+    }
 }
 
 #[cfg(test)]

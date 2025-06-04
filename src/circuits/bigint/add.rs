@@ -1,6 +1,6 @@
-use bitvm::bigint::U254;
+use std::str::FromStr;
 use num_bigint::BigUint;
-use crate::{bag::*, circuits::{basic::{full_adder, full_subtracter, half_adder, half_subtracter}, bigint::utils::bits_from_biguint}};
+use crate::{bag::*, circuits::{basic::{full_adder, full_subtracter, half_adder, half_subtracter}, bigint::utils::{bits_from_biguint, wires_for_u254, wires_set_from_u254}}};
 use super::BigIntImpl;
 
 impl<const N_BITS: usize> BigIntImpl<N_BITS> {
@@ -93,10 +93,43 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         circuit.add_wire(zero_wire);
         circuit
     }
+
+    pub fn odd_part(a: Wires) -> Circuit {
+        assert_eq!(a.len(), N_BITS);
+        let mut circuit = Circuit::empty();
+        let mut select = wires_for_u254();
+        let not_select = wires_for_u254();
+        select[0] = a[0].clone();
+        for i in 1..N_BITS {
+            circuit.add(Gate::or(select[i-1].clone(), a[i].clone(), select[i].clone()));
+        }
+
+        for i in 0..N_BITS {
+            circuit.add(Gate::not(select[i].clone(), not_select[i].clone()));
+        }
+
+        let k = wires_for_u254();
+        for i in 0..N_BITS-1 {
+            circuit.add(Gate::and(not_select[i].clone(), a[i+1].clone(), k[i].clone()));
+        }
+
+        let mut result = wires_for_u254();
+        for i in 0..N_BITS {
+            let half_result = circuit.extend(Self::half(result.clone()));
+            result = circuit.extend( Self::select( result.clone(), half_result, select[i].clone()));
+        }
+        circuit.add_wires(result.clone());
+        circuit.add_wires(k.clone());
+        circuit
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
+    use num_bigint::BigUint;
+
     use crate::circuits::bigint::{utils::{biguint_from_wires, random_u254, wires_set_from_u254}, U254};
 
     #[test]
@@ -150,7 +183,25 @@ mod tests {
             gate.evaluate();
         }
         let c = biguint_from_wires(circuit.0);
-        println!("{:?}" , c);
-        println!("{:?}" , a);
+        let x = (a.clone() - (c.clone() + c.clone() )) == BigUint::from_str("1").unwrap();
+        let y = (a - (c.clone() + c )) == BigUint::from_str("0").unwrap();
+        assert!(x | y)
+    }
+
+    #[test]
+    fn test_odd_part() {
+        let a = random_u254();
+        let circuit = U254::odd_part(wires_set_from_u254(a.clone()));
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = biguint_from_wires(circuit.0[0..U254::N_BITS].to_vec());
+        let d = biguint_from_wires(circuit.0[U254::N_BITS..2*U254::N_BITS].to_vec());
+        println!("a= {:?}" , a);
+        println!("c= {:?}" , c);
+        println!("d= {:?}" , d);
+        println!("cd= {:?}" ,c.clone()* d.clone());
+        assert_eq!(a , c.clone() *d.clone() + c*d.clone());
     }
 }
