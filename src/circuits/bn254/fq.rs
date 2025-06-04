@@ -23,7 +23,7 @@ impl Fq {
 
     pub fn not_modulus_as_biguint() -> BigUint {
         let p = Fq::modulus_as_biguint();
-        let a = BigUint::from_str("2").unwrap().pow(U254::N_BITS.try_into().unwrap());
+        let a = BigUint::from_str("2").unwrap().pow(Self::N_BITS.try_into().unwrap());
         a-p
     }
 
@@ -36,11 +36,19 @@ impl Fq {
         let mut circuit = Circuit::empty();
 
         let result = wires_for_fq();
-        for i in 0..U254::N_BITS {
+        for i in 0..Self::N_BITS {
             circuit.add(Gate::and(a[i].clone(), s.clone(), result[i].clone()));
         }
         circuit.add_wires(result);
         circuit
+    }
+
+    pub fn equal(a: Wires, b: Wires) -> Circuit {
+        U254::equal(a, b)
+    }
+
+    pub fn equal_constant(a: Wires, b: ark_bn254::Fq) -> Circuit {
+        U254::equal_constant(a, BigUint::from(b))
     }
 
     pub fn add(a: Wires, b: Wires) -> Circuit {
@@ -92,7 +100,7 @@ impl Fq {
         let mut circuit = Circuit::empty();
 
         let not_a = wires_for_fq();
-        for i in 0..U254::N_BITS {
+        for i in 0..Self::N_BITS {
             circuit.add(Gate::not(a[i].clone(), not_a[i].clone()));
         }
 
@@ -150,7 +158,7 @@ impl Fq {
         assert_eq!(b.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
 
-        let a_or_zero = circuit.extend(Fq::self_or_zero(a.clone(), b[U254::N_BITS - 1].clone()));
+        let a_or_zero = circuit.extend(Fq::self_or_zero(a.clone(), b[Self::N_BITS - 1].clone()));
         let mut result = a_or_zero.clone();
         for b_wire in b.iter().rev().skip(1) {
             let result_double = circuit.extend(Fq::double(result.clone()));
@@ -171,13 +179,13 @@ impl Fq {
         }
 
         let b_bits = bits_from_fq(b);
-        let mut i = U254::N_BITS - 1;
+        let mut i = Self::N_BITS - 1;
         while !b_bits[i] {
             i -= 1;
         }
 
         let mut result = a.clone();
-        for b_bit in b_bits.iter().rev().skip(U254::N_BITS - i) {
+        for b_bit in b_bits.iter().rev().skip(Self::N_BITS - i) {
             let result_double = circuit.extend(Fq::double(result.clone()));
             if *b_bit {
                 result = circuit.extend(Fq::add(a.clone(), result_double));
@@ -194,7 +202,7 @@ impl Fq {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
 
-        let a_or_zero = circuit.extend(Fq::self_or_zero(a.clone(), a[U254::N_BITS - 1].clone()));
+        let a_or_zero = circuit.extend(Fq::self_or_zero(a.clone(), a[Self::N_BITS - 1].clone()));
         let mut result = a_or_zero.clone();
         for a_wire in a.iter().rev().skip(1) {
             let result_double = circuit.extend(Fq::double(result.clone()));

@@ -1,5 +1,5 @@
 use num_bigint::BigUint;
-use crate::{bag::*, circuits::{basic::{full_adder, half_adder}, bigint::utils::bits_from_biguint}};
+use crate::{bag::*, circuits::{basic::{full_adder, full_subtracter, half_adder, half_subtracter}, bigint::utils::bits_from_biguint}};
 use super::BigIntImpl;
 
 impl<const N_BITS: usize> BigIntImpl<N_BITS> {
@@ -64,6 +64,22 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         circuit.add_wire(carry);
         circuit
     }
+
+    pub fn sub(a: Wires, b: Wires) -> Circuit {
+        assert_eq!(a.len(), N_BITS);
+        assert_eq!(b.len(), N_BITS);
+        let mut circuit = Circuit::empty();
+        let wires = circuit.extend(half_subtracter(a[0].clone(), b[0].clone()));
+        circuit.add_wire(wires[0].clone());
+        let mut borrow = wires[1].clone();
+        for i in 1..N_BITS {
+            let wires = circuit.extend(full_subtracter(a[i].clone(), b[i].clone(), borrow));
+            circuit.add_wire(wires[0].clone());
+            borrow = wires[1].clone();
+        }
+        circuit.add_wire(borrow);
+        circuit
+    }
 }
 
 #[cfg(test)]
@@ -94,5 +110,21 @@ mod tests {
         }
         let c = biguint_from_wires(circuit.0);
         assert_eq!(c, a + b);
+    }
+
+    #[test]
+    fn test_sub() {
+        let mut a = random_u254();
+        let mut b = random_u254();
+        if a < b {
+            (a, b) = (b, a);
+        }
+        let circuit = U254::sub(wires_set_from_u254(a.clone()), wires_set_from_u254(b.clone()));
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = biguint_from_wires(circuit.0);
+        assert_eq!(c, a - b);
     }
 }
