@@ -125,7 +125,10 @@ impl Fq {
         let mut circuit = Circuit::empty();
 
         let shift_wire = Rc::new(RefCell::new(Wire::new()));
-        shift_wire.borrow_mut().set(false);
+        let x = a[0].clone();
+        let not_x = Rc::new(RefCell::new(Wire::new()));
+        circuit.add(Gate::not(x.clone(), not_x.clone())); 
+        circuit.add(Gate::and(x.clone(), not_x.clone(), shift_wire.clone())); 
         let mut aa = a.clone();
         let u = aa.pop().unwrap();
         let mut shifted_wires = vec![shift_wire];
@@ -139,6 +142,18 @@ impl Fq {
         let s = Rc::new(RefCell::new(Wire::new()));
         circuit.add(Gate::and(not_u.clone(), v.clone(), s.clone()));
         let result = circuit.extend(U254::select(shifted_wires, wires_2, s));
+        circuit.add_wires(result);
+        circuit
+    }
+
+    pub fn half(a: Wires) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let selector = a[0].clone();
+        let wires_1 = circuit.extend(U254::half(a.clone()));
+        let wires_2 =  circuit.extend(Fq::add_constant(wires_1.clone(), ark_bn254::Fq::from(Fq::not_modulus_as_biguint()) + ark_bn254::Fq::from(1) / ark_bn254::Fq::from(2) ));
+        let result = circuit.extend(U254::select(wires_2, wires_1, selector));
         circuit.add_wires(result);
         circuit
     }
@@ -280,6 +295,18 @@ mod tests {
         }
         let c = fq_from_wires(circuit.0);
         assert_eq!(c, a + a);
+    }
+
+    #[test]
+    fn test_fq_half() {
+        let a = random_fq();
+        let circuit = Fq::half(wires_set_from_fq(a.clone()));
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = fq_from_wires(circuit.0);
+        assert_eq!(c + c , a);
     }
 
     #[test]

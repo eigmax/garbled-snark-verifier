@@ -1,3 +1,4 @@
+use bitvm::bigint::U254;
 use num_bigint::BigUint;
 use crate::{bag::*, circuits::{basic::{full_adder, full_subtracter, half_adder, half_subtracter}, bigint::utils::bits_from_biguint}};
 use super::BigIntImpl;
@@ -80,6 +81,18 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         circuit.add_wire(borrow);
         circuit
     }
+
+    pub fn half(a: Wires) -> Circuit {
+        assert_eq!(a.len(), N_BITS);
+        let mut circuit = Circuit::empty();
+        let not_a = Rc::new(RefCell::new(Wire::new()));
+        let zero_wire = Rc::new(RefCell::new(Wire::new()));
+        circuit.add(Gate::not(a[0].clone(), not_a.clone())); 
+        circuit.add(Gate::and(a[0].clone(), not_a.clone(), zero_wire.clone())); 
+        circuit.add_wires(a[1..N_BITS].to_vec());
+        circuit.add_wire(zero_wire);
+        circuit
+    }
 }
 
 #[cfg(test)]
@@ -126,5 +139,18 @@ mod tests {
         }
         let c = biguint_from_wires(circuit.0);
         assert_eq!(c, a - b);
+    }
+
+    #[test]
+    fn test_half() {
+        let a = random_u254();
+        let circuit = U254::half(wires_set_from_u254(a.clone()));
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = biguint_from_wires(circuit.0);
+        println!("{:?}" , c);
+        println!("{:?}" , a);
     }
 }
