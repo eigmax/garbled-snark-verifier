@@ -1,6 +1,6 @@
 use std::str::FromStr;
 use num_bigint::BigUint;
-use crate::{bag::*, circuits::{basic::{full_adder, full_subtracter, half_adder, half_subtracter}, bigint::utils::{bits_from_biguint, wires_for_u254, wires_set_from_u254}}};
+use crate::{bag::*, circuits::{basic::{full_adder, full_subtracter, half_adder, half_subtracter}, bigint::utils::{bits_from_biguint, wires_for_u254}}};
 use super::BigIntImpl;
 
 impl<const N_BITS: usize> BigIntImpl<N_BITS> {
