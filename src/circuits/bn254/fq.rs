@@ -2,15 +2,11 @@ use std::str::FromStr;
 use ark_ff::{AdditiveGroup, Field};
 use num_bigint::BigUint;
 use crate::{bag::*, circuits::{bigint::{utils::bits_from_biguint, U254}, bn254::utils::{bits_from_fq, wires_for_fq, wires_set_from_fq}}};
-use super::Fp254Impl;
 
 pub struct Fq;
 
-impl Fp254Impl for Fq {
-    const MODULUS: &'static str = "21888242871839275222246405745257275088696311157297823662689037894645226208583";
-}
-
 impl Fq {
+    pub const MODULUS: &'static str = "21888242871839275222246405745257275088696311157297823662689037894645226208583";
     pub const N_BITS: usize = 254;
     
     pub fn modulus_as_biguint() -> BigUint {
@@ -30,19 +26,13 @@ impl Fq {
     pub fn not_modulus_as_bits() -> Vec<bool> {
         bits_from_biguint(Fq::not_modulus_as_biguint())
     }
+}
 
+impl Fq {
     pub fn self_or_zero(a: Wires, s: Wirex) -> Circuit {
-        assert_eq!(a.len(), Self::N_BITS);
-        let mut circuit = Circuit::empty();
-
-        let result = wires_for_fq();
-        for i in 0..Self::N_BITS {
-            circuit.add(Gate::and(a[i].clone(), s.clone(), result[i].clone()));
-        }
-        circuit.add_wires(result);
-        circuit
+        U254::self_or_zero(a, s)
     }
-
+    
     pub fn equal(a: Wires, b: Wires) -> Circuit {
         U254::equal(a, b)
     }

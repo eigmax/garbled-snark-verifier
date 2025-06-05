@@ -183,10 +183,35 @@ mod tests {
         let s = Rc::new(RefCell::new(Wire::new()));
         s.borrow_mut().set(true);
         let circuit = U254::select(wires_set_from_u254(a.clone()), wires_set_from_u254(b.clone()), s);
+        circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
         let c = biguint_from_wires(circuit.0);
         assert_eq!(a, c);
+    }
+
+    #[test]
+    fn test_self_or_zero() {
+        let a = random_u254();
+
+        let s = Rc::new(RefCell::new(Wire::new()));
+        s.borrow_mut().set(true);
+        let circuit = U254::self_or_zero(wires_set_from_u254(a.clone()), s);
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = biguint_from_wires(circuit.0);
+        assert_eq!(a, c);
+
+        let s = Rc::new(RefCell::new(Wire::new()));
+        s.borrow_mut().set(false);
+        let circuit = U254::self_or_zero(wires_set_from_u254(a.clone()), s);
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = biguint_from_wires(circuit.0);
+        assert_eq!(c, BigUint::ZERO);
     }
 }
