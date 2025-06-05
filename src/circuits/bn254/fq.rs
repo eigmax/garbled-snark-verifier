@@ -240,11 +240,11 @@ impl Fq {
         let neg_odd_part = circuit.extend(Fq::neg(odd_part.clone()));
         let mut u = circuit.extend(Fq::half(neg_odd_part));
         let mut v = odd_part;
-        let mut k = wires_set_from_fq(ark_bn254::Fq::ZERO);
+        let mut k = wires_set_from_fq(ark_bn254::Fq::ONE);
         let mut r = wires_set_from_fq(ark_bn254::Fq::from(1));
         let mut s = wires_set_from_fq(ark_bn254::Fq::from(2));
 
-        for i in 0..2*Fq::N_BITS {
+        for _ in 0..2*Fq::N_BITS {
             let mut new_u = wires_for_fq();
             let mut new_v = wires_for_fq();
             let mut new_r = wires_for_fq();
@@ -252,7 +252,7 @@ impl Fq {
             let mut new_k = wires_for_fq();
             let x1 = u[0].clone();
             let x2 = v[0].clone();
-            let x3 = circuit.extend(U254::greater_than(u.clone(), v.clone()));
+            let x3 = circuit.extend(U254::greater_than(u.clone(), v.clone()))[0].clone();
 
             let p1 = x1.clone();
             let not_x1 = Rc::new(RefCell::new(Wire::new()));
@@ -264,10 +264,10 @@ impl Fq {
             circuit.add(Gate::not(x2, not_x2.clone()));
             let wires_2 = Rc::new(RefCell::new(Wire::new()));
             circuit.add(Gate::and(not_x1.clone(), not_x2.clone(), wires_2.clone()));
-            circuit.add(Gate::and(wires_2.clone(), not_x2, p3.clone()));
+            circuit.add(Gate::and(wires_2.clone(), x3.clone(), p3.clone()));
             let p4 = Rc::new(RefCell::new(Wire::new()));
             let not_x3= Rc::new(RefCell::new(Wire::new()));
-            circuit.add(Gate::not(x3[0].clone(), not_x3.clone()));
+            circuit.add(Gate::not(x3.clone(), not_x3.clone()));
             circuit.add(Gate::and(wires_2, not_x3, p4.clone()));
 
             //part1 
@@ -373,7 +373,7 @@ impl Fq {
 
         for i in 0..Fq::N_BITS{
             let updated_s = circuit.extend(Fq::half(s.clone()));
-            let updated_k = circuit.extend(Fq::add_constant(k.clone(), ark_bn254::Fq::from(Fq::not_modulus_as_biguint()) - ark_bn254::Fq::from(1)));
+            let updated_k = circuit.extend(Fq::add_constant(k.clone(), ark_bn254::Fq::from(Fq::modulus_as_biguint()) - ark_bn254::Fq::from(1)));
             let selector = circuit.extend(Fq::equal_constant(k.clone(), ark_bn254::Fq::ZERO));
             s = circuit.extend(U254::select(s, updated_s, selector[0].clone()));
             k = circuit.extend(U254::select(k, updated_k, selector[0].clone()));
