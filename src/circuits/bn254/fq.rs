@@ -32,7 +32,7 @@ impl Fq {
     pub fn self_or_zero(a: Wires, s: Wirex) -> Circuit {
         U254::self_or_zero(a, s)
     }
-    
+
     pub fn equal(a: Wires, b: Wires) -> Circuit {
         U254::equal(a, b)
     }
@@ -228,7 +228,7 @@ impl Fq {
 
         // initialize value for wires 
         let neg_odd_part = circuit.extend(Fq::neg(odd_part.clone()));
-        let mut u = circuit.extend(Fq::half(neg_odd_part));
+        let mut u = circuit.extend(U254::half(neg_odd_part));
         let mut v = odd_part;
         let mut k = wires_set_from_fq(ark_bn254::Fq::ONE);
         let mut r = wires_set_from_fq(ark_bn254::Fq::ONE);
@@ -260,82 +260,82 @@ impl Fq {
             circuit.add(Gate::and(wires_2, not_x3, p4.clone()));
 
             //part1 
-            let u1 = circuit.extend(Fq::half(u.clone()));
+            let u1 = circuit.extend(U254::half(u.clone()));
             let v1 = v.clone();
             let r1 = r.clone();
-            let s1 = circuit.extend(Fq::double(s.clone()));
-            let k1 = circuit.extend(Fq::add_constant(k.clone(), ark_bn254::Fq::ONE));
+            let s1 = circuit.extend(U254::double(s.clone()));
+            let k1 = circuit.extend(U254::add_constant_without_carry(k.clone(), BigUint::from_str("1").unwrap()));
 
             // part2 
             let u2 = u.clone();
-            let v2 = circuit.extend(Fq::half(v.clone()));
-            let r2 = circuit.extend(Fq::double(r.clone()));
+            let v2 = circuit.extend(U254::half(v.clone()));
+            let r2 = circuit.extend(U254::double(r.clone()));
             let s2 = s.clone();
-            let k2 = circuit.extend(Fq::add_constant(k.clone(), ark_bn254::Fq::ONE));
+            let k2 = circuit.extend(U254::add_constant_without_carry(k.clone(), BigUint::from_str("1").unwrap()));
 
             // part3
-            let u3 = circuit.extend(Fq::sub(u1.clone(), v2.clone()));
+            let u3 = circuit.extend(U254::sub_without_borrow(u1.clone(), v2.clone()));
             let v3 = v.clone();
-            let r3 = circuit.extend(Fq::add(r.clone(), s.clone()));
-            let s3 = circuit.extend(Fq::double(s.clone()));
-            let k3 = circuit.extend(Fq::add_constant(k.clone(), ark_bn254::Fq::ONE));
+            let r3 = circuit.extend(U254::add_without_carry(r.clone(), s.clone()));
+            let s3 = circuit.extend(U254::double(s.clone()));
+            let k3 = circuit.extend(U254::add_constant_without_carry(k.clone(), BigUint::from_str("1").unwrap()));
 
             // part4
             let u4 = u.clone();
-            let v4 = circuit.extend(Fq::sub(v2.clone(), u1.clone()));
-            let r4 = circuit.extend(Fq::double(r.clone()));
-            let s4 = circuit.extend(Fq::add(r.clone(), s.clone()));
-            let k4 = circuit.extend(Fq::add_constant(k.clone(), ark_bn254::Fq::ONE));
+            let v4 = circuit.extend(U254::sub_without_borrow(v2.clone(), u1.clone()));
+            let r4 = circuit.extend(U254::double(r.clone()));
+            let s4 = circuit.extend(U254::add_without_carry(r.clone(), s.clone()));
+            let k4 = circuit.extend(U254::add_constant_without_carry(k.clone(), BigUint::from_str("1").unwrap()));
 
             // calculate new u 
-            let wire_u_1 = circuit.extend(Fq::self_or_zero(u1.clone(), p1.clone()));
-            let wire_u_2 = circuit.extend(Fq::self_or_zero(u2.clone(), p2.clone()));
-            let wire_u_3 = circuit.extend(Fq::self_or_zero(u3.clone(), p3.clone()));
-            let wire_u_4 = circuit.extend(Fq::self_or_zero(u4.clone(), p4.clone()));
+            let wire_u_1 = circuit.extend(U254::self_or_zero(u1.clone(), p1.clone()));
+            let wire_u_2 = circuit.extend(U254::self_or_zero(u2.clone(), p2.clone()));
+            let wire_u_3 = circuit.extend(U254::self_or_zero(u3.clone(), p3.clone()));
+            let wire_u_4 = circuit.extend(U254::self_or_zero(u4.clone(), p4.clone()));
 
-            let add_u_1 = circuit.extend(Fq::add(wire_u_1, wire_u_2));
-            let add_u_2 = circuit.extend(Fq::add(add_u_1, wire_u_3));
-            let new_u = circuit.extend(Fq::add(add_u_2, wire_u_4));
+            let add_u_1 = circuit.extend(U254::add_without_carry(wire_u_1, wire_u_2));
+            let add_u_2 = circuit.extend(U254::add_without_carry(add_u_1, wire_u_3));
+            let new_u = circuit.extend(U254::add_without_carry(add_u_2, wire_u_4));
 
             // calculate new v 
-            let wire_v_1 = circuit.extend(Fq::self_or_zero(v1.clone(), p1.clone()));
-            let wire_v_2 = circuit.extend(Fq::self_or_zero(v2.clone(), p2.clone()));
-            let wire_v_3 = circuit.extend(Fq::self_or_zero(v3.clone(), p3.clone()));
-            let wire_v_4 = circuit.extend(Fq::self_or_zero(v4.clone(), p4.clone()));
+            let wire_v_1 = circuit.extend(U254::self_or_zero(v1.clone(), p1.clone()));
+            let wire_v_2 = circuit.extend(U254::self_or_zero(v2.clone(), p2.clone()));
+            let wire_v_3 = circuit.extend(U254::self_or_zero(v3.clone(), p3.clone()));
+            let wire_v_4 = circuit.extend(U254::self_or_zero(v4.clone(), p4.clone()));
 
-            let add_v_1 = circuit.extend(Fq::add(wire_v_1, wire_v_2));
-            let add_v_2 = circuit.extend(Fq::add(add_v_1, wire_v_3));
-            let new_v = circuit.extend(Fq::add(add_v_2, wire_v_4));
+            let add_v_1 = circuit.extend(U254::add_without_carry(wire_v_1, wire_v_2));
+            let add_v_2 = circuit.extend(U254::add_without_carry(add_v_1, wire_v_3));
+            let new_v = circuit.extend(U254::add_without_carry(add_v_2, wire_v_4));
 
             // calculate new r
-            let wire_r_1 = circuit.extend(Fq::self_or_zero(r1.clone(), p1.clone()));
-            let wire_r_2 = circuit.extend(Fq::self_or_zero(r2.clone(), p2.clone()));
-            let wire_r_3 = circuit.extend(Fq::self_or_zero(r3.clone(), p3.clone()));
-            let wire_r_4 = circuit.extend(Fq::self_or_zero(r4.clone(), p4.clone()));
+            let wire_r_1 = circuit.extend(U254::self_or_zero(r1.clone(), p1.clone()));
+            let wire_r_2 = circuit.extend(U254::self_or_zero(r2.clone(), p2.clone()));
+            let wire_r_3 = circuit.extend(U254::self_or_zero(r3.clone(), p3.clone()));
+            let wire_r_4 = circuit.extend(U254::self_or_zero(r4.clone(), p4.clone()));
 
-            let add_r_1 = circuit.extend(Fq::add(wire_r_1, wire_r_2));
-            let add_r_2 = circuit.extend(Fq::add(add_r_1, wire_r_3));
-            let new_r = circuit.extend(Fq::add(add_r_2, wire_r_4));
+            let add_r_1 = circuit.extend(U254::add_without_carry(wire_r_1, wire_r_2));
+            let add_r_2 = circuit.extend(U254::add_without_carry(add_r_1, wire_r_3));
+            let new_r = circuit.extend(U254::add_without_carry(add_r_2, wire_r_4));
 
             // calculate new s
-            let wire_s_1 = circuit.extend(Fq::self_or_zero(s1.clone(), p1.clone()));
-            let wire_s_2 = circuit.extend(Fq::self_or_zero(s2.clone(), p2.clone()));
-            let wire_s_3 = circuit.extend(Fq::self_or_zero(s3.clone(), p3.clone()));
-            let wire_s_4 = circuit.extend(Fq::self_or_zero(s4.clone(), p4.clone()));
+            let wire_s_1 = circuit.extend(U254::self_or_zero(s1.clone(), p1.clone()));
+            let wire_s_2 = circuit.extend(U254::self_or_zero(s2.clone(), p2.clone()));
+            let wire_s_3 = circuit.extend(U254::self_or_zero(s3.clone(), p3.clone()));
+            let wire_s_4 = circuit.extend(U254::self_or_zero(s4.clone(), p4.clone()));
 
-            let add_s_1 = circuit.extend(Fq::add(wire_s_1, wire_s_2));
-            let add_s_2 = circuit.extend(Fq::add(add_s_1, wire_s_3));
-            let new_s = circuit.extend(Fq::add(add_s_2, wire_s_4));
+            let add_s_1 = circuit.extend(U254::add_without_carry(wire_s_1, wire_s_2));
+            let add_s_2 = circuit.extend(U254::add_without_carry(add_s_1, wire_s_3));
+            let new_s = circuit.extend(U254::add_without_carry(add_s_2, wire_s_4));
 
             // calculate new k
-            let wire_k_1 = circuit.extend(Fq::self_or_zero(k1.clone(), p1.clone()));
-            let wire_k_2 = circuit.extend(Fq::self_or_zero(k2.clone(), p2.clone()));
-            let wire_k_3 = circuit.extend(Fq::self_or_zero(k3.clone(), p3.clone()));
-            let wire_k_4 = circuit.extend(Fq::self_or_zero(k4.clone(), p4.clone()));
+            let wire_k_1 = circuit.extend(U254::self_or_zero(k1.clone(), p1.clone()));
+            let wire_k_2 = circuit.extend(U254::self_or_zero(k2.clone(), p2.clone()));
+            let wire_k_3 = circuit.extend(U254::self_or_zero(k3.clone(), p3.clone()));
+            let wire_k_4 = circuit.extend(U254::self_or_zero(k4.clone(), p4.clone()));
 
-            let add_k_1 = circuit.extend(Fq::add(wire_k_1, wire_k_2));
-            let add_k_2 = circuit.extend(Fq::add(add_k_1, wire_k_3));
-            let new_k = circuit.extend(Fq::add(add_k_2, wire_k_4));
+            let add_k_1 = circuit.extend(U254::add_without_carry(wire_k_1, wire_k_2));
+            let add_k_2 = circuit.extend(U254::add_without_carry(add_k_1, wire_k_3));
+            let new_k = circuit.extend(U254::add_without_carry(add_k_2, wire_k_4));
 
             // set new values 
 

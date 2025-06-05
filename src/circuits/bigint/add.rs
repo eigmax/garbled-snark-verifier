@@ -80,6 +80,51 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         circuit
     }
 
+    pub fn add_constant_without_carry(a: Wires, b: BigUint) -> Circuit {
+        assert_eq!(a.len(), N_BITS);
+        assert_ne!(b, BigUint::ZERO);
+        let mut circuit = Circuit::empty();
+
+        let b_bits = bits_from_biguint(b);
+
+        let mut carry = Rc::new(RefCell::new(Wire::new()));
+        let mut first_one = 0;
+        while !b_bits[first_one]  {
+            first_one += 1;
+        }
+
+        for i in 0..N_BITS {
+            if i < first_one {
+                circuit.add_wire(a[i].clone());
+            }
+            else if i == first_one {
+                let wire = Rc::new(RefCell::new(Wire::new()));
+                circuit.add(Gate::not(a[i].clone(), wire.clone()));
+                circuit.add_wire(wire);
+                carry = a[i].clone(); 
+            }
+            else {
+                if b_bits[i] {
+                    let wire_1 = Rc::new(RefCell::new(Wire::new()));
+                    let wire_2 = Rc::new(RefCell::new(Wire::new()));
+                    circuit.add(Gate::xnor(a[i].clone(), carry.clone(), wire_1.clone()));
+                    circuit.add(Gate::or(a[i].clone(), carry.clone(), wire_2.clone()));
+                    circuit.add_wire(wire_1);
+                    carry = wire_2;
+                }
+                else {
+                    let wire_1 = Rc::new(RefCell::new(Wire::new()));
+                    let wire_2 = Rc::new(RefCell::new(Wire::new()));
+                    circuit.add(Gate::xor(a[i].clone(), carry.clone(), wire_1.clone()));
+                    circuit.add(Gate::and(a[i].clone(), carry.clone(), wire_2.clone()));
+                    circuit.add_wire(wire_1);
+                    carry = wire_2;
+                }
+            }
+        }
+        circuit
+    }
+
     pub fn sub(a: Wires, b: Wires) -> Circuit {
         assert_eq!(a.len(), N_BITS);
         assert_eq!(b.len(), N_BITS);
@@ -93,6 +138,21 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
             borrow = wires[1].clone();
         }
         circuit.add_wire(borrow);
+        circuit
+    }
+
+    pub fn sub_without_borrow(a: Wires, b: Wires) -> Circuit {
+        assert_eq!(a.len(), N_BITS);
+        assert_eq!(b.len(), N_BITS);
+        let mut circuit = Circuit::empty();
+        let wires = circuit.extend(half_subtracter(a[0].clone(), b[0].clone()));
+        circuit.add_wire(wires[0].clone());
+        let mut borrow = wires[1].clone();
+        for i in 1..N_BITS {
+            let wires = circuit.extend(full_subtracter(a[i].clone(), b[i].clone(), borrow));
+            circuit.add_wire(wires[0].clone());
+            borrow = wires[1].clone();
+        }
         circuit
     }
 
