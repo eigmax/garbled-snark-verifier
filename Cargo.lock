@@ -799,6 +799,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "garbled-snark-verifier"
+version = "0.1.0"
+dependencies = [
+ "ark-bn254",
+ "ark-ff",
+ "ark-std",
+ "bitcoin",
+ "bitcoin-script",
+ "bitcoin-script-stack",
+ "bitcoin-scriptexec",
+ "bitvm",
+ "blake3",
+ "hex",
+ "itertools",
+ "num-bigint",
+ "num-traits",
+ "rand 0.9.1",
+ "rand_chacha 0.3.1",
+ "serde",
+ "serde_json",
+ "serial_test",
+ "sha2",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1450,31 +1475,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "toy-garbled"
-version = "0.1.0"
-dependencies = [
- "ark-bn254",
- "ark-ff",
- "ark-std",
- "bitcoin",
- "bitcoin-script",
- "bitcoin-script-stack",
- "bitcoin-scriptexec",
- "bitvm",
- "blake3",
- "hex",
- "itertools",
- "num-bigint",
- "num-traits",
- "rand 0.9.1",
- "rand_chacha 0.3.1",
- "serde",
- "serde_json",
- "serial_test",
- "sha2",
 ]
 
 [[package]]
