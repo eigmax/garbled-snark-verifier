@@ -1,7 +1,7 @@
-use std::str::FromStr;
+use std::{str::FromStr};
 use ark_ff::{AdditiveGroup, Field};
 use num_bigint::BigUint;
-use crate::{bag::*, circuits::{bigint::{utils::bits_from_biguint, U254}, bn254::utils::{bits_from_fq, wires_for_fq, wires_set_from_fq}}};
+use crate::{bag::*, circuits::{basic::selector, bigint::{utils::bits_from_biguint, U254}, bn254::utils::{bits_from_fq, wires_for_fq, wires_set_from_fq}}};
 
 pub struct Fq;
 
@@ -367,6 +367,51 @@ impl Fq {
         circuit.add_wires(s.clone());
         circuit
     }
+
+    pub fn div6(a: Wires) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let half = circuit.extend(Fq::half(a.clone()));
+        let mut result = wires_for_fq();
+        let mut r1 = Rc::new(RefCell::new(Wire::new()));
+        let mut r2 = Rc::new(RefCell::new(Wire::new()));
+        r1.borrow_mut().set(false);
+        r2.borrow_mut().set(false);
+        for i in 0..U254::N_BITS {
+            // msb to lsb
+            let j = U254::N_BITS - 1 - i ;
+
+            // result wire
+            let r2_and_hj = Rc::new(RefCell::new(Wire::new()));
+            circuit.add(Gate::and(r2.clone(), half[j].clone(), r2_and_hj.clone()));
+            let result_wire = Rc::new(RefCell::new(Wire::new()));
+            circuit.add(Gate::or(r1.clone(), r2_and_hj.clone(), result_wire.clone()));
+            result[j] = result_wire.clone();
+            // update r1 r2 values
+            let not_hj  = Rc::new(RefCell::new(Wire::new()));
+            let not_r2  = Rc::new(RefCell::new(Wire::new()));
+            circuit.add(Gate::not(half[j].clone(), not_hj.clone()));
+            circuit.add(Gate::not(r2.clone(), not_r2.clone()));
+            r1 = circuit.extend(selector(not_r2.clone(), r2.clone(), result_wire.clone()))[0].clone();
+            r2 = circuit.extend(selector(not_hj.clone(), half[j].clone(), result_wire.clone()))[0].clone();
+
+            // special case if 1 0 0 then 0 1 instead of 1 1 so we need to not r1 if 1 0 0 is the case 
+            let not_r1 = Rc::new(RefCell::new(Wire::new()));
+            circuit.add(Gate::not(r1.clone(), not_r1.clone()));
+            let edge_case = Rc::new(RefCell::new(Wire::new()));
+            circuit.add(Gate::and(result_wire.clone(), not_hj, edge_case.clone()));
+            r1 = circuit.extend(selector(not_r1.clone(), r1.clone(), edge_case))[0].clone();
+        };
+        // residue for r2
+        let result_plus_one_third = circuit.extend(Fq::add_constant(result.clone(), ark_bn254::Fq::from(1) / ark_bn254::Fq::from(3)));
+        result = circuit.extend(U254::select(result_plus_one_third, result.clone(), r2.clone()));
+        // residue for r1
+        let result_plus_two_third = circuit.extend(Fq::add_constant(result.clone(), ark_bn254::Fq::from(2) / ark_bn254::Fq::from(3)));
+        result = circuit.extend(U254::select(result_plus_two_third, result.clone(), r1.clone()));
+        circuit.add_wires(result.clone());
+        circuit
+    }
 }
 
 #[cfg(test)]
@@ -509,5 +554,19 @@ mod tests {
         }
         let c = fq_from_wires(circuit.0);
         assert_eq!(c*a , ark_bn254::Fq::ONE);
+    }
+
+    #[test]
+    fn test_fq_div6() {
+        let a = random_fq();
+        let circuit = Fq::div6(wires_set_from_fq(a.clone()));
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+
+
+        let c = fq_from_wires(circuit.0);
+        assert_eq!(c + c + c + c + c + c , a);
     }
 }

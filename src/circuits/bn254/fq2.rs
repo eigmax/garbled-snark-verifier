@@ -205,6 +205,20 @@ impl Fq2 {
         circuit.0.extend(result);
         circuit
     }
+
+    pub fn div6(a: Wires) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+
+        let wires_1 = circuit.extend(Fq::div6(a_c0));
+        let wires_2 = circuit.extend(Fq::div6(a_c1));
+        circuit.add_wires(wires_1);
+        circuit.add_wires(wires_2);
+        circuit
+    }
 }
 
 #[cfg(test)]
@@ -358,5 +372,17 @@ mod tests {
         }
         let c = fq2_from_wires(circuit.0);
         assert_eq!(c, a.frobenius_map(1));
+    }
+
+    #[test]
+    fn test_fq2_div6() {
+        let a = random_fq2();
+        let circuit = Fq2::div6(wires_set_from_fq2(a.clone()));
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = fq2_from_wires(circuit.0);
+        assert_eq!(c + c + c + c + c + c , a);
     }
 }

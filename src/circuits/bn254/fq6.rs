@@ -88,10 +88,9 @@ impl Fq6 {
         let a_c1 = a[Fq2::N_BITS..2*Fq2::N_BITS].to_vec();
         let a_c2 = a[2*Fq2::N_BITS..3*Fq2::N_BITS].to_vec();
 
-        let b = ark_bn254::Fq::from(1)/ark_bn254::Fq::from(6);
-        let wires_1 = circuit.extend(Fq2::mul_by_constant_fq(a_c0.clone(), b));
-        let wires_2 = circuit.extend(Fq2::mul_by_constant_fq(a_c1.clone(), b));
-        let wires_3 = circuit.extend(Fq2::mul_by_constant_fq(a_c2.clone(), b));
+        let wires_1 = circuit.extend(Fq2::div6(a_c0.clone()));
+        let wires_2 = circuit.extend(Fq2::div6(a_c1.clone()));
+        let wires_3 = circuit.extend(Fq2::div6(a_c2.clone()));
 
         circuit.add_wires(wires_1);
         circuit.add_wires(wires_2);
