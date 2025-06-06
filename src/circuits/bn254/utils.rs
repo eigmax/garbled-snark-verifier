@@ -1,5 +1,9 @@
+use ark_ff::UniformRand;
+use ark_std::rand::SeedableRng;
 use num_bigint::BigUint;
 use rand::{rng, Rng};
+use rand_chacha::ChaCha20Rng;
+use crate::circuits::bn254::g1::G1Projective;
 use crate::circuits::bn254::{fq::Fq, fq2::Fq2, fq6::Fq6, fq12::Fq12};
 use crate::bag::*;
 
@@ -151,6 +155,42 @@ pub fn fq12_from_wires(wires: Wires) -> ark_bn254::Fq12 {
     fq12_from_bits(wires.iter().map(|wire| {wire.borrow().get_value()}).collect())
 }
 
+pub fn random_g1p() -> ark_bn254::G1Projective {
+    let mut prng = ChaCha20Rng::seed_from_u64(rng().random());
+    ark_bn254::G1Projective::rand(&mut prng)
+}
+
+pub fn bits_from_g1p(u: ark_bn254::G1Projective) -> Vec<bool> {
+    let mut bits = Vec::new();
+    bits.extend(bits_from_fq(u.x));
+    bits.extend(bits_from_fq(u.y));
+    bits.extend(bits_from_fq(u.z));
+    bits
+}
+
+pub fn g1p_from_bits(bits: Vec<bool>) -> ark_bn254::G1Projective {
+    let bits1 = &bits[0..Fq::N_BITS].to_vec();
+    let bits2 = &bits[Fq::N_BITS..Fq::N_BITS*2].to_vec();
+    let bits3 = &bits[Fq::N_BITS*2..Fq::N_BITS*3].to_vec();
+    ark_bn254::G1Projective::new(fq_from_bits(bits1.clone()), fq_from_bits(bits2.clone()), fq_from_bits(bits3.clone()))
+}
+
+pub fn wires_for_g1p() -> Wires {
+    (0..G1Projective::N_BITS).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect()
+}
+
+pub fn wires_set_from_g1p(u: ark_bn254::G1Projective) -> Wires {
+    bits_from_g1p(u)[0..G1Projective::N_BITS].iter().map(|bit| {
+        let wire = Rc::new(RefCell::new(Wire::new()));
+        wire.borrow_mut().set(*bit);
+        wire
+    }).collect()
+}
+
+pub fn g1p_from_wires(wires: Wires) -> ark_bn254::G1Projective {
+    g1p_from_bits(wires.iter().map(|wire| {wire.borrow().get_value()}).collect())
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -191,6 +231,16 @@ pub mod tests {
         println!("u: {:?}", u);
         let b = bits_from_fq12(u.clone());
         let v = fq12_from_bits(b);
+        println!("v: {:?}", v);
+        assert_eq!(u, v);
+    }
+
+    #[test]
+    fn test_random_g1p() {
+        let u = random_g1p();
+        println!("u: {:?}", u);
+        let b = bits_from_g1p(u.clone());
+        let v = g1p_from_bits(b);
         println!("v: {:?}", v);
         assert_eq!(u, v);
     }
