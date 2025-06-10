@@ -41,6 +41,10 @@ pub trait Fp254Impl {
         U254::equal_constant(a, BigUint::from(b))
     }
 
+    fn equal_zero(a: Wires) -> Circuit {
+        U254::equal_constant(a, BigUint::ZERO)
+    }
+
     fn add(a: Wires, b: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         assert_eq!(b.len(), Self::N_BITS);
