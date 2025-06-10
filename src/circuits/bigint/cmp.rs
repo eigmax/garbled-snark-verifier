@@ -1,4 +1,5 @@
 use num_bigint::BigUint;
+use crate::circuits::basic::multiplexer;
 use crate::circuits::bigint::utils::{bits_from_biguint, wires_for_u254};
 use crate::circuits::bigint::U254;
 use crate::{bag::*, circuits::basic::selector};
@@ -100,11 +101,31 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         circuit.add_wires(result);
         circuit
     }
+
+    pub fn multiplexer(a: Vec<Wires>, s: Wires, w: usize) -> Circuit {
+        let n = 2_usize.pow(w.try_into().unwrap());
+        assert_eq!(a.len(), n);
+        for x in a.clone() {
+            assert_eq!(x.len(), N_BITS);
+        }
+        assert_eq!(s.len(), w);
+        let mut circuit = Circuit::empty();
+
+        for i in 0..N_BITS {
+            let ith_wires = a.iter().map(|x| { x[i].clone() }).collect();
+            let ith_result = circuit.extend(multiplexer(ith_wires, s.clone(), w))[0].clone();
+            circuit.add_wire(ith_result);
+        }
+
+        circuit
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
+    use rand::{rng, Rng};
+
     use crate::circuits::bigint::{utils::{biguint_from_wires, random_u254, wires_set_from_u254}, U254};
     use super::*;
 
@@ -213,5 +234,37 @@ mod tests {
         }
         let c = biguint_from_wires(circuit.0);
         assert_eq!(c, BigUint::ZERO);
+    }
+
+    #[test]
+    fn test_multiplexer() {
+        let w = 5;
+        let n = 2_usize.pow(w as u32);
+        let a: Vec<BigUint> = (0..n).map(|_| { random_u254() }).collect();
+        let s: Wires = (0..w).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect();
+
+        let mut a_wires = Vec::new();
+        for e in a.clone() {
+            a_wires.push(wires_set_from_u254(e));
+        }
+
+        let mut u = 0;
+        for wire in s.iter().rev() {
+            let x = rng().random();
+            u = u + u + if x {1} else {0};
+            wire.borrow_mut().set(x);
+        }
+
+        let circuit = U254::multiplexer(a_wires, s.clone(), w);
+        circuit.print_gate_type_counts();
+
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+
+        let result = biguint_from_wires(circuit.0);
+        let expected = a[u].clone();
+
+        assert_eq!(result, expected);
     }
 }

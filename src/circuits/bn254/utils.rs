@@ -3,6 +3,8 @@ use ark_std::rand::SeedableRng;
 use num_bigint::BigUint;
 use rand::{rng, Rng};
 use rand_chacha::ChaCha20Rng;
+use crate::circuits::bn254::fp254impl::Fp254Impl;
+use crate::circuits::bn254::fr::Fr;
 use crate::circuits::bn254::g1::G1Projective;
 use crate::circuits::bn254::{fq::Fq, fq2::Fq2, fq6::Fq6, fq12::Fq12};
 use crate::bag::*;
@@ -191,6 +193,53 @@ pub fn g1p_from_wires(wires: Wires) -> ark_bn254::G1Projective {
     g1p_from_bits(wires.iter().map(|wire| {wire.borrow().get_value()}).collect())
 }
 
+pub fn random_fr() -> ark_bn254::Fr {
+    let u = BigUint::from_bytes_le(&rng().random::<[u8; 32]>()) % Fr::modulus_as_biguint();
+    ark_bn254::Fr::from(u)
+}
+
+pub fn bits_from_fr(u: ark_bn254::Fr) -> Vec<bool> {
+    let mut bytes = BigUint::from(u).to_bytes_le();
+    for _ in bytes.len()..32 {
+        bytes.push(0_u8);
+    }
+    let mut bits = Vec::new();
+    for byte in bytes {
+        for i in 0..8 {
+            bits.push(((byte >> i) & 1) == 1)
+        }
+    }
+    bits.pop();
+    bits.pop();
+    bits
+}
+
+pub fn fr_from_bits(bits: Vec<bool>) -> ark_bn254::Fr {
+    let zero = BigUint::ZERO;
+    let one = BigUint::from(1_u8);
+    let mut u = zero.clone();
+    for bit in bits.iter().rev() {
+        u = u.clone() + u.clone() + if *bit {one.clone()} else {zero.clone()};
+    }
+    ark_bn254::Fr::from(u)
+}
+
+pub fn wires_for_fr() -> Wires {
+    (0..Fr::N_BITS).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect()
+}
+
+pub fn wires_set_from_fr(u: ark_bn254::Fr) -> Wires {
+    bits_from_fr(u)[0..Fr::N_BITS].iter().map(|bit| {
+        let wire = Rc::new(RefCell::new(Wire::new()));
+        wire.borrow_mut().set(*bit);
+        wire
+    }).collect()
+}
+
+pub fn fr_from_wires(wires: Wires) -> ark_bn254::Fr {
+    fr_from_bits(wires.iter().map(|wire| {wire.borrow().get_value()}).collect())
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -241,6 +290,16 @@ pub mod tests {
         println!("u: {:?}", u);
         let b = bits_from_g1p(u.clone());
         let v = g1p_from_bits(b);
+        println!("v: {:?}", v);
+        assert_eq!(u, v);
+    }
+
+    #[test]
+    fn test_random_fr() {
+        let u = random_fr();
+        println!("u: {:?}", u);
+        let b = bits_from_fr(u.clone());
+        let v = fr_from_bits(b);
         println!("v: {:?}", v);
         assert_eq!(u, v);
     }

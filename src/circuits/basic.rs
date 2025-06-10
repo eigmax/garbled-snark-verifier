@@ -64,9 +64,37 @@ pub fn selector(a: Wirex, b: Wirex, c: Wirex) -> Circuit {
     Circuit::new(vec![g], vec![gate_1, gate_2, gate_3, gate_4])
 }
 
+pub fn multiplexer(a: Wires, s: Wires, w: usize) -> Circuit {
+    let n = 2_usize.pow(w.try_into().unwrap());
+    assert_eq!(a.len(), n);
+    assert_eq!(s.len(), w);
+
+    if w == 1 {
+        return selector(a[1].clone(), a[0].clone(), s[0].clone());
+    }
+
+    let mut circuit = Circuit::empty();
+
+    let a1 = a[0..(n / 2)].to_vec();
+    let a2 = a[(n / 2)..n].to_vec();
+    let su = s[0..w-1].to_vec();
+    let sv = s[w-1].clone();
+
+    let b1 = circuit.extend(multiplexer(a1, su.clone(), w-1))[0].clone();
+    let b2 = circuit.extend(multiplexer(a2, su.clone(), w-1))[0].clone();
+
+    let b = circuit.extend(selector(b2, b1, sv))[0].clone();
+
+    circuit.add_wire(b);
+
+    circuit
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{bag::*, circuits::basic::{full_adder, full_subtracter, half_adder, half_subtracter, selector}};
+    use rand::{rng, Rng};
+
+    use crate::{bag::*, circuits::basic::{full_adder, full_subtracter, half_adder, half_subtracter, multiplexer, selector}};
 
     #[test]
     fn test_half_adder() {
@@ -231,6 +259,37 @@ mod tests {
 
             assert_eq!(d_wire.borrow().get_value(), d);
         }
+    }
+
+    #[test]
+    fn test_multiplexer() {
+        let w = 5;
+        let n = 2_usize.pow(w as u32);
+        let a: Wires = (0..n).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect();
+        let s: Wires = (0..w).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect();
+
+        for wire in a.clone() {
+            wire.borrow_mut().set(rng().random());
+        }
+
+        let mut u = 0;
+        for wire in s.iter().rev() {
+            let x = rng().random();
+            u = u + u + if x {1} else {0};
+            wire.borrow_mut().set(x);
+        }
+
+        let circuit = multiplexer(a.clone(), s.clone(), w);
+        circuit.print_gate_type_counts();
+
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+
+        let result = circuit.0[0].clone().borrow().get_value();
+        let expected = a[u].clone().borrow().get_value();
+
+        assert_eq!(result, expected);
     }
 }
 
