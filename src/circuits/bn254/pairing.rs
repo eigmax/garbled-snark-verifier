@@ -2,7 +2,8 @@ use ark_ec::{bn::BnConfig, short_weierstrass::SWCurveConfig, CurveGroup};
 use ark_ff::{AdditiveGroup, Field, Fp2Config};
 use crate::{bag::*, circuits::bn254::{fp254impl::Fp254Impl, fq::Fq, fq2::Fq2}};
 
-pub fn double_in_place(r: &mut ark_bn254::G2Projective, half: ark_bn254::Fq) -> (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2) {
+pub fn double_in_place(r: &mut ark_bn254::G2Projective) -> (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2) {
+    let half = ark_bn254::Fq::from(Fq::half_modulus());
     let mut a = r.x * &r.y;
     a.mul_assign_by_fp(&half);
     let b = r.y.square();
@@ -25,7 +26,7 @@ pub fn double_in_place(r: &mut ark_bn254::G2Projective, half: ark_bn254::Fq) -> 
     (-h, j.double() + &j, i)
 }
 
-pub fn double_in_place_circuit(r: Wires, half: ark_bn254::Fq) -> Circuit {
+pub fn double_in_place_circuit(r: Wires) -> Circuit {
     let mut circuit = Circuit::empty();
 
     let rx = r[0..Fq2::N_BITS].to_vec();
@@ -33,14 +34,14 @@ pub fn double_in_place_circuit(r: Wires, half: ark_bn254::Fq) -> Circuit {
     let rz = r[2*Fq2::N_BITS..3*Fq2::N_BITS].to_vec();
 
     let mut a = circuit.extend(Fq2::mul(rx.clone(), ry.clone()));
-    a = circuit.extend(Fq2::mul_by_constant_fq(a.clone(), half));
+    a = circuit.extend(Fq2::half(a.clone()));
     let b = circuit.extend(Fq2::square(ry.clone()));
     let c = circuit.extend(Fq2::square(rz.clone()));
     let c_triple = circuit.extend(Fq2::triple(c.clone()));
     let e = circuit.extend(Fq2::mul_by_constant(c_triple, ark_bn254::g2::Config::COEFF_B));
     let f = circuit.extend(Fq2::triple(e.clone()));
     let mut g = circuit.extend(Fq2::add(b.clone(), f.clone()));
-    g = circuit.extend(Fq2::mul_by_constant_fq(g.clone(), half.clone()));
+    g = circuit.extend(Fq2::half(g.clone()));
     let ryrz = circuit.extend(Fq2::add(ry.clone(), rz.clone()));
     let ryrzs = circuit.extend(Fq2::square(ryrz.clone()));
     let bc = circuit.extend(Fq2::add(b.clone(), c.clone()));
@@ -158,7 +159,6 @@ pub fn mul_by_char(r: ark_bn254::G2Affine) -> ark_bn254::G2Affine {
 }
 
 pub fn ell_coeffs(q: ark_bn254::G2Projective) -> Vec<(ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2)> {
-    let half = ark_bn254::Fq::from(Fq::half_modulus());
     let q_affine = q.into_affine();
     let mut ellc = Vec::new();
     let mut r = ark_bn254::G2Projective {
@@ -168,7 +168,7 @@ pub fn ell_coeffs(q: ark_bn254::G2Projective) -> Vec<(ark_bn254::Fq2, ark_bn254:
     };
     let neg_q = -q_affine;
     for bit in ark_bn254::Config::ATE_LOOP_COUNT.iter().rev().skip(1) {
-        ellc.push(double_in_place(&mut r, half));
+        ellc.push(double_in_place(&mut r));
 
         match bit {
             1 => {
@@ -236,9 +236,8 @@ mod tests {
     fn test_double_in_place_circuit() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let mut r = ark_bn254::G2Projective::rand(&mut prng);
-        let half = ark_bn254::Fq::from(Fq::half_modulus());
 
-        let circuit = double_in_place_circuit(wires_set_from_g2p(r), half);
+        let circuit = double_in_place_circuit(wires_set_from_g2p(r));
         circuit.print_gate_type_counts();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -249,7 +248,7 @@ mod tests {
         let rx = fq2_from_wires(circuit.0[3*Fq2::N_BITS..4*Fq2::N_BITS].to_vec());
         let ry = fq2_from_wires(circuit.0[4*Fq2::N_BITS..5*Fq2::N_BITS].to_vec());
         let rz = fq2_from_wires(circuit.0[5*Fq2::N_BITS..6*Fq2::N_BITS].to_vec());
-        let coeffs = double_in_place(&mut r, half);
+        let coeffs = double_in_place(&mut r);
         assert_eq!(c0, coeffs.0);
         assert_eq!(c1, coeffs.1);
         assert_eq!(c2, coeffs.2);
