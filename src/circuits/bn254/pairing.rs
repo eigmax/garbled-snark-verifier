@@ -1,6 +1,6 @@
 use ark_ec::{bn::BnConfig, short_weierstrass::SWCurveConfig, CurveGroup};
 use ark_ff::{AdditiveGroup, Field};
-use crate::circuits::bn254::{fp254impl::Fp254Impl, fq::Fq};
+use crate::{bag::*, circuits::bn254::{fp254impl::Fp254Impl, fq::Fq, fq2::Fq2}};
 
 pub fn double_in_place(r: &mut ark_bn254::G2Projective, half: ark_bn254::Fq) -> (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2) {
     let mut a = r.x * &r.y;
@@ -44,6 +44,59 @@ pub fn add_in_place(r: &mut ark_bn254::G2Projective, q: &ark_bn254::G2Affine) ->
     let j = theta * &q.x - &(lambda * &q.y);
 
     (lambda, -theta, j)
+}
+
+pub fn add_in_place_circuit(r: Wires, q: Wires) -> Circuit {
+    let mut circuit = Circuit::empty();
+    assert_eq!(r.len(), 3*Fq2::N_BITS);
+    assert_eq!(q.len(), 2*Fq2::N_BITS);
+
+    let rx = r[0..Fq2::N_BITS].to_vec();
+    let ry = r[Fq2::N_BITS..2*Fq2::N_BITS].to_vec();
+    let rz = r[2*Fq2::N_BITS..3*Fq2::N_BITS].to_vec();
+    let qx = q[0..Fq2::N_BITS].to_vec();
+    let qy = q[Fq2::N_BITS..2*Fq2::N_BITS].to_vec();
+
+    let wires_1 = circuit.extend(Fq2::mul(qy.clone(), rz.clone()));
+    let theta = circuit.extend(Fq2::sub(ry.clone(), wires_1.clone()));
+
+    let wires_2 = circuit.extend(Fq2::mul(qx.clone(), rz.clone()));
+    let lamda = circuit.extend(Fq2::sub(rx.clone(), wires_2.clone()));
+
+    let c = circuit.extend(Fq2::square(theta.clone()));
+    let d = circuit.extend(Fq2::square(lamda.clone()));
+
+    let e = circuit.extend(Fq2::mul(lamda.clone(), d.clone()));
+
+    let f = circuit.extend(Fq2::mul(rz.clone(), c.clone()));
+
+    let g = circuit.extend(Fq2::mul(rx.clone(), d.clone()));
+
+    let wires_3 = circuit.extend(Fq2::add(e.clone(), f.clone()));
+
+    let wires_4 = circuit.extend(Fq2::double(g.clone()));
+    let h = circuit.extend(Fq2::sub(wires_3.clone(), wires_4.clone()));
+
+    let neg_theta = circuit.extend(Fq2::neg(theta.clone()));
+
+    let wires_5 = circuit.extend(Fq2::mul(theta.clone(),qx.clone()));
+    let wires_6 = circuit.extend(Fq2::mul(lamda.clone(),qy.clone()));
+    let j = circuit.extend(Fq2::sub(wires_5.clone(), wires_6.clone()));
+
+    let mut new_r = circuit.extend(Fq2::mul(lamda.clone(), h.clone()));
+    let wires_7 = circuit.extend(Fq2::sub(g.clone(), h.clone()));
+    let wires_8 = circuit.extend(Fq2::mul(theta.clone(), wires_7.clone()));
+    let wires_9 = circuit.extend(Fq2::mul(e.clone(), ry.clone()));
+    let new_r_y = circuit.extend(Fq2::sub(wires_8.clone(), wires_9.clone()));
+    new_r.extend(new_r_y);
+    let new_r_z = circuit.extend(Fq2::mul(rz.clone(), e.clone()));
+    new_r.extend(new_r_z);
+
+    circuit.add_wires(lamda);
+    circuit.add_wires(neg_theta);
+    circuit.add_wires(j);
+    circuit.add_wires(new_r);
+    circuit
 }
 
 pub fn mul_by_char(r: ark_bn254::G2Affine) -> ark_bn254::G2Affine {
@@ -127,6 +180,8 @@ mod tests {
     use ark_std::rand::SeedableRng;
     use ark_ec::pairing::Pairing;
     use rand_chacha::ChaCha20Rng;
+    use crate::circuits::bn254::utils::{fq2_from_wires, wires_set_from_g2a, wires_set_from_g2p};
+
     use super::*;
 
     #[test]
@@ -138,5 +193,32 @@ mod tests {
         let c = ark_bn254::Bn254::multi_miller_loop([p], [q]).0;
         let d = miller_loop(p, q);
         assert_eq!(c, d);
+    }
+
+
+    #[test]
+    fn test_add_in_place_circuit() {
+        let mut prng = ChaCha20Rng::seed_from_u64(0);
+        let mut r = ark_bn254::G2Projective::rand(&mut prng);
+        let q = ark_bn254::G2Affine::rand(&mut prng);
+
+        let circuit = add_in_place_circuit(wires_set_from_g2p(r), wires_set_from_g2a(q));
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c0 = fq2_from_wires(circuit.0[0..Fq2::N_BITS].to_vec());
+        let c1 = fq2_from_wires(circuit.0[Fq2::N_BITS..2*Fq2::N_BITS].to_vec());
+        let c2 = fq2_from_wires(circuit.0[2*Fq2::N_BITS..3*Fq2::N_BITS].to_vec());
+        let new_r_x = fq2_from_wires(circuit.0[3*Fq2::N_BITS+0*Fq2::N_BITS..3*Fq2::N_BITS+1*Fq2::N_BITS].to_vec());
+        let new_r_y = fq2_from_wires(circuit.0[3*Fq2::N_BITS+1*Fq2::N_BITS..3*Fq2::N_BITS+2*Fq2::N_BITS].to_vec());
+        let new_r_z = fq2_from_wires(circuit.0[3*Fq2::N_BITS+2*Fq2::N_BITS..3*Fq2::N_BITS+3*Fq2::N_BITS].to_vec());
+        let coeffs = add_in_place(&mut r, &q);
+        assert_eq!(c0, coeffs.0);
+        assert_eq!(c1, coeffs.1);
+        assert_eq!(c2, coeffs.2);
+        assert_eq!(r.x, new_r_x);
+        assert_eq!(r.y, new_r_y);
+        assert_eq!(r.z, new_r_z);
     }
 }

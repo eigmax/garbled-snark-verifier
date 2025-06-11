@@ -8,6 +8,7 @@ use crate::circuits::bn254::fr::Fr;
 use crate::circuits::bn254::g1::G1Projective;
 use crate::circuits::bn254::{fq::Fq, fq2::Fq2, fq6::Fq6, fq12::Fq12};
 use crate::bag::*;
+use super::g2::G2Projective;
 
 pub fn random_fq() -> ark_bn254::Fq {
     let u = BigUint::from_bytes_le(&rng().random::<[u8; 32]>()) % Fq::modulus_as_biguint();
@@ -238,6 +239,57 @@ pub fn wires_set_from_fr(u: ark_bn254::Fr) -> Wires {
 
 pub fn fr_from_wires(wires: Wires) -> ark_bn254::Fr {
     fr_from_bits(wires.iter().map(|wire| {wire.borrow().get_value()}).collect())
+}
+
+pub fn random_g2p() -> ark_bn254::G2Projective {
+    let mut prng = ChaCha20Rng::seed_from_u64(rng().random());
+    ark_bn254::G2Projective::rand(&mut prng)
+}
+
+pub fn bits_from_g2p(u: ark_bn254::G2Projective) -> Vec<bool> {
+    let mut bits = Vec::new();
+    bits.extend(bits_from_fq2(u.x));
+    bits.extend(bits_from_fq2(u.y));
+    bits.extend(bits_from_fq2(u.z));
+    bits
+}
+
+pub fn g2p_from_bits(bits: Vec<bool>) -> ark_bn254::G2Projective {
+    let bits1 = &bits[0..Fq2::N_BITS].to_vec();
+    let bits2 = &bits[Fq2::N_BITS..Fq2::N_BITS*2].to_vec();
+    let bits3 = &bits[Fq2::N_BITS*2..Fq2::N_BITS*3].to_vec();
+    ark_bn254::G2Projective::new(fq2_from_bits(bits1.clone()), fq2_from_bits(bits2.clone()), fq2_from_bits(bits3.clone()))
+}
+
+pub fn wires_for_g2p() -> Wires {
+    (0..G2Projective::N_BITS).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect()
+}
+
+pub fn wires_set_from_g2p(u: ark_bn254::G2Projective) -> Wires {
+    bits_from_g2p(u)[0..G2Projective::N_BITS].iter().map(|bit| {
+        let wire = Rc::new(RefCell::new(Wire::new()));
+        wire.borrow_mut().set(*bit);
+        wire
+    }).collect()
+}
+
+pub fn g2p_from_wires(wires: Wires) -> ark_bn254::G2Projective {
+    g2p_from_bits(wires.iter().map(|wire| {wire.borrow().get_value()}).collect())
+}
+
+pub fn bits_from_g2a(u: ark_bn254::G2Affine) -> Vec<bool> {
+    let mut bits = Vec::new();
+    bits.extend(bits_from_fq2(u.x));
+    bits.extend(bits_from_fq2(u.y));
+    bits
+}
+
+pub fn wires_set_from_g2a(u: ark_bn254::G2Affine) -> Wires {
+    bits_from_g2a(u)[0..2*Fq2::N_BITS].iter().map(|bit| {
+        let wire = Rc::new(RefCell::new(Wire::new()));
+        wire.borrow_mut().set(*bit);
+        wire
+    }).collect()
 }
 
 #[cfg(test)]
