@@ -11,4 +11,11 @@ impl Fp254Impl for Fr {
     fn half_modulus() -> BigUint {
         BigUint::from(ark_bn254::Fr::from(1) / ark_bn254::Fr::from(2))
     }
+
+    fn one_third_modulus() -> BigUint {
+        BigUint::from(ark_bn254::Fr::from(1) / ark_bn254::Fr::from(3))
+    }
+    fn two_third_modulus() -> BigUint {
+        BigUint::from(ark_bn254::Fr::from(2) / ark_bn254::Fr::from(3))
+    }
 }

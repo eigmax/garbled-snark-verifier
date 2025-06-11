@@ -41,7 +41,7 @@ impl Circuit {
         // for gate_type in ["and", "nand", "or", "xor", "xnor", "not"] {
         //     println!("{:?}\t: {:?}", gate_type, self.1.iter().filter(|gate| gate.name == gate_type).count());
         // }
-        // println!("total gate count: {:?}", self.gate_count());
+        println!("total gate count: {:?}", self.gate_count());
     }
 }
 

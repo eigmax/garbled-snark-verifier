@@ -1,7 +1,7 @@
-use std::{str::FromStr};
+use std::str::FromStr;
 use ark_ff::{AdditiveGroup, Field};
 use num_bigint::BigUint;
-use crate::{bag::*, circuits::{basic::selector, bigint::{utils::bits_from_biguint, U254}, bn254::{utils::{bits_from_fq, wires_for_fq, wires_set_from_fq}}}};
+use crate::{bag::*, circuits::{basic::selector, bigint::{utils::bits_from_biguint, U254}, bn254::utils::{bits_from_fq, wires_for_fq, wires_set_from_fq}}};
 
 pub trait Fp254Impl {
     const MODULUS: &'static str;
@@ -26,6 +26,10 @@ pub trait Fp254Impl {
     }
 
     fn half_modulus() -> BigUint;
+
+    fn one_third_modulus() -> BigUint;
+
+    fn two_third_modulus() -> BigUint;
 
     fn self_or_zero(a: Wires, s: Wirex) -> Circuit {
         U254::self_or_zero(a, s)
@@ -148,7 +152,7 @@ pub trait Fp254Impl {
 
         let selector = a[0].clone();
         let wires_1 = circuit.extend(U254::half(a.clone()));
-        let wires_2 =  circuit.extend(Self::add_constant(wires_1.clone(), ark_bn254::Fq::from( ark_bn254::Fq::from(1))/ ark_bn254::Fq::from(2) ));
+        let wires_2 =  circuit.extend(U254::add_constant_without_carry(wires_1.clone(), Self::half_modulus() ));
         let result = circuit.extend(U254::select(wires_2, wires_1, selector));
         circuit.add_wires(result);
         circuit
@@ -410,10 +414,10 @@ pub trait Fp254Impl {
             r1 = circuit.extend(selector(not_r1.clone(), r1.clone(), edge_case))[0].clone();
         };
         // residue for r2
-        let result_plus_one_third = circuit.extend(Self::add_constant(result.clone(), ark_bn254::Fq::from(1) / ark_bn254::Fq::from(3)));
+        let result_plus_one_third = circuit.extend(U254::add_constant_without_carry(result.clone(), Self::one_third_modulus()));
         result = circuit.extend(U254::select(result_plus_one_third, result.clone(), r2.clone()));
         // residue for r1
-        let result_plus_two_third = circuit.extend(Self::add_constant(result.clone(), ark_bn254::Fq::from(2) / ark_bn254::Fq::from(3)));
+        let result_plus_two_third = circuit.extend(U254::add_constant_without_carry(result.clone(), Self::two_third_modulus()));
         result = circuit.extend(U254::select(result_plus_two_third, result.clone(), r1.clone()));
         circuit.add_wires(result.clone());
         circuit
