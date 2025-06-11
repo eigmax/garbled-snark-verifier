@@ -1,5 +1,5 @@
 use ark_ec::{bn::BnConfig, short_weierstrass::SWCurveConfig, CurveGroup};
-use ark_ff::{AdditiveGroup, Field};
+use ark_ff::{AdditiveGroup, Field, Fp2Config};
 use crate::{bag::*, circuits::bn254::{fp254impl::Fp254Impl, fq::Fq, fq2::Fq2}};
 
 pub fn double_in_place(r: &mut ark_bn254::G2Projective, half: ark_bn254::Fq) -> (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2) {
@@ -141,11 +141,18 @@ pub fn add_in_place_circuit(r: Wires, q: Wires) -> Circuit {
     circuit
 }
 
+pub fn frobenius_in_place(a: ark_bn254::Fq2, power: usize) -> ark_bn254::Fq2 {
+    let c0 = a.c0;
+    let mut c1 = a.c1;
+    c1 *= &ark_bn254::Fq2Config::FROBENIUS_COEFF_FP2_C1[power % 2];
+    ark_bn254::Fq2::new(c0, c1)
+}
+
 pub fn mul_by_char(r: ark_bn254::G2Affine) -> ark_bn254::G2Affine {
     let mut s = r;
-    s.x.frobenius_map_in_place(1);
+    s.x = frobenius_in_place(s.x, 1);
     s.x *= &ark_bn254::Config::TWIST_MUL_BY_Q_X;
-    s.y.frobenius_map_in_place(1);
+    s.y = frobenius_in_place(s.y, 1);
     s.y *= &ark_bn254::Config::TWIST_MUL_BY_Q_Y;
     s
 }
