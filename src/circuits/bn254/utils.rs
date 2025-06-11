@@ -337,6 +337,16 @@ pub mod tests {
     }
 
     #[test]
+    fn test_random_fr() {
+        let u = random_fr();
+        println!("u: {:?}", u);
+        let b = bits_from_fr(u.clone());
+        let v = fr_from_bits(b);
+        println!("v: {:?}", v);
+        assert_eq!(u, v);
+    }
+
+    #[test]
     fn test_random_g1p() {
         let u = random_g1p();
         println!("u: {:?}", u);
@@ -347,11 +357,11 @@ pub mod tests {
     }
 
     #[test]
-    fn test_random_fr() {
-        let u = random_fr();
+    fn test_random_g2p() {
+        let u = random_g2p();
         println!("u: {:?}", u);
-        let b = bits_from_fr(u.clone());
-        let v = fr_from_bits(b);
+        let b = bits_from_g2p(u.clone());
+        let v = g2p_from_bits(b);
         println!("v: {:?}", v);
         assert_eq!(u, v);
     }

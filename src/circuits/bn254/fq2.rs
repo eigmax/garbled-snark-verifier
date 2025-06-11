@@ -224,7 +224,6 @@ impl Fq2 {
 #[cfg(test)]
 mod tests {
     use ark_ff::{AdditiveGroup, Fp6Config};
-
     use crate::circuits::bn254::utils::{fq2_from_wires, random_fq, random_fq2, wires_set_from_fq2};
     use super::*;
 

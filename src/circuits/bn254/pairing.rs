@@ -25,6 +25,48 @@ pub fn double_in_place(r: &mut ark_bn254::G2Projective, half: ark_bn254::Fq) -> 
     (-h, j.double() + &j, i)
 }
 
+pub fn double_in_place_circuit(r: Wires, half: ark_bn254::Fq) -> Circuit {
+    let mut circuit = Circuit::empty();
+
+    let rx = r[0..Fq2::N_BITS].to_vec();
+    let ry = r[Fq2::N_BITS..2*Fq2::N_BITS].to_vec();
+    let rz = r[2*Fq2::N_BITS..3*Fq2::N_BITS].to_vec();
+
+    let mut a = circuit.extend(Fq2::mul(rx.clone(), ry.clone()));
+    a = circuit.extend(Fq2::mul_by_constant_fq(a.clone(), half));
+    let b = circuit.extend(Fq2::square(ry.clone()));
+    let c = circuit.extend(Fq2::square(rz.clone()));
+    let c_triple = circuit.extend(Fq2::triple(c.clone()));
+    let e = circuit.extend(Fq2::mul_by_constant(c_triple, ark_bn254::g2::Config::COEFF_B));
+    let f = circuit.extend(Fq2::triple(e.clone()));
+    let mut g = circuit.extend(Fq2::add(b.clone(), f.clone()));
+    g = circuit.extend(Fq2::mul_by_constant_fq(g.clone(), half.clone()));
+    let ryrz = circuit.extend(Fq2::add(ry.clone(), rz.clone()));
+    let ryrzs = circuit.extend(Fq2::square(ryrz.clone()));
+    let bc = circuit.extend(Fq2::add(b.clone(), c.clone()));
+    let h = circuit.extend(Fq2::sub(ryrzs.clone(), bc.clone()));
+    let i = circuit.extend(Fq2::sub(e.clone(), b.clone()));
+    let j = circuit.extend(Fq2::square(rx.clone()));
+    let es = circuit.extend(Fq2::square(e.clone()));
+    let j_triple = circuit.extend(Fq2::triple(j.clone()));
+    let bf = circuit.extend(Fq2::sub(b.clone(), f.clone()));
+    let new_x = circuit.extend(Fq2::mul(a.clone(), bf.clone()));
+    let es_triple = circuit.extend(Fq2::triple(es.clone()));
+    let gs = circuit.extend(Fq2::square(g.clone()));
+    let new_y = circuit.extend(Fq2::sub(gs.clone(), es_triple.clone()));
+    let new_z = circuit.extend(Fq2::mul(b.clone(), h.clone()));
+    let hn = circuit.extend(Fq2::neg(h.clone()));
+
+    circuit.add_wires(hn);
+    circuit.add_wires(j_triple);
+    circuit.add_wires(i);
+    circuit.add_wires(new_x);
+    circuit.add_wires(new_y);
+    circuit.add_wires(new_z);
+
+    circuit
+}
+
 pub fn add_in_place(r: &mut ark_bn254::G2Projective, q: &ark_bn254::G2Affine) -> (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2) {
     let theta = r.y - &(q.y * &r.z);
     let lambda = r.x - &(q.x * &r.z);
@@ -181,20 +223,33 @@ mod tests {
     use ark_ec::pairing::Pairing;
     use rand_chacha::ChaCha20Rng;
     use crate::circuits::bn254::utils::{fq2_from_wires, wires_set_from_g2a, wires_set_from_g2p};
-
     use super::*;
 
     #[test]
-    fn test_miller_loop() {
+    fn test_double_in_place_circuit() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
-        let p = ark_bn254::G1Projective::rand(&mut prng);
-        let q = ark_bn254::G2Projective::rand(&mut prng);
+        let mut r = ark_bn254::G2Projective::rand(&mut prng);
+        let half = ark_bn254::Fq::from(Fq::half_modulus());
 
-        let c = ark_bn254::Bn254::multi_miller_loop([p], [q]).0;
-        let d = miller_loop(p, q);
-        assert_eq!(c, d);
+        let circuit = double_in_place_circuit(wires_set_from_g2p(r), half);
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c0 = fq2_from_wires(circuit.0[0..Fq2::N_BITS].to_vec());
+        let c1 = fq2_from_wires(circuit.0[Fq2::N_BITS..2*Fq2::N_BITS].to_vec());
+        let c2 = fq2_from_wires(circuit.0[2*Fq2::N_BITS..3*Fq2::N_BITS].to_vec());
+        let rx = fq2_from_wires(circuit.0[3*Fq2::N_BITS..4*Fq2::N_BITS].to_vec());
+        let ry = fq2_from_wires(circuit.0[4*Fq2::N_BITS..5*Fq2::N_BITS].to_vec());
+        let rz = fq2_from_wires(circuit.0[5*Fq2::N_BITS..6*Fq2::N_BITS].to_vec());
+        let coeffs = double_in_place(&mut r, half);
+        assert_eq!(c0, coeffs.0);
+        assert_eq!(c1, coeffs.1);
+        assert_eq!(c2, coeffs.2);
+        assert_eq!(r.x, rx);
+        assert_eq!(r.y, ry);
+        assert_eq!(r.z, rz);
     }
-
 
     #[test]
     fn test_add_in_place_circuit() {
@@ -220,5 +275,16 @@ mod tests {
         assert_eq!(r.x, new_r_x);
         assert_eq!(r.y, new_r_y);
         assert_eq!(r.z, new_r_z);
+    }
+
+    #[test]
+    fn test_miller_loop() {
+        let mut prng = ChaCha20Rng::seed_from_u64(0);
+        let p = ark_bn254::G1Projective::rand(&mut prng);
+        let q = ark_bn254::G2Projective::rand(&mut prng);
+
+        let c = ark_bn254::Bn254::multi_miller_loop([p], [q]).0;
+        let d = miller_loop(p, q);
+        assert_eq!(c, d);
     }
 }
