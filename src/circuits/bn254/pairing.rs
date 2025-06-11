@@ -1,6 +1,6 @@
 use ark_ec::{bn::BnConfig, short_weierstrass::SWCurveConfig, CurveGroup};
 use ark_ff::{AdditiveGroup, Field, Fp2Config};
-use crate::{bag::*, circuits::bn254::{fp254impl::Fp254Impl, fq::Fq, fq12::Fq12, fq2::Fq2}};
+use crate::{bag::*, circuits::bn254::{fp254impl::Fp254Impl, fq::Fq, fq12::Fq12, fq2::Fq2, utils::wires_set_from_fq2}};
 
 pub fn double_in_place(r: &mut ark_bn254::G2Projective) -> (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2) {
     let half = ark_bn254::Fq::from(Fq::half_modulus());
@@ -66,6 +66,21 @@ pub fn double_in_place_circuit(r: Wires) -> Circuit {
     circuit.add_wires(new_z);
 
     circuit
+}
+
+pub fn double_in_place_evaluate(r: Wires) -> ((Wires, Wires, Wires), Wires, usize) {
+    let circuit = double_in_place_circuit(r);
+
+    let n = circuit.1.len();
+
+    for mut gate in circuit.1 {
+        gate.evaluate();
+    }
+    let c0 = circuit.0[0..Fq2::N_BITS].to_vec();
+    let c1 = circuit.0[Fq2::N_BITS..2*Fq2::N_BITS].to_vec();
+    let c2 = circuit.0[Fq2::N_BITS*2..Fq2::N_BITS*3].to_vec();
+    let r = circuit.0[Fq2::N_BITS*3..Fq2::N_BITS*6].to_vec();
+    ((c0, c1, c2), r, n)
 }
 
 pub fn add_in_place(r: &mut ark_bn254::G2Projective, q: &ark_bn254::G2Affine) -> (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2) {
@@ -142,6 +157,23 @@ pub fn add_in_place_circuit(r: Wires, q: Wires) -> Circuit {
     circuit
 }
 
+pub fn add_in_place_evaluate(r: Wires, q: Wires) -> ((Wires, Wires, Wires), Wires, usize) {
+    let circuit = add_in_place_circuit(r, q);
+
+    let n = circuit.1.len();
+
+    for mut gate in circuit.1 {
+        gate.evaluate();
+    }
+
+    let c0 = circuit.0[0..Fq2::N_BITS].to_vec();
+    let c1 = circuit.0[Fq2::N_BITS..2*Fq2::N_BITS].to_vec();
+    let c2 = circuit.0[Fq2::N_BITS*2..Fq2::N_BITS*3].to_vec();
+    let r = circuit.0[Fq2::N_BITS*3..Fq2::N_BITS*6].to_vec();
+    ((c0, c1, c2), r, n)
+
+}
+
 pub fn frobenius_in_place(a: ark_bn254::Fq2, power: usize) -> ark_bn254::Fq2 {
     let c0 = a.c0;
     let mut c1 = a.c1;
@@ -182,6 +214,18 @@ pub fn mul_by_char_circuit(r: Wires) -> Circuit {
     circuit
 }
 
+pub fn mul_by_char_evaluate(r: Wires) -> (Wires, usize) {
+    let circuit = mul_by_char_circuit(r);
+
+    let n = circuit.1.len();
+
+    for mut gate in circuit.1 {
+        gate.evaluate();
+    }
+
+    (circuit.0, n)
+}
+
 pub fn ell_coeffs(q: ark_bn254::G2Projective) -> Vec<(ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2)> {
     let q_affine = q.into_affine();
     let mut ellc = Vec::new();
@@ -211,6 +255,85 @@ pub fn ell_coeffs(q: ark_bn254::G2Projective) -> Vec<(ark_bn254::Fq2, ark_bn254:
     ellc.push(add_in_place(&mut r, &q2));
     ellc
 }
+
+pub fn g2_affine_neg_evaluate(r: Wires) -> (Wires, usize) {
+    let mut circuit = Circuit::empty();
+    let x = r[0..Fq2::N_BITS].to_vec();
+    let y = r[Fq2::N_BITS..2*Fq2::N_BITS].to_vec();
+    let new_y = circuit.extend(Fq2::neg(y));
+    circuit.add_wires(x);
+    circuit.add_wires(new_y);
+
+    let n = circuit.1.len();
+
+    for mut gate in circuit.1 {
+        gate.evaluate();
+    }
+
+    (circuit.0, n)
+}
+
+pub fn ell_coeffs_circuit_evaluate(q: Wires) -> (Vec<(Wires, Wires, Wires)>, usize) {
+    let mut gate_count = 0;
+    let mut ellc = Vec::new();
+    let mut r = Vec::new();
+    r.extend_from_slice(&q[0..Fq2::N_BITS]);
+    r.extend_from_slice(&q[0..Fq2::N_BITS]);
+    r.extend_from_slice(&wires_set_from_fq2(ark_bn254::Fq2::from(1)));
+
+    let (neg_q, gc) = g2_affine_neg_evaluate(q.clone());
+    gate_count += gc;
+    println!("g2 affine neg done");
+    let m = ark_bn254::Config::ATE_LOOP_COUNT.len();
+    let mut t = 0;
+    for bit in ark_bn254::Config::ATE_LOOP_COUNT.iter().rev().skip(1) {
+        println!("{:?}/{:?}", t, m);
+        t += 1;
+        let (coeffs, new_r, gc) = double_in_place_evaluate(r);
+        ellc.push(coeffs);
+        gate_count+=gc;
+        r = new_r;
+
+        match bit {
+            1 => {
+                let (coeffs, new_r, gc) = add_in_place_evaluate(r, q.clone());
+                ellc.push(coeffs);
+                gate_count+=gc;
+                r = new_r;
+            },
+            -1 => {
+                let (coeffs, new_r, gc) = add_in_place_evaluate(r, neg_q.clone());
+                ellc.push(coeffs);
+                gate_count+=gc;
+                r = new_r;
+            },
+            _ => {},
+        }
+    }
+    println!("loop done");
+    let (q1, gc) = mul_by_char_evaluate(q.clone());
+    gate_count += gc;
+    println!("mul by char 1 done");
+    let (mut q2, gc) = mul_by_char_evaluate(q1.clone());
+    gate_count += gc;
+    println!("mul by char 2 done");
+    let (new_q2, gc) = g2_affine_neg_evaluate(q2);
+    gate_count += gc;
+    q2 = new_q2;
+    println!("g2 affine neg done");
+    let (coeffs , new_r, gc) = add_in_place_evaluate(r, q1);
+    gate_count += gc;
+    ellc.push(coeffs);
+    r = new_r;
+    println!("add in place 1 done");
+    let (coeffs, _new_r, gc) = add_in_place_evaluate(r, q2);
+    gate_count += gc;
+    ellc.push(coeffs);
+    // r = new_r;
+    println!("add in place 2 done");
+    (ellc, gate_count)
+}
+
 
 pub fn ell(f: &mut ark_bn254::Fq12, coeffs: (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2), p: ark_bn254::G1Projective) {
     let mut c0 = coeffs.0;
