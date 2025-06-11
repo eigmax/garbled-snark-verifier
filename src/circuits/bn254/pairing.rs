@@ -1,4 +1,4 @@
-use ark_ec::{bn::BnConfig, short_weierstrass::SWCurveConfig, CurveGroup};
+use ark_ec::{bn::BnConfig, short_weierstrass::SWCurveConfig};
 use ark_ff::{AdditiveGroup, Field, Fp2Config};
 use crate::{bag::*, circuits::bn254::{fp254impl::Fp254Impl, fq::Fq, fq12::Fq12, fq2::Fq2, utils::wires_set_from_fq2}};
 
@@ -226,36 +226,6 @@ pub fn mul_by_char_evaluate(r: Wires) -> (Wires, usize) {
     (circuit.0, n)
 }
 
-pub fn ell_coeffs(q: ark_bn254::G2Projective) -> Vec<(ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2)> {
-    let q_affine = q.into_affine();
-    let mut ellc = Vec::new();
-    let mut r = ark_bn254::G2Projective {
-        x: q_affine.x,
-        y: q_affine.y,
-        z: ark_bn254::Fq2::ONE,
-    };
-    let neg_q = -q_affine;
-    for bit in ark_bn254::Config::ATE_LOOP_COUNT.iter().rev().skip(1) {
-        ellc.push(double_in_place(&mut r));
-
-        match bit {
-            1 => {
-                ellc.push(add_in_place(&mut r, &q_affine));
-            },
-            -1 => {
-                ellc.push(add_in_place(&mut r, &neg_q));
-            },
-            _ => {},
-        }
-    }
-    let q1 = mul_by_char(q_affine);
-    let mut q2 = mul_by_char(q1);
-    q2.y = -q2.y;
-    ellc.push(add_in_place(&mut r, &q1));
-    ellc.push(add_in_place(&mut r, &q2));
-    ellc
-}
-
 pub fn g2_affine_neg_evaluate(r: Wires) -> (Wires, usize) {
     let mut circuit = Circuit::empty();
     let x = r[0..Fq2::N_BITS].to_vec();
@@ -273,22 +243,46 @@ pub fn g2_affine_neg_evaluate(r: Wires) -> (Wires, usize) {
     (circuit.0, n)
 }
 
+pub fn ell_coeffs(q: ark_bn254::G2Affine) -> Vec<(ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2)> {
+    let mut ellc = Vec::new();
+    let mut r = ark_bn254::G2Projective {
+        x: q.x,
+        y: q.y,
+        z: ark_bn254::Fq2::ONE,
+    };
+    let neg_q = -q;
+    for bit in ark_bn254::Config::ATE_LOOP_COUNT.iter().rev().skip(1) {
+        ellc.push(double_in_place(&mut r));
+
+        match bit {
+            1 => {
+                ellc.push(add_in_place(&mut r, &q));
+            },
+            -1 => {
+                ellc.push(add_in_place(&mut r, &neg_q));
+            },
+            _ => {},
+        }
+    }
+    let q1 = mul_by_char(q);
+    let mut q2 = mul_by_char(q1);
+    q2.y = -q2.y;
+    ellc.push(add_in_place(&mut r, &q1));
+    ellc.push(add_in_place(&mut r, &q2));
+    ellc
+}
+
 pub fn ell_coeffs_circuit_evaluate(q: Wires) -> (Vec<(Wires, Wires, Wires)>, usize) {
     let mut gate_count = 0;
     let mut ellc = Vec::new();
     let mut r = Vec::new();
     r.extend_from_slice(&q[0..Fq2::N_BITS]);
-    r.extend_from_slice(&q[0..Fq2::N_BITS]);
+    r.extend_from_slice(&q[Fq2::N_BITS..2*Fq2::N_BITS]);
     r.extend_from_slice(&wires_set_from_fq2(ark_bn254::Fq2::from(1)));
 
     let (neg_q, gc) = g2_affine_neg_evaluate(q.clone());
     gate_count += gc;
-    println!("g2 affine neg done");
-    let m = ark_bn254::Config::ATE_LOOP_COUNT.len();
-    let mut t = 0;
     for bit in ark_bn254::Config::ATE_LOOP_COUNT.iter().rev().skip(1) {
-        println!("{:?}/{:?}", t, m);
-        t += 1;
         let (coeffs, new_r, gc) = double_in_place_evaluate(r);
         ellc.push(coeffs);
         gate_count+=gc;
@@ -310,30 +304,23 @@ pub fn ell_coeffs_circuit_evaluate(q: Wires) -> (Vec<(Wires, Wires, Wires)>, usi
             _ => {},
         }
     }
-    println!("loop done");
     let (q1, gc) = mul_by_char_evaluate(q.clone());
     gate_count += gc;
-    println!("mul by char 1 done");
     let (mut q2, gc) = mul_by_char_evaluate(q1.clone());
     gate_count += gc;
-    println!("mul by char 2 done");
     let (new_q2, gc) = g2_affine_neg_evaluate(q2);
     gate_count += gc;
     q2 = new_q2;
-    println!("g2 affine neg done");
     let (coeffs , new_r, gc) = add_in_place_evaluate(r, q1);
     gate_count += gc;
     ellc.push(coeffs);
     r = new_r;
-    println!("add in place 1 done");
     let (coeffs, _new_r, gc) = add_in_place_evaluate(r, q2);
     gate_count += gc;
     ellc.push(coeffs);
     // r = new_r;
-    println!("add in place 2 done");
     (ellc, gate_count)
 }
-
 
 pub fn ell(f: &mut ark_bn254::Fq12, coeffs: (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2), p: ark_bn254::G1Projective) {
     let mut c0 = coeffs.0;
@@ -362,7 +349,7 @@ pub fn ell_circuit(f: Wires, coeffs: (Wires, Wires, Wires), p: Wires) -> Circuit
     circuit
 }
 
-pub fn miller_loop(p: ark_bn254::G1Projective, q: ark_bn254::G2Projective) -> ark_bn254::Fq12 {
+pub fn miller_loop(p: ark_bn254::G1Projective, q: ark_bn254::G2Affine) -> ark_bn254::Fq12 {
     let qell = ell_coeffs(q);
     let mut q_ell = qell.iter();
 
@@ -389,6 +376,8 @@ pub fn miller_loop(p: ark_bn254::G1Projective, q: ark_bn254::G2Projective) -> ar
 
 #[cfg(test)]
 mod tests {
+    use std::iter::zip;
+
     use ark_ff::UniformRand;
     use ark_std::rand::SeedableRng;
     use ark_ec::pairing::Pairing;
@@ -412,6 +401,29 @@ mod tests {
         let rx = fq2_from_wires(circuit.0[3*Fq2::N_BITS..4*Fq2::N_BITS].to_vec());
         let ry = fq2_from_wires(circuit.0[4*Fq2::N_BITS..5*Fq2::N_BITS].to_vec());
         let rz = fq2_from_wires(circuit.0[5*Fq2::N_BITS..6*Fq2::N_BITS].to_vec());
+        let coeffs = double_in_place(&mut r);
+        assert_eq!(c0, coeffs.0);
+        assert_eq!(c1, coeffs.1);
+        assert_eq!(c2, coeffs.2);
+        assert_eq!(r.x, rx);
+        assert_eq!(r.y, ry);
+        assert_eq!(r.z, rz);
+    }
+
+    #[test]
+    fn test_double_in_place_circuit_evaluate() {
+        let mut prng = ChaCha20Rng::seed_from_u64(0);
+        let mut r = ark_bn254::G2Projective::rand(&mut prng);
+
+        let ((c0, c1, c2), new_r, gate_count) = double_in_place_evaluate(wires_set_from_g2p(r));
+        println!("gate_count: {:?}", gate_count);
+
+        let c0 = fq2_from_wires(c0);
+        let c1 = fq2_from_wires(c1);
+        let c2 = fq2_from_wires(c2);
+        let rx = fq2_from_wires(new_r[0*Fq2::N_BITS..1*Fq2::N_BITS].to_vec());
+        let ry = fq2_from_wires(new_r[1*Fq2::N_BITS..2*Fq2::N_BITS].to_vec());
+        let rz = fq2_from_wires(new_r[2*Fq2::N_BITS..3*Fq2::N_BITS].to_vec());
         let coeffs = double_in_place(&mut r);
         assert_eq!(c0, coeffs.0);
         assert_eq!(c1, coeffs.1);
@@ -465,6 +477,22 @@ mod tests {
     }
 
     #[test]
+    fn test_ell_coeffs_circuit_evaluate() {
+        let mut prng = ChaCha20Rng::seed_from_u64(0);
+        let q = ark_bn254::G2Affine::rand(&mut prng);
+
+        let expected_coeffs = ell_coeffs(q);
+        let (coeffs, gate_count) = ell_coeffs_circuit_evaluate(wires_set_from_g2a(q));
+        println!("gate_count: {:?}", gate_count);
+        
+        for (a,b) in zip(coeffs, expected_coeffs) {
+            assert_eq!(fq2_from_wires(a.0), b.0);
+            assert_eq!(fq2_from_wires(a.1), b.1);
+            assert_eq!(fq2_from_wires(a.2), b.2);
+        }
+    }
+    
+    #[test]
     fn test_ell_circuit() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let mut f = ark_bn254::Fq12::rand(&mut prng);
@@ -485,7 +513,7 @@ mod tests {
     fn test_miller_loop() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let p = ark_bn254::G1Projective::rand(&mut prng);
-        let q = ark_bn254::G2Projective::rand(&mut prng);
+        let q = ark_bn254::G2Affine::rand(&mut prng);
 
         let c = ark_bn254::Bn254::multi_miller_loop([p], [q]).0;
         let d = miller_loop(p, q);

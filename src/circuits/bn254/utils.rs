@@ -284,12 +284,22 @@ pub fn bits_from_g2a(u: ark_bn254::G2Affine) -> Vec<bool> {
     bits
 }
 
+pub fn g2a_from_bits(bits: Vec<bool>) -> ark_bn254::G2Affine {
+    let bits1 = &bits[0..Fq2::N_BITS].to_vec();
+    let bits2 = &bits[Fq2::N_BITS..Fq2::N_BITS*2].to_vec();
+    ark_bn254::G2Affine::new(fq2_from_bits(bits1.clone()), fq2_from_bits(bits2.clone()))
+}
+
 pub fn wires_set_from_g2a(u: ark_bn254::G2Affine) -> Wires {
     bits_from_g2a(u)[0..2*Fq2::N_BITS].iter().map(|bit| {
         let wire = Rc::new(RefCell::new(Wire::new()));
         wire.borrow_mut().set(*bit);
         wire
     }).collect()
+}
+
+pub fn g2a_from_wires(wires: Wires) -> ark_bn254::G2Affine {
+    g2a_from_bits(wires.iter().map(|wire| {wire.borrow().get_value()}).collect())
 }
 
 #[cfg(test)]
