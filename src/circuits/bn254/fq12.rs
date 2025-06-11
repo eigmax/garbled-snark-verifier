@@ -134,6 +134,31 @@ impl Fq12 {
         circuit
     }
 
+    pub fn mul_by_034(a: Wires, c0: Wires, c3: Wires, c4: Wires)-> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        assert_eq!(c0.len(), Fq2::N_BITS);
+        assert_eq!(c3.len(), Fq2::N_BITS);
+        assert_eq!(c4.len(), Fq2::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq6::N_BITS].to_vec();
+        let a_c1 = a[Fq6::N_BITS..2*Fq6::N_BITS].to_vec();
+
+        let wires_1 = circuit.extend(Fq6::mul_by_01(a_c1.clone(), c3.clone(), c4.clone()));
+        let wires_2 = circuit.extend(Fq6::mul_by_nonresidue(wires_1.clone()));
+        let wires_3 = circuit.extend(Fq6::mul_by_fq2(a_c0.clone(), c0.clone()));
+        let new_c0 = circuit.extend(Fq6::add(wires_2.clone(), wires_3.clone()));
+        let wires_4 = circuit.extend(Fq6::add(a_c0.clone(), a_c1.clone()));
+        let wires_5 = circuit.extend(Fq2::add(c3.clone(), c0.clone()));
+        let wires_6 = circuit.extend(Fq6::mul_by_01(wires_4.clone(), wires_5.clone(), c4.clone()));
+        let wires_7 = circuit.extend(Fq6::add(wires_1, wires_3));
+        let new_c1 = circuit.extend(Fq6::sub(wires_6, wires_7));
+
+        circuit.add_wires(new_c0);
+        circuit.add_wires(new_c1);
+        circuit
+    }
+
     pub fn square(a: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
@@ -268,6 +293,24 @@ mod tests {
         let c = fq12_from_wires(circuit.0);
         let mut b = a;
         b.mul_by_034(&ark_bn254::Fq2::ONE, &c3, &c4);
+        assert_eq!(c, b);
+    }
+
+    #[test]
+    #[serial]
+    fn test_fq12_mul_by_034() {
+        let a = random_fq12();
+        let c0 = random_fq2();
+        let c3 = random_fq2();
+        let c4 = random_fq2();
+        let circuit = Fq12::mul_by_034(wires_set_from_fq12(a.clone()), wires_set_from_fq2(c0.clone()), wires_set_from_fq2(c3.clone()), wires_set_from_fq2(c4.clone()));
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = fq12_from_wires(circuit.0);
+        let mut b = a;
+        b.mul_by_034(&c0, &c3, &c4);
         assert_eq!(c, b);
     }
 

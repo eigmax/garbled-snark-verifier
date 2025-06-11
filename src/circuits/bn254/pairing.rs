@@ -1,6 +1,6 @@
 use ark_ec::{bn::BnConfig, short_weierstrass::SWCurveConfig, CurveGroup};
 use ark_ff::{AdditiveGroup, Field, Fp2Config};
-use crate::{bag::*, circuits::bn254::{fp254impl::Fp254Impl, fq::Fq, fq2::Fq2}};
+use crate::{bag::*, circuits::bn254::{fp254impl::Fp254Impl, fq::Fq, fq12::Fq12, fq2::Fq2}};
 
 pub fn double_in_place(r: &mut ark_bn254::G2Projective) -> (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2) {
     let half = ark_bn254::Fq::from(Fq::half_modulus());
@@ -222,6 +222,23 @@ pub fn ell(f: &mut ark_bn254::Fq12, coeffs: (ark_bn254::Fq2, ark_bn254::Fq2, ark
     f.mul_by_034(&c0, &c1, &c2);
 }
 
+pub fn ell_circuit(f: Wires, coeffs: (Wires, Wires, Wires), p: Wires) -> Circuit {
+    let mut circuit = Circuit::empty();
+    let c0 = coeffs.0;
+    let c1 = coeffs.1;
+    let c2 = coeffs.2;
+
+    let px = p[0..Fq::N_BITS].to_vec();
+    let py = p[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+
+    let new_c0 = circuit.extend(Fq2::mul_by_fq(c0, py));
+    let new_c1 = circuit.extend(Fq2::mul_by_fq(c1, px));
+    let new_f = circuit.extend(Fq12::mul_by_034(f, new_c0, new_c1, c2));
+
+    circuit.add_wires(new_f);
+    circuit
+}
+
 pub fn miller_loop(p: ark_bn254::G1Projective, q: ark_bn254::G2Projective) -> ark_bn254::Fq12 {
     let qell = ell_coeffs(q);
     let mut q_ell = qell.iter();
@@ -253,7 +270,7 @@ mod tests {
     use ark_std::rand::SeedableRng;
     use ark_ec::pairing::Pairing;
     use rand_chacha::ChaCha20Rng;
-    use crate::circuits::bn254::utils::{fq2_from_wires, wires_set_from_g2a, wires_set_from_g2p};
+    use crate::circuits::bn254::utils::{fq12_from_wires, fq2_from_wires, wires_set_from_fq12, wires_set_from_fq2, wires_set_from_g1p, wires_set_from_g2a, wires_set_from_g2p};
     use super::*;
 
     #[test]
@@ -322,6 +339,23 @@ mod tests {
         let coeffs = mul_by_char(q);
         assert_eq!(c0, coeffs.x);
         assert_eq!(c1, coeffs.y);
+    }
+
+    #[test]
+    fn test_ell_circuit() {
+        let mut prng = ChaCha20Rng::seed_from_u64(0);
+        let mut f = ark_bn254::Fq12::rand(&mut prng);
+        let coeffs = (ark_bn254::Fq2::rand(&mut prng), ark_bn254::Fq2::rand(&mut prng), ark_bn254::Fq2::rand(&mut prng));
+        let p = ark_bn254::G1Projective::rand(&mut prng);
+
+        let circuit = ell_circuit(wires_set_from_fq12(f), (wires_set_from_fq2(coeffs.0), wires_set_from_fq2(coeffs.1), wires_set_from_fq2(coeffs.2)), wires_set_from_g1p(p));
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let new_f = fq12_from_wires(circuit.0);
+        ell(&mut f, coeffs, p);
+        assert_eq!(f, new_f);
     }
 
     #[test]

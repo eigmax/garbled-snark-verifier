@@ -238,6 +238,24 @@ impl Fq6 {
         circuit
     }
 
+    pub fn mul_by_fq2(a: Wires, b: Wires) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        assert_eq!(b.len(), Fq2::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq2::N_BITS].to_vec();
+        let a_c1 = a[Fq2::N_BITS..2*Fq2::N_BITS].to_vec();
+        let a_c2 = a[2*Fq2::N_BITS..3*Fq2::N_BITS].to_vec();
+
+        let c0 = circuit.extend(Fq2::mul(a_c0, b.clone()));
+        let c1 = circuit.extend(Fq2::mul(a_c1, b.clone()));
+        let c2 = circuit.extend(Fq2::mul(a_c2, b.clone()));
+        circuit.add_wires(c0);
+        circuit.add_wires(c1);
+        circuit.add_wires(c2);
+        circuit
+    }
+
     pub fn mul_by_constant_fq2(a: Wires, b: ark_bn254::Fq2) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
@@ -452,6 +470,19 @@ mod tests {
         }
         let c = fq6_from_wires(circuit.0);
         assert_eq!(c, a * b);
+    }
+
+    #[test]
+    fn test_fq6_mul_by_fq2() {
+        let a = random_fq6();
+        let b = random_fq2();
+        let circuit = Fq6::mul_by_fq2(wires_set_from_fq6(a.clone()), wires_set_from_fq2(b.clone()));
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = fq6_from_wires(circuit.0);
+        assert_eq!(c, a * ark_bn254::Fq6::new(b, ark_bn254::Fq2::ZERO, ark_bn254::Fq2::ZERO));
     }
 
     #[test]
