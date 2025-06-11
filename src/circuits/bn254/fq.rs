@@ -1,3 +1,5 @@
+use num_bigint::BigUint;
+
 use crate::circuits::bn254::fp254impl::Fp254Impl;
 
 pub struct Fq;
@@ -5,6 +7,10 @@ pub struct Fq;
 impl Fp254Impl for Fq {
     const MODULUS: &'static str = "21888242871839275222246405745257275088696311157297823662689037894645226208583";
     const N_BITS: usize = 254;
+
+    fn half_modulus() -> BigUint {
+        BigUint::from(ark_bn254::Fq::from(1) / ark_bn254::Fq::from(2))
+    }
 }
 
 #[cfg(test)]

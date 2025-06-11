@@ -25,6 +25,8 @@ pub trait Fp254Impl {
         bits_from_biguint(Self::not_modulus_as_biguint())
     }
 
+    fn half_modulus() -> BigUint;
+
     fn self_or_zero(a: Wires, s: Wirex) -> Circuit {
         U254::self_or_zero(a, s)
     }

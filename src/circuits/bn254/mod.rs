@@ -6,3 +6,4 @@ pub mod fq6;
 pub mod fq12;
 pub mod fr;
 pub mod g1;
+pub mod pairing;
