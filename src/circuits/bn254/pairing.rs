@@ -149,6 +149,16 @@ pub fn frobenius_in_place(a: ark_bn254::Fq2, power: usize) -> ark_bn254::Fq2 {
     ark_bn254::Fq2::new(c0, c1)
 }
 
+pub fn frobenius_in_place_circuit(a: Wires, power: usize) -> Circuit {
+    let mut circuit = Circuit::empty();
+    let c0 = a[0..Fq::N_BITS].to_vec();
+    let c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+    let new_c1 = circuit.extend(Fq::mul_by_constant(c1, ark_bn254::Fq2Config::FROBENIUS_COEFF_FP2_C1[power % 2] ));
+    circuit.add_wires(c0);
+    circuit.add_wires(new_c1);
+    circuit
+}
+
 pub fn mul_by_char(r: ark_bn254::G2Affine) -> ark_bn254::G2Affine {
     let mut s = r;
     s.x = frobenius_in_place(s.x, 1);
@@ -156,6 +166,20 @@ pub fn mul_by_char(r: ark_bn254::G2Affine) -> ark_bn254::G2Affine {
     s.y = frobenius_in_place(s.y, 1);
     s.y *= &ark_bn254::Config::TWIST_MUL_BY_Q_Y;
     s
+}
+
+pub fn mul_by_char_circuit(r: Wires) -> Circuit {
+    let mut circuit = Circuit::empty();
+    let r_x = r[0..Fq2::N_BITS].to_vec();
+    let r_y = r[Fq2::N_BITS..2*Fq2::N_BITS].to_vec();
+
+    let mut s_x = circuit.extend(frobenius_in_place_circuit(r_x, 1));
+    s_x = circuit.extend(Fq2::mul_by_constant(s_x, ark_bn254::Config::TWIST_MUL_BY_Q_X.clone()));
+    let mut s_y = circuit.extend(frobenius_in_place_circuit(r_y, 1));
+    s_y = circuit.extend(Fq2::mul_by_constant(s_y, ark_bn254::Config::TWIST_MUL_BY_Q_Y.clone()));
+    circuit.add_wires(s_x);
+    circuit.add_wires(s_y);
+    circuit
 }
 
 pub fn ell_coeffs(q: ark_bn254::G2Projective) -> Vec<(ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2)> {
@@ -281,6 +305,23 @@ mod tests {
         assert_eq!(r.x, new_r_x);
         assert_eq!(r.y, new_r_y);
         assert_eq!(r.z, new_r_z);
+    }
+
+    #[test]
+    fn test_mul_by_char_circuit() {
+        let mut prng = ChaCha20Rng::seed_from_u64(0);
+        let q = ark_bn254::G2Affine::rand(&mut prng);
+
+        let circuit = mul_by_char_circuit(wires_set_from_g2a(q));
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c0 = fq2_from_wires(circuit.0[0..Fq2::N_BITS].to_vec());
+        let c1 = fq2_from_wires(circuit.0[Fq2::N_BITS..2*Fq2::N_BITS].to_vec());
+        let coeffs = mul_by_char(q);
+        assert_eq!(c0, coeffs.x);
+        assert_eq!(c1, coeffs.y);
     }
 
     #[test]
