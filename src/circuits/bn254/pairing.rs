@@ -419,32 +419,31 @@ pub fn miller_loop_circuit_evaluate(p: Wires, q: Wires) -> (Wires, usize) {
 
     for i in (1..ark_bn254::Config::ATE_LOOP_COUNT.len()).rev() {
         if i != ark_bn254::Config::ATE_LOOP_COUNT.len() - 1 {
-            let (new_f, gc) = (wires_set_from_fq12(fq12_from_wires(f).square()), 1); // fq12_square_evaluate(f);
+            let (new_f, gc) = (wires_set_from_fq12(fq12_from_wires(f).square()), 70631715); // fq12_square_evaluate(f);
             f = new_f;
             gate_count += gc;
         }
 
         let qell_next = q_ell.next().unwrap().clone();
-        let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), 1000000000000); // ell_circuit_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
+        let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), 67030677); // ell_circuit_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
         f = new_f;
         gate_count += gc;
 
         let bit = ark_bn254::Config::ATE_LOOP_COUNT[i - 1];
         if bit == 1 || bit == -1 {
             let qell_next = q_ell.next().unwrap().clone();
-            let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), 1000000000000); // ell_circuit_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
+            let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), 67030677); // ell_circuit_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
             f = new_f;
             gate_count += gc;
         }
     }
 
     let qell_next = q_ell.next().unwrap().clone();
-    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), 1000000000000); // ell_circuit_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
+    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), 67030677); // ell_circuit_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
     f = new_f;
     gate_count += gc;
-    println!("f: {:?}", fq12_from_wires(f.clone()));
     let qell_next = q_ell.next().unwrap().clone();
-    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), 1000000000000); // ell_circuit_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
+    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), 67030677); // ell_circuit_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
     f = new_f;
     gate_count += gc;
 

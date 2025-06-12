@@ -1,10 +1,49 @@
-use crate::{bag::*, circuits::bn254::{fq2::Fq2, fq6::Fq6}};
+use std::iter::zip;
+
+use crate::{bag::*, circuits::bn254::{fp254impl::Fp254Impl, fq::Fq, fq2::Fq2, fq6::Fq6}};
 use ark_ff::{Field, Fp12Config};
 
 pub struct Fq12;
 
 impl Fq12 {
     pub const N_BITS: usize = 2 * Fq6::N_BITS;
+
+    pub fn equal_constant(a: Wires, b: ark_bn254::Fq12) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a0 = a[0*Fq::N_BITS..1*Fq::N_BITS].to_vec();
+        let a1 = a[1*Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let a2 = a[2*Fq::N_BITS..3*Fq::N_BITS].to_vec();
+        let a3 = a[3*Fq::N_BITS..4*Fq::N_BITS].to_vec();
+        let a4 = a[4*Fq::N_BITS..5*Fq::N_BITS].to_vec();
+        let a5 = a[5*Fq::N_BITS..6*Fq::N_BITS].to_vec();
+        let a6 = a[6*Fq::N_BITS..7*Fq::N_BITS].to_vec();
+        let a7 = a[7*Fq::N_BITS..8*Fq::N_BITS].to_vec();
+        let a8 = a[8*Fq::N_BITS..9*Fq::N_BITS].to_vec();
+        let a9 = a[9*Fq::N_BITS..10*Fq::N_BITS].to_vec();
+        let a10 = a[10*Fq::N_BITS..11*Fq::N_BITS].to_vec();
+        let a11 = a[11*Fq::N_BITS..12*Fq::N_BITS].to_vec();
+
+        let mut results = Vec::new();
+
+        for (x, y) in zip([a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11], b.to_base_prime_field_elements()) {
+            let result = circuit.extend(Fq::equal_constant(x, y))[0].clone();
+            results.push(result);
+        }
+
+        let mut wire = results[0].clone();
+
+        for next in results[1..].to_vec() {
+            let new_wire = Rc::new(RefCell::new(Wire::new()));
+            circuit.add(Gate::and(wire, next, new_wire.clone()));
+            wire = new_wire;
+        }
+
+        circuit.add_wire(wire);
+
+        circuit
+    }
 
     pub fn add(a: Wires, b: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
@@ -200,6 +239,27 @@ mod tests {
     use serial_test::serial;
     use crate::circuits::bn254::utils::{fq12_from_wires, random_fq12, random_fq2, wires_set_from_fq12, wires_set_from_fq2};
     use super::*;
+
+    #[test]
+    fn test_fq12_equal_constant() {
+        let a = random_fq12();
+        let b = random_fq12();
+        let circuit = Fq12::equal_constant(wires_set_from_fq12(a.clone()), b);
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let result = circuit.0[0].clone().borrow().get_value();
+        assert_eq!(result, a == b);
+
+        let circuit = Fq12::equal_constant(wires_set_from_fq12(a.clone()), a);
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let result = circuit.0[0].clone().borrow().get_value();
+        assert!(result);
+    }
 
     #[test]
     fn test_fq12_add() {
