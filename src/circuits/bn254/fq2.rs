@@ -181,6 +181,17 @@ impl Fq2 {
         circuit
     }
 
+    pub fn mul_constant_by_fq(a: ark_bn254::Fq2, b: Wires) -> Circuit {
+        assert_eq!(b.len(), Fq::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let wires_1 = circuit.extend(Fq::mul_by_constant(b.clone(), a.c0));
+        let wires_2 = circuit.extend(Fq::mul_by_constant(b.clone(), a.c1));
+        circuit.add_wires(wires_1);
+        circuit.add_wires(wires_2);
+        circuit
+    }
+
     pub fn mul_by_nonresidue(a: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();

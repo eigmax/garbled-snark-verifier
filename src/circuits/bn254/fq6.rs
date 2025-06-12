@@ -320,6 +320,37 @@ impl Fq6 {
         circuit
     }
 
+    pub fn mul_by_01_constant1(a: Wires, c0: Wires, c1: ark_bn254::Fq2) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        assert_eq!(c0.len(), Fq2::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq2::N_BITS].to_vec();
+        let a_c1 = a[Fq2::N_BITS..2*Fq2::N_BITS].to_vec();
+        let a_c2 = a[2*Fq2::N_BITS..3*Fq2::N_BITS].to_vec();
+
+        let wires_1 = circuit.extend(Fq2::mul(a_c0.clone(), c0.clone()));
+        let wires_2 = circuit.extend(Fq2::mul_by_constant(a_c1.clone(), c1.clone()));
+        let wires_3 = circuit.extend(Fq2::add(a_c1.clone(), a_c2.clone()));
+        let wires_4 = circuit.extend(Fq2::mul_by_constant(wires_3.clone(), c1.clone()));
+        let wires_5 = circuit.extend(Fq2::sub(wires_4.clone(), wires_2.clone()));
+        let wires_6 = circuit.extend(Fq2::mul_by_nonresidue(wires_5.clone()));
+        let wires_7 = circuit.extend(Fq2::add(wires_6.clone(), wires_1.clone()));
+        let wires_8 = circuit.extend(Fq2::add(a_c0.clone(), a_c1.clone()));
+        let wires_9 = circuit.extend(Fq2::add_constant(c0.clone(), c1.clone()));
+        let wires_10 = circuit.extend(Fq2::mul(wires_8.clone(), wires_9.clone()));
+        let wires_11 = circuit.extend(Fq2::sub(wires_10.clone(), wires_1.clone()));
+        let wires_12 = circuit.extend(Fq2::sub(wires_11.clone(), wires_2.clone()));
+        let wires_13 = circuit.extend(Fq2::add(a_c0.clone(), a_c2.clone()));
+        let wires_14 = circuit.extend(Fq2::mul(wires_13.clone(), c0.clone()));
+        let wires_15 = circuit.extend(Fq2::sub(wires_14.clone(), wires_1.clone()));
+        let wires_16 = circuit.extend(Fq2::add(wires_15.clone(), wires_2.clone()));
+        circuit.add_wires(wires_7);
+        circuit.add_wires(wires_12);
+        circuit.add_wires(wires_16);
+        circuit
+    }
+
     pub fn square(a: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();

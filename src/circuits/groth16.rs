@@ -4,8 +4,8 @@ use ark_ff::Field;
 use crate::bag::*;
 use crate::circuits::bn254::fq12::Fq12;
 use crate::circuits::bn254::g1::G1Projective;
-use crate::circuits::bn254::pairing::multi_miller_loop_circuit_evaluate;
-use crate::circuits::bn254::utils::{fq12_from_wires, fr_from_wires, wires_set_from_fq12, wires_set_from_g1p, wires_set_from_g2a};
+use crate::circuits::bn254::pairing::multi_miller_loop_groth16_circuit_evaluate;
+use crate::circuits::bn254::utils::{fq12_from_wires, fr_from_wires, wires_set_from_fq12, wires_set_from_g1p};
 
 pub fn fq12_mul_evaluate(a: Wires, b: Wires) -> (Wires, usize) {
     let circuit = Fq12::mul(a, b);
@@ -52,7 +52,7 @@ pub fn groth16_verifier_circuit(public: Wires, proof_a: Wires, proof_b: Wires, p
     let (msm, gc) = G1Projective::add_evaluate(msm_temp, wires_set_from_g1p(vk.gamma_abc_g1[0].into_group()));
     gate_count += gc;
 
-    let (f, gc) = multi_miller_loop_circuit_evaluate(vec![msm, proof_c, proof_a], vec![wires_set_from_g2a(-vk.gamma_g2), wires_set_from_g2a(-vk.delta_g2), proof_b]);
+    let (f, gc) = multi_miller_loop_groth16_circuit_evaluate(msm, proof_c, proof_a, -vk.gamma_g2, -vk.delta_g2, proof_b);
     gate_count += gc;
 
     let alpha_beta = ark_bn254::Bn254::final_exponentiation(ark_bn254::Bn254::multi_miller_loop([vk.alpha_g1.into_group()], [-vk.beta_g2])).unwrap().0.inverse().unwrap();
@@ -71,7 +71,7 @@ mod tests {
     use ark_ff::{PrimeField, UniformRand};
     use ark_relations::lc;
     use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
-    use crate::circuits::bn254::utils::wires_set_from_fr;
+    use crate::circuits::bn254::utils::{wires_set_from_fr, wires_set_from_g2a};
     use super::*;
 
     #[derive(Copy)]
