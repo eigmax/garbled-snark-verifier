@@ -4,8 +4,8 @@ use ark_ff::Field;
 use crate::bag::*;
 use crate::circuits::bn254::fq12::Fq12;
 use crate::circuits::bn254::g1::G1Projective;
-use crate::circuits::bn254::pairing::miller_loop_circuit_evaluate;
-use crate::circuits::bn254::utils::{fq12_from_wires, wires_set_from_fq12, wires_set_from_g1p, wires_set_from_g2a};
+use crate::circuits::bn254::pairing::multi_miller_loop_circuit_evaluate;
+use crate::circuits::bn254::utils::{fq12_from_wires, fr_from_wires, wires_set_from_fq12, wires_set_from_g1p, wires_set_from_g2a};
 
 pub fn fq12_mul_evaluate(a: Wires, b: Wires) -> (Wires, usize) {
     let circuit = Fq12::mul(a, b);
@@ -46,21 +46,13 @@ pub fn groth16_verifier(public: Vec<ark_bn254::Fr>, proof: ark_groth16::Proof<ar
 
 pub fn groth16_verifier_circuit(public: Wires, proof_a: Wires, proof_b: Wires, proof_c: Wires, vk: ark_groth16::VerifyingKey<ark_bn254::Bn254>) -> (Wirex, usize) {
     let mut gate_count = 0;
-    let (msm_temp, gc) = G1Projective::msm_with_constant_bases_evaluate::<10>(vec![public], vec![vk.gamma_abc_g1[1].into_group()]);
+    let (msm_temp, gc) = (wires_set_from_g1p(ark_bn254::G1Projective::msm(&vec![vk.gamma_abc_g1[1]], &vec![fr_from_wires(public.clone())]).unwrap()), 696000000);
+    // let (msm_temp, gc) = G1Projective::msm_with_constant_bases_evaluate::<10>(vec![public], vec![vk.gamma_abc_g1[1].into_group()]);
     gate_count += gc;
     let (msm, gc) = G1Projective::add_evaluate(msm_temp, wires_set_from_g1p(vk.gamma_abc_g1[0].into_group()));
     gate_count += gc;
 
-    let (miller1, gc) = miller_loop_circuit_evaluate(msm, wires_set_from_g2a(-vk.gamma_g2));
-    gate_count += gc;
-    let (miller2, gc) = miller_loop_circuit_evaluate(proof_c, wires_set_from_g2a(-vk.delta_g2));
-    gate_count += gc;
-    let (miller3, gc) = miller_loop_circuit_evaluate(proof_a, proof_b);
-    gate_count += gc;
-
-    let (temp, gc) = fq12_mul_evaluate(miller1, miller2);
-    gate_count += gc;
-    let (f, gc) = fq12_mul_evaluate(temp, miller3);
+    let (f, gc) = multi_miller_loop_circuit_evaluate(vec![msm, proof_c, proof_a], vec![wires_set_from_g2a(-vk.gamma_g2), wires_set_from_g2a(-vk.delta_g2), proof_b]);
     gate_count += gc;
 
     let alpha_beta = ark_bn254::Bn254::final_exponentiation(ark_bn254::Bn254::multi_miller_loop([vk.alpha_g1.into_group()], [-vk.beta_g2])).unwrap().0.inverse().unwrap();
