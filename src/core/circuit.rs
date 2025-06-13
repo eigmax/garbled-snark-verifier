@@ -38,13 +38,13 @@ impl Circuit {
 
     // this makes tests run longer, comment out if you want to use it
     pub fn print_gate_type_counts(&self) {
-        for gate_type in ["and", "nand", "or", "nsor", "nimp", "xor", "xnor", "not"] {
-            println!(
-                "{:?}\t: {:?}",
-                gate_type,
-                self.1.iter().filter(|gate| gate.name == gate_type).count()
-            );
-        }
+        // for gate_type in ["and", "nand", "or", "nsor", "nimp", "xor", "xnor", "not"] {
+        //     println!(
+        //         "{:?}\t: {:?}",
+        //         gate_type,
+        //         self.1.iter().filter(|gate| gate.name == gate_type).count()
+        //     );
+        // }
         println!("total gate count: {:?}", self.gate_count());
     }
 }
