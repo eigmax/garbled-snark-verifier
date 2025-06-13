@@ -426,7 +426,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fq_inverse() {
+    fn test_fq2_inverse() {
         let a = random_fq2();
         let circuit = Fq2::inverse(wires_set_from_fq2(a.clone()));
         circuit.print_gate_type_counts();
@@ -434,7 +434,7 @@ mod tests {
             gate.evaluate();
         }
         let c = fq2_from_wires(circuit.0);
-        assert_eq!(c * a, ark_bn254::Fq2::ONE);
+        assert_eq!(c.inverse().unwrap(), a);
     }
 
     #[test]

@@ -165,7 +165,7 @@ mod tests {
             gate.evaluate();
         }
         let c = fq_from_wires(circuit.0);
-        assert_eq!(c * a, ark_bn254::Fq::ONE);
+        assert_eq!(c.inverse().unwrap(), a);
     }
 
     #[test]
