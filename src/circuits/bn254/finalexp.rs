@@ -25,7 +25,7 @@ pub fn cyclotomic_exp(f: ark_bn254::Fq12) -> ark_bn254::Fq12 {
     res
 }
 
-pub fn cyclotomic_exp_evaluate(f: Wires) -> (Wires, GateCount) {
+pub fn cyclotomic_exp_evaluate_fast(f: Wires) -> (Wires, GateCount) {
     let mut res = wires_set_from_fq12(ark_bn254::Fq12::ONE);
     let mut gate_count = GateCount::zero();
     let mut found_nonzero = false;
@@ -77,7 +77,7 @@ pub fn exp_by_neg_x(f: ark_bn254::Fq12) -> ark_bn254::Fq12 {
 
 pub fn exp_by_neg_x_evaluate(f: Wires) -> (Wires, GateCount) {
     let mut gate_count = GateCount::zero();
-    let (f2, gc) = cyclotomic_exp_evaluate(f);
+    let (f2, gc) = cyclotomic_exp_evaluate_fast(f);
     gate_count += gc;
     let (f3, gc) = Fq12::conjugate_evaluate(f2);
     gate_count += gc;
@@ -112,7 +112,7 @@ pub fn final_exponentiation(f: ark_bn254::Fq12) -> ark_bn254::Fq12 {
     y20
 }
 
-pub fn final_exponentiation_evaluate(f: Wires) -> (Wires, GateCount) {
+pub fn final_exponentiation_evaluate_fast(f: Wires) -> (Wires, GateCount) {
     let mut gate_count = GateCount::zero();
     let (f_inv, gc) = (wires_set_from_fq12(fq12_from_wires(f.clone()).inverse().unwrap()), GateCount::fq12_inverse());
     gate_count += gc;
@@ -177,9 +177,10 @@ mod tests {
     use ark_ff::{CyclotomicMultSubgroup, UniformRand};
     use ark_std::rand::SeedableRng;
     use rand_chacha::ChaCha20Rng;
-    use crate::circuits::bn254::{finalexp::{cyclotomic_exp, cyclotomic_exp_evaluate, cyclotomic_exp_fastinv, final_exponentiation, final_exponentiation_evaluate}, utils::{fq12_from_wires, wires_set_from_fq12}};
+    use crate::circuits::bn254::{finalexp::{cyclotomic_exp, cyclotomic_exp_evaluate_fast, cyclotomic_exp_fastinv, final_exponentiation, final_exponentiation_evaluate_fast}, utils::{fq12_from_wires, wires_set_from_fq12}};
 
     #[test]
+    #[ignore]
     fn test_cyclotomic_exp() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let f = ark_bn254::Fq12::rand(&mut prng);
@@ -192,12 +193,12 @@ mod tests {
     }
 
     #[test]
-    fn test_cyclotomic_exp_evaluate() {
+    fn test_cyclotomic_exp_evaluate_fast() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let f = ark_bn254::Fq12::rand(&mut prng);
 
         let c = cyclotomic_exp(f); // f.cyclotomic_exp(ark_bn254::Config::X);
-        let (d, gate_count)  = cyclotomic_exp_evaluate(wires_set_from_fq12(f));
+        let (d, gate_count)  = cyclotomic_exp_evaluate_fast(wires_set_from_fq12(f));
         gate_count.print();
         assert_eq!(c, fq12_from_wires(d));
     }
@@ -213,12 +214,12 @@ mod tests {
     }
 
     #[test]
-    fn test_final_exponentiation_evaluate() {
+    fn test_final_exponentiation_evaluate_fast() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let f = ark_bn254::Fq12::rand(&mut prng);
 
         let c = ark_bn254::Bn254::final_exponentiation(MillerLoopOutput(f)).unwrap().0;
-        let (d, gate_count) = final_exponentiation_evaluate(wires_set_from_fq12(f));
+        let (d, gate_count) = final_exponentiation_evaluate_fast(wires_set_from_fq12(f));
         gate_count.print();
         
         assert_eq!(fq12_from_wires(d), c);

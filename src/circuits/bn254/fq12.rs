@@ -531,6 +531,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_fq12_inverse() {
         let a = random_fq12();
         let circuit = Fq12::inverse(wires_set_from_fq12(a.clone()));

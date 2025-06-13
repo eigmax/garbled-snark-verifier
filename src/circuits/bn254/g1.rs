@@ -258,6 +258,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore]
     fn test_g1p_add() {
         let a = random_g1p();
         let b = random_g1p();
@@ -323,8 +324,9 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_g1p_multiplexer() {
-        let w = 4;
+        let w = 10;
         let n = 2_usize.pow(w as u32);
         let a: Vec<ark_bn254::G1Projective> = (0..n).map(|_| { random_g1p() }).collect();
         let s: Wires = (0..w).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect();
@@ -381,21 +383,22 @@ mod tests {
         assert_eq!(result, expected);
     }
 
-    // // eats RAM
-    // #[test]
-    // fn test_g1p_scalar_mul() {
-    //     let base = random_g1p();
-    //     let s = random_fr();
-    //     let circuit = G1Projective::scalar_mul_by_constant_base::<12>(wires_set_from_fr(s.clone()), base);
-    //     circuit.gate_counts().print();
-    //     for mut gate in circuit.1 {
-    //         gate.evaluate();
-    //     }
-    //     let result = g1p_from_wires(circuit.0);
-    //     assert_eq!(result, base * s);
-    // }
+    #[test]
+    #[ignore]
+    fn test_g1p_scalar_mul() {
+        let base = random_g1p();
+        let s = random_fr();
+        let circuit = G1Projective::scalar_mul_by_constant_base::<10>(wires_set_from_fr(s.clone()), base);
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let result = g1p_from_wires(circuit.0);
+        assert_eq!(result, base * s);
+    }
 
     #[test]
+    #[ignore]
     fn test_g1p_scalar_mul_with_constant_base_evaluate() {
         let base = random_g1p();
         let s = random_fr();

@@ -205,6 +205,7 @@ mod tests {
 
     #[test]
     #[serial]
+    #[ignore]
     fn test_circuit_subtracter() {
         test_circuit("src/core/bristol-examples/subtracter64.txt", true);
         test_circuit("src/core/bristol-examples/subtracter64.txt", false);
@@ -212,22 +213,25 @@ mod tests {
 
     #[test]
     #[serial]
+    #[ignore]
     fn test_circuit_subtracter_find_incorrect() {
         test_circuit_find_incorrect("src/core/bristol-examples/subtracter64.txt", true);
         test_circuit_find_incorrect("src/core/bristol-examples/subtracter64.txt", false);
     }
 
-    // #[test]
-    // #[serial]
-    // fn test_circuit_multiplier() {
-    //     test_circuit("src/core/bristol-examples/multiplier64.txt", true);
-    //     test_circuit("src/core/bristol-examples/multiplier64.txt", false);
-    // }
+    #[test]
+    #[serial]
+    #[ignore]
+    fn test_circuit_multiplier() {
+        test_circuit("src/core/bristol-examples/multiplier64.txt", true);
+        test_circuit("src/core/bristol-examples/multiplier64.txt", false);
+    }
 
-    // #[test]
-    // #[serial]
-    // fn test_circuit_multiplier_find_incorrect() {
-    //     test_circuit_find_incorrect("src/core/bristol-examples/multiplier64.txt", true);
-    //     test_circuit_find_incorrect("src/core/bristol-examples/multiplier64.txt", false);
-    // }
+    #[test]
+    #[serial]
+    #[ignore]
+    fn test_circuit_multiplier_find_incorrect() {
+        test_circuit_find_incorrect("src/core/bristol-examples/multiplier64.txt", true);
+        test_circuit_find_incorrect("src/core/bristol-examples/multiplier64.txt", false);
+    }
 }

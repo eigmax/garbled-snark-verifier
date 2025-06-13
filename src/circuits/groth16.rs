@@ -1,12 +1,12 @@
-use ark_ec::pairing::{MillerLoopOutput, Pairing};
+use ark_ec::pairing::Pairing;
 use ark_ec::{AffineRepr, VariableBaseMSM};
 use ark_ff::Field;
 use crate::bag::*;
-use crate::circuits::bn254::finalexp::final_exponentiation_evaluate;
+use crate::circuits::bn254::finalexp::final_exponentiation_evaluate_fast;
 use crate::circuits::bn254::fq12::Fq12;
 use crate::circuits::bn254::g1::G1Projective;
-use crate::circuits::bn254::pairing::multi_miller_loop_groth16_evaluate;
-use crate::circuits::bn254::utils::{fq12_from_wires, fr_from_wires, wires_set_from_fq12, wires_set_from_g1p};
+use crate::circuits::bn254::pairing::multi_miller_loop_groth16_evaluate_fast;
+use crate::circuits::bn254::utils::{fr_from_wires, wires_set_from_g1p};
 
 pub fn groth16_verifier(public: Vec<ark_bn254::Fr>, proof: ark_groth16::Proof<ark_bn254::Bn254>, vk: ark_groth16::VerifyingKey<ark_bn254::Bn254>) -> bool {
     let scalars = [
@@ -29,11 +29,11 @@ pub fn groth16_verifier_evaluate(public: Wires, proof_a: Wires, proof_b: Wires, 
     let (msm, gc) = G1Projective::add_evaluate(msm_temp, wires_set_from_g1p(vk.gamma_abc_g1[0].into_group()));
     gate_count += gc;
 
-    let (f, gc) = multi_miller_loop_groth16_evaluate(msm, proof_c, proof_a, -vk.gamma_g2, -vk.delta_g2, proof_b);
+    let (f, gc) = multi_miller_loop_groth16_evaluate_fast(msm, proof_c, proof_a, -vk.gamma_g2, -vk.delta_g2, proof_b);
     gate_count += gc;
 
     let alpha_beta = ark_bn254::Bn254::final_exponentiation(ark_bn254::Bn254::multi_miller_loop([vk.alpha_g1.into_group()], [-vk.beta_g2])).unwrap().0.inverse().unwrap();
-    let (f, gc) = final_exponentiation_evaluate(f); // wires_set_from_fq12(ark_bn254::Bn254::final_exponentiation(MillerLoopOutput(fq12_from_wires(f))).unwrap().0);
+    let (f, gc) = final_exponentiation_evaluate_fast(f); // wires_set_from_fq12(ark_bn254::Bn254::final_exponentiation(MillerLoopOutput(fq12_from_wires(f))).unwrap().0);
     gate_count += gc;
 
     let (result, gc) = Fq12::equal_constant_evaluate(f, alpha_beta);

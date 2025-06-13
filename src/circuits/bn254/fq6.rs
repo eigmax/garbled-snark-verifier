@@ -682,7 +682,6 @@ mod tests {
     }
 
     #[test]
-    #[serial]
     fn test_fq6_mul_by_01() {
         let a = random_fq6();
         let c0 = random_fq2();
@@ -712,6 +711,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_fq6_inverse() {
         let a = random_fq6();
         let circuit = Fq6::inverse(wires_set_from_fq6(a.clone()));

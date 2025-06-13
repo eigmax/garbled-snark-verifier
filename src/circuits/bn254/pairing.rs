@@ -287,7 +287,7 @@ pub fn ell_coeffs(q: ark_bn254::G2Affine) -> Vec<(ark_bn254::Fq2, ark_bn254::Fq2
     ellc
 }
 
-pub fn ell_coeffs_evaluate(q: Wires) -> (Vec<(Wires, Wires, Wires)>, GateCount) {
+pub fn ell_coeffs_evaluate_fast(q: Wires) -> (Vec<(Wires, Wires, Wires)>, GateCount) {
     let mut gate_count = GateCount::zero();
     let mut ellc = Vec::new();
     let mut r = Vec::new();
@@ -458,9 +458,9 @@ pub fn miller_loop(p: ark_bn254::G1Projective, q: ark_bn254::G2Affine) -> ark_bn
     f
 }
 
-pub fn miller_loop_evaluate(p: Wires, q: Wires) -> (Wires, GateCount) {
+pub fn miller_loop_evaluate_fast(p: Wires, q: Wires) -> (Wires, GateCount) {
     let mut gate_count = GateCount::zero();
-    let (qell, gc) = ell_coeffs_evaluate(q);
+    let (qell, gc) = ell_coeffs_evaluate_fast(q);
     gate_count += gc;
     let mut q_ell = qell.iter();
 
@@ -547,11 +547,11 @@ pub fn multi_miller_loop(ps: Vec<ark_bn254::G1Projective>, qs: Vec<ark_bn254::G2
     f
 }
 
-pub fn multi_miller_loop_evaluate(ps: Vec<Wires>, qs: Vec<Wires>) -> (Wires, GateCount) {
+pub fn multi_miller_loop_evaluate_fast_fast(ps: Vec<Wires>, qs: Vec<Wires>) -> (Wires, GateCount) {
     let mut gate_count = GateCount::zero();
     let mut qells = Vec::new();
     for q in qs {
-        let (qell, gc) = ell_coeffs_evaluate(q);
+        let (qell, gc) = ell_coeffs_evaluate_fast(q);
         gate_count += gc;
         qells.push(qell);
     }
@@ -607,11 +607,11 @@ pub fn multi_miller_loop_evaluate(ps: Vec<Wires>, qs: Vec<Wires>) -> (Wires, Gat
     (f, gate_count)
 }
 
-pub fn multi_miller_loop_groth16_evaluate(p1: Wires, p2: Wires, p3: Wires, q1: ark_bn254::G2Affine, q2: ark_bn254::G2Affine, q3: Wires) -> (Wires, GateCount) {
+pub fn multi_miller_loop_groth16_evaluate_fast(p1: Wires, p2: Wires, p3: Wires, q1: ark_bn254::G2Affine, q2: ark_bn254::G2Affine, q3: Wires) -> (Wires, GateCount) {
     let mut gate_count = GateCount::zero();
     let q1ell = ell_coeffs(q1);
     let q2ell = ell_coeffs(q2);
-    let (q3ell, gc) = ell_coeffs_evaluate(q3);
+    let (q3ell, gc) = ell_coeffs_evaluate_fast(q3);
     gate_count += gc;
     let mut q1_ell = q1ell.iter();
     let mut q2_ell = q2ell.iter();
@@ -700,10 +700,12 @@ mod tests {
     use ark_std::rand::SeedableRng;
     use ark_ec::pairing::Pairing;
     use rand_chacha::ChaCha20Rng;
+    use serial_test::serial;
     use crate::circuits::bn254::utils::{fq12_from_wires, fq2_from_wires, wires_set_from_fq12, wires_set_from_fq2, wires_set_from_g1p, wires_set_from_g2a, wires_set_from_g2p};
     use super::*;
 
     #[test]
+    #[serial]
     fn test_double_in_place() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let mut r = ark_bn254::G2Projective::rand(&mut prng);
@@ -729,6 +731,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_add_in_place() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let mut r = ark_bn254::G2Projective::rand(&mut prng);
@@ -755,6 +758,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_mul_by_char() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let q = ark_bn254::G2Affine::rand(&mut prng);
@@ -772,12 +776,12 @@ mod tests {
     }
 
     #[test]
-    fn test_ell_coeffs_evaluate() {
+    fn test_ell_coeffs_evaluate_fast() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let q = ark_bn254::G2Affine::rand(&mut prng);
 
         let expected_coeffs = ell_coeffs(q);
-        let (coeffs, gate_count) = ell_coeffs_evaluate(wires_set_from_g2a(q));
+        let (coeffs, gate_count) = ell_coeffs_evaluate_fast(wires_set_from_g2a(q));
         gate_count.print();
         
         for (a, b) in zip(coeffs, expected_coeffs) {
@@ -788,6 +792,7 @@ mod tests {
     }
     
     #[test]
+    #[serial]
     fn test_ell() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let mut f = ark_bn254::Fq12::rand(&mut prng);
@@ -805,6 +810,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_ell_by_constant() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let mut f = ark_bn254::Fq12::rand(&mut prng);
@@ -833,13 +839,13 @@ mod tests {
     }
 
     #[test]
-    fn test_miller_loop_evaluate() {
+    fn test_miller_loop_evaluate_fast() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let p = ark_bn254::G1Projective::rand(&mut prng);
         let q = ark_bn254::G2Affine::rand(&mut prng);
 
         let expected_f = miller_loop(p, q);
-        let (f, gate_count) = miller_loop_evaluate(wires_set_from_g1p(p), wires_set_from_g2a(q));
+        let (f, gate_count) = miller_loop_evaluate_fast(wires_set_from_g1p(p), wires_set_from_g2a(q));
         gate_count.print();
         
         assert_eq!(fq12_from_wires(f), expected_f);
@@ -858,21 +864,21 @@ mod tests {
     }
 
     #[test]
-    fn test_multi_miller_loop_evaluate() {
+    fn test_multi_miller_loop_evaluate_fast_fast() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let n = 3;
         let ps = (0..n).map(|_| { ark_bn254::G1Projective::rand(&mut prng) }).collect::<Vec<_>>();
         let qs = (0..n).map(|_| { ark_bn254::G2Affine::rand(&mut prng) }).collect::<Vec<_>>();
 
         let expected_f = multi_miller_loop(ps.clone(), qs.clone());
-        let (f, gate_count) = multi_miller_loop_evaluate(ps.iter().map(|p| { wires_set_from_g1p(*p) }).collect(), qs.iter().map(|q| { wires_set_from_g2a(*q) }).collect());
+        let (f, gate_count) = multi_miller_loop_evaluate_fast_fast(ps.iter().map(|p| { wires_set_from_g1p(*p) }).collect(), qs.iter().map(|q| { wires_set_from_g2a(*q) }).collect());
         gate_count.print();
         
         assert_eq!(fq12_from_wires(f), expected_f);
     }
 
     #[test]
-    fn test_multi_miller_loop_groth16_evaluate() {
+    fn test_multi_miller_loop_groth16_evaluate_fast() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let p1 = ark_bn254::G1Projective::rand(&mut prng);
         let p2 = ark_bn254::G1Projective::rand(&mut prng);
@@ -882,7 +888,7 @@ mod tests {
         let q3 = ark_bn254::G2Affine::rand(&mut prng);
 
         let expected_f = multi_miller_loop(vec![p1, p2, p3], vec![q1, q2, q3]);
-        let (f, gate_count) = multi_miller_loop_groth16_evaluate(wires_set_from_g1p(p1), wires_set_from_g1p(p2), wires_set_from_g1p(p3), q1, q2, wires_set_from_g2a(q3));
+        let (f, gate_count) = multi_miller_loop_groth16_evaluate_fast(wires_set_from_g1p(p1), wires_set_from_g1p(p2), wires_set_from_g1p(p3), q1, q2, wires_set_from_g2a(q3));
         gate_count.print();
         
         assert_eq!(fq12_from_wires(f), expected_f);
