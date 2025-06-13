@@ -1,14 +1,15 @@
-use ark_ff::UniformRand;
-use ark_std::rand::SeedableRng;
-use num_bigint::BigUint;
-use rand::{rng, Rng};
-use rand_chacha::ChaCha20Rng;
+use super::g2::G2Projective;
+use crate::bag::*;
 use crate::circuits::bn254::fp254impl::Fp254Impl;
 use crate::circuits::bn254::fr::Fr;
 use crate::circuits::bn254::g1::G1Projective;
 use crate::circuits::bn254::{fq::Fq, fq2::Fq2, fq6::Fq6, fq12::Fq12};
-use crate::bag::*;
-use super::g2::G2Projective;
+use ark_ff::UniformRand;
+use ark_std::rand::SeedableRng;
+use num_bigint::{BigUint, BigInt, ToBigInt};
+use num_traits::{Zero, One};
+use rand::{Rng, rng};
+use rand_chacha::ChaCha20Rng;
 
 pub fn random_fq() -> ark_bn254::Fq {
     let u = BigUint::from_bytes_le(&rng().random::<[u8; 32]>()) % Fq::modulus_as_biguint();
@@ -36,25 +37,30 @@ pub fn fq_from_bits(bits: Vec<bool>) -> ark_bn254::Fq {
     let one = BigUint::from(1_u8);
     let mut u = zero.clone();
     for bit in bits.iter().rev() {
-        u = u.clone() + u.clone() + if *bit {one.clone()} else {zero.clone()};
+        u = u.clone() + u.clone() + if *bit { one.clone() } else { zero.clone() };
     }
     ark_bn254::Fq::from(u)
 }
 
 pub fn wires_for_fq() -> Wires {
-    (0..Fq::N_BITS).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect()
+    (0..Fq::N_BITS)
+        .map(|_| Rc::new(RefCell::new(Wire::new())))
+        .collect()
 }
 
 pub fn wires_set_from_fq(u: ark_bn254::Fq) -> Wires {
-    bits_from_fq(u)[0..Fq::N_BITS].iter().map(|bit| {
-        let wire = Rc::new(RefCell::new(Wire::new()));
-        wire.borrow_mut().set(*bit);
-        wire
-    }).collect()
+    bits_from_fq(u)[0..Fq::N_BITS]
+        .iter()
+        .map(|bit| {
+            let wire = Rc::new(RefCell::new(Wire::new()));
+            wire.borrow_mut().set(*bit);
+            wire
+        })
+        .collect()
 }
 
 pub fn fq_from_wires(wires: Wires) -> ark_bn254::Fq {
-    fq_from_bits(wires.iter().map(|wire| {wire.borrow().get_value()}).collect())
+    fq_from_bits(wires.iter().map(|wire| wire.borrow().get_value()).collect())
 }
 
 pub fn random_fq2() -> ark_bn254::Fq2 {
@@ -70,24 +76,29 @@ pub fn bits_from_fq2(u: ark_bn254::Fq2) -> Vec<bool> {
 
 pub fn fq2_from_bits(bits: Vec<bool>) -> ark_bn254::Fq2 {
     let bits1 = &bits[0..Fq::N_BITS].to_vec();
-    let bits2 = &bits[Fq::N_BITS..Fq::N_BITS*2].to_vec();
+    let bits2 = &bits[Fq::N_BITS..Fq::N_BITS * 2].to_vec();
     ark_bn254::Fq2::new(fq_from_bits(bits1.clone()), fq_from_bits(bits2.clone()))
 }
 
 pub fn wires_for_fq2() -> Wires {
-    (0..Fq2::N_BITS).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect()
+    (0..Fq2::N_BITS)
+        .map(|_| Rc::new(RefCell::new(Wire::new())))
+        .collect()
 }
 
 pub fn wires_set_from_fq2(u: ark_bn254::Fq2) -> Wires {
-    bits_from_fq2(u)[0..Fq2::N_BITS].iter().map(|bit| {
-        let wire = Rc::new(RefCell::new(Wire::new()));
-        wire.borrow_mut().set(*bit);
-        wire
-    }).collect()
+    bits_from_fq2(u)[0..Fq2::N_BITS]
+        .iter()
+        .map(|bit| {
+            let wire = Rc::new(RefCell::new(Wire::new()));
+            wire.borrow_mut().set(*bit);
+            wire
+        })
+        .collect()
 }
 
 pub fn fq2_from_wires(wires: Wires) -> ark_bn254::Fq2 {
-    fq2_from_bits(wires.iter().map(|wire| {wire.borrow().get_value()}).collect())
+    fq2_from_bits(wires.iter().map(|wire| wire.borrow().get_value()).collect())
 }
 
 pub fn random_fq6() -> ark_bn254::Fq6 {
@@ -104,25 +115,34 @@ pub fn bits_from_fq6(u: ark_bn254::Fq6) -> Vec<bool> {
 
 pub fn fq6_from_bits(bits: Vec<bool>) -> ark_bn254::Fq6 {
     let bits1 = &bits[0..Fq2::N_BITS].to_vec();
-    let bits2 = &bits[Fq2::N_BITS..Fq2::N_BITS*2].to_vec();
-    let bits3 = &bits[Fq2::N_BITS*2..Fq2::N_BITS*3].to_vec();
-    ark_bn254::Fq6::new(fq2_from_bits(bits1.clone()), fq2_from_bits(bits2.clone()), fq2_from_bits(bits3.clone()))
+    let bits2 = &bits[Fq2::N_BITS..Fq2::N_BITS * 2].to_vec();
+    let bits3 = &bits[Fq2::N_BITS * 2..Fq2::N_BITS * 3].to_vec();
+    ark_bn254::Fq6::new(
+        fq2_from_bits(bits1.clone()),
+        fq2_from_bits(bits2.clone()),
+        fq2_from_bits(bits3.clone()),
+    )
 }
 
 pub fn wires_for_fq6() -> Wires {
-    (0..Fq6::N_BITS).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect()
+    (0..Fq6::N_BITS)
+        .map(|_| Rc::new(RefCell::new(Wire::new())))
+        .collect()
 }
 
 pub fn wires_set_from_fq6(u: ark_bn254::Fq6) -> Wires {
-    bits_from_fq6(u)[0..Fq6::N_BITS].iter().map(|bit| {
-        let wire = Rc::new(RefCell::new(Wire::new()));
-        wire.borrow_mut().set(*bit);
-        wire
-    }).collect()
+    bits_from_fq6(u)[0..Fq6::N_BITS]
+        .iter()
+        .map(|bit| {
+            let wire = Rc::new(RefCell::new(Wire::new()));
+            wire.borrow_mut().set(*bit);
+            wire
+        })
+        .collect()
 }
 
 pub fn fq6_from_wires(wires: Wires) -> ark_bn254::Fq6 {
-    fq6_from_bits(wires.iter().map(|wire| {wire.borrow().get_value()}).collect())
+    fq6_from_bits(wires.iter().map(|wire| wire.borrow().get_value()).collect())
 }
 
 pub fn random_fq12() -> ark_bn254::Fq12 {
@@ -138,24 +158,29 @@ pub fn bits_from_fq12(u: ark_bn254::Fq12) -> Vec<bool> {
 
 pub fn fq12_from_bits(bits: Vec<bool>) -> ark_bn254::Fq12 {
     let bits1 = &bits[0..Fq6::N_BITS].to_vec();
-    let bits2 = &bits[Fq6::N_BITS..Fq6::N_BITS*2].to_vec();
+    let bits2 = &bits[Fq6::N_BITS..Fq6::N_BITS * 2].to_vec();
     ark_bn254::Fq12::new(fq6_from_bits(bits1.clone()), fq6_from_bits(bits2.clone()))
 }
 
 pub fn wires_for_fq12() -> Wires {
-    (0..Fq12::N_BITS).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect()
+    (0..Fq12::N_BITS)
+        .map(|_| Rc::new(RefCell::new(Wire::new())))
+        .collect()
 }
 
 pub fn wires_set_from_fq12(u: ark_bn254::Fq12) -> Wires {
-    bits_from_fq12(u)[0..Fq12::N_BITS].iter().map(|bit| {
-        let wire = Rc::new(RefCell::new(Wire::new()));
-        wire.borrow_mut().set(*bit);
-        wire
-    }).collect()
+    bits_from_fq12(u)[0..Fq12::N_BITS]
+        .iter()
+        .map(|bit| {
+            let wire = Rc::new(RefCell::new(Wire::new()));
+            wire.borrow_mut().set(*bit);
+            wire
+        })
+        .collect()
 }
 
 pub fn fq12_from_wires(wires: Wires) -> ark_bn254::Fq12 {
-    fq12_from_bits(wires.iter().map(|wire| {wire.borrow().get_value()}).collect())
+    fq12_from_bits(wires.iter().map(|wire| wire.borrow().get_value()).collect())
 }
 
 pub fn random_g1p() -> ark_bn254::G1Projective {
@@ -173,25 +198,34 @@ pub fn bits_from_g1p(u: ark_bn254::G1Projective) -> Vec<bool> {
 
 pub fn g1p_from_bits(bits: Vec<bool>) -> ark_bn254::G1Projective {
     let bits1 = &bits[0..Fq::N_BITS].to_vec();
-    let bits2 = &bits[Fq::N_BITS..Fq::N_BITS*2].to_vec();
-    let bits3 = &bits[Fq::N_BITS*2..Fq::N_BITS*3].to_vec();
-    ark_bn254::G1Projective::new(fq_from_bits(bits1.clone()), fq_from_bits(bits2.clone()), fq_from_bits(bits3.clone()))
+    let bits2 = &bits[Fq::N_BITS..Fq::N_BITS * 2].to_vec();
+    let bits3 = &bits[Fq::N_BITS * 2..Fq::N_BITS * 3].to_vec();
+    ark_bn254::G1Projective::new(
+        fq_from_bits(bits1.clone()),
+        fq_from_bits(bits2.clone()),
+        fq_from_bits(bits3.clone()),
+    )
 }
 
 pub fn wires_for_g1p() -> Wires {
-    (0..G1Projective::N_BITS).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect()
+    (0..G1Projective::N_BITS)
+        .map(|_| Rc::new(RefCell::new(Wire::new())))
+        .collect()
 }
 
 pub fn wires_set_from_g1p(u: ark_bn254::G1Projective) -> Wires {
-    bits_from_g1p(u)[0..G1Projective::N_BITS].iter().map(|bit| {
-        let wire = Rc::new(RefCell::new(Wire::new()));
-        wire.borrow_mut().set(*bit);
-        wire
-    }).collect()
+    bits_from_g1p(u)[0..G1Projective::N_BITS]
+        .iter()
+        .map(|bit| {
+            let wire = Rc::new(RefCell::new(Wire::new()));
+            wire.borrow_mut().set(*bit);
+            wire
+        })
+        .collect()
 }
 
 pub fn g1p_from_wires(wires: Wires) -> ark_bn254::G1Projective {
-    g1p_from_bits(wires.iter().map(|wire| {wire.borrow().get_value()}).collect())
+    g1p_from_bits(wires.iter().map(|wire| wire.borrow().get_value()).collect())
 }
 
 pub fn random_fr() -> ark_bn254::Fr {
@@ -220,25 +254,30 @@ pub fn fr_from_bits(bits: Vec<bool>) -> ark_bn254::Fr {
     let one = BigUint::from(1_u8);
     let mut u = zero.clone();
     for bit in bits.iter().rev() {
-        u = u.clone() + u.clone() + if *bit {one.clone()} else {zero.clone()};
+        u = u.clone() + u.clone() + if *bit { one.clone() } else { zero.clone() };
     }
     ark_bn254::Fr::from(u)
 }
 
 pub fn wires_for_fr() -> Wires {
-    (0..Fr::N_BITS).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect()
+    (0..Fr::N_BITS)
+        .map(|_| Rc::new(RefCell::new(Wire::new())))
+        .collect()
 }
 
 pub fn wires_set_from_fr(u: ark_bn254::Fr) -> Wires {
-    bits_from_fr(u)[0..Fr::N_BITS].iter().map(|bit| {
-        let wire = Rc::new(RefCell::new(Wire::new()));
-        wire.borrow_mut().set(*bit);
-        wire
-    }).collect()
+    bits_from_fr(u)[0..Fr::N_BITS]
+        .iter()
+        .map(|bit| {
+            let wire = Rc::new(RefCell::new(Wire::new()));
+            wire.borrow_mut().set(*bit);
+            wire
+        })
+        .collect()
 }
 
 pub fn fr_from_wires(wires: Wires) -> ark_bn254::Fr {
-    fr_from_bits(wires.iter().map(|wire| {wire.borrow().get_value()}).collect())
+    fr_from_bits(wires.iter().map(|wire| wire.borrow().get_value()).collect())
 }
 
 pub fn random_g2p() -> ark_bn254::G2Projective {
@@ -256,25 +295,34 @@ pub fn bits_from_g2p(u: ark_bn254::G2Projective) -> Vec<bool> {
 
 pub fn g2p_from_bits(bits: Vec<bool>) -> ark_bn254::G2Projective {
     let bits1 = &bits[0..Fq2::N_BITS].to_vec();
-    let bits2 = &bits[Fq2::N_BITS..Fq2::N_BITS*2].to_vec();
-    let bits3 = &bits[Fq2::N_BITS*2..Fq2::N_BITS*3].to_vec();
-    ark_bn254::G2Projective::new(fq2_from_bits(bits1.clone()), fq2_from_bits(bits2.clone()), fq2_from_bits(bits3.clone()))
+    let bits2 = &bits[Fq2::N_BITS..Fq2::N_BITS * 2].to_vec();
+    let bits3 = &bits[Fq2::N_BITS * 2..Fq2::N_BITS * 3].to_vec();
+    ark_bn254::G2Projective::new(
+        fq2_from_bits(bits1.clone()),
+        fq2_from_bits(bits2.clone()),
+        fq2_from_bits(bits3.clone()),
+    )
 }
 
 pub fn wires_for_g2p() -> Wires {
-    (0..G2Projective::N_BITS).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect()
+    (0..G2Projective::N_BITS)
+        .map(|_| Rc::new(RefCell::new(Wire::new())))
+        .collect()
 }
 
 pub fn wires_set_from_g2p(u: ark_bn254::G2Projective) -> Wires {
-    bits_from_g2p(u)[0..G2Projective::N_BITS].iter().map(|bit| {
-        let wire = Rc::new(RefCell::new(Wire::new()));
-        wire.borrow_mut().set(*bit);
-        wire
-    }).collect()
+    bits_from_g2p(u)[0..G2Projective::N_BITS]
+        .iter()
+        .map(|bit| {
+            let wire = Rc::new(RefCell::new(Wire::new()));
+            wire.borrow_mut().set(*bit);
+            wire
+        })
+        .collect()
 }
 
 pub fn g2p_from_wires(wires: Wires) -> ark_bn254::G2Projective {
-    g2p_from_bits(wires.iter().map(|wire| {wire.borrow().get_value()}).collect())
+    g2p_from_bits(wires.iter().map(|wire| wire.borrow().get_value()).collect())
 }
 
 pub fn bits_from_g2a(u: ark_bn254::G2Affine) -> Vec<bool> {
@@ -286,25 +334,87 @@ pub fn bits_from_g2a(u: ark_bn254::G2Affine) -> Vec<bool> {
 
 pub fn g2a_from_bits(bits: Vec<bool>) -> ark_bn254::G2Affine {
     let bits1 = &bits[0..Fq2::N_BITS].to_vec();
-    let bits2 = &bits[Fq2::N_BITS..Fq2::N_BITS*2].to_vec();
+    let bits2 = &bits[Fq2::N_BITS..Fq2::N_BITS * 2].to_vec();
     ark_bn254::G2Affine::new(fq2_from_bits(bits1.clone()), fq2_from_bits(bits2.clone()))
 }
 
 pub fn wires_set_from_g2a(u: ark_bn254::G2Affine) -> Wires {
-    bits_from_g2a(u)[0..2*Fq2::N_BITS].iter().map(|bit| {
-        let wire = Rc::new(RefCell::new(Wire::new()));
-        wire.borrow_mut().set(*bit);
-        wire
-    }).collect()
+    bits_from_g2a(u)[0..2 * Fq2::N_BITS]
+        .iter()
+        .map(|bit| {
+            let wire = Rc::new(RefCell::new(Wire::new()));
+            wire.borrow_mut().set(*bit);
+            wire
+        })
+        .collect()
 }
 
 pub fn g2a_from_wires(wires: Wires) -> ark_bn254::G2Affine {
-    g2a_from_bits(wires.iter().map(|wire| {wire.borrow().get_value()}).collect())
+    g2a_from_bits(wires.iter().map(|wire| wire.borrow().get_value()).collect())
 }
+
+fn extended_gcd(a: &BigInt, b: &BigInt) -> (BigInt, BigInt, BigInt) {
+    let (mut x, mut y) = (BigInt::one(), BigInt::zero());
+    let (mut x1, mut y1) = (BigInt::zero(), BigInt::one());
+    let (mut a1, mut b1) = (a.clone(), b.clone());
+
+    while !b1.is_zero() {
+        let q = &a1 / &b1;
+
+        (x, x1) = (x1.clone(), &x - &q * &x1);
+        (y, y1) = (y1.clone(), &y - &q * &y1);
+        (a1, b1) = (b1.clone(), &a1 - &q * &b1);
+    }
+
+    (a1, x, y)
+}
+
+pub fn calculate_montgomery_constants(modulus: BigUint, r: BigUint) -> (BigUint, BigUint) {
+    let modulus_signed = modulus.to_bigint().unwrap();
+    let r_signed = r.to_bigint().unwrap();
+
+    let (gcd, r_inv_signed, n_inv_signed) = extended_gcd(&r_signed, &modulus_signed);
+    assert_eq!(gcd, BigInt::one(), "r and modulus must be coprime");
+
+    let r_inv = ((r_inv_signed % &modulus_signed + &modulus_signed) % &modulus_signed)
+        .to_biguint()
+        .unwrap();
+
+    let n_prime = ((n_inv_signed % &r_signed + &r_signed) % &r_signed)
+        .to_biguint()
+        .unwrap();
+
+    (r_inv, n_prime)
+}
+
 
 #[cfg(test)]
 pub mod tests {
     use super::*;
+
+    fn test_montgomery_constants<T: Fp254Impl>() {
+        let modulus = T::modulus_as_biguint();
+        let r = T::montgomery_r_as_biguint();
+        let (r_inv, n_p) = calculate_montgomery_constants(modulus.clone(), r.clone());
+
+        assert_eq!((r.clone() * r_inv.clone()) % modulus.clone(), BigUint::one());
+        assert_eq!((n_p.clone() * modulus.clone()) % r.clone(), BigUint::one());
+        
+        println!("modulus inverse: {}\nr_inverse: {}", n_p, r_inv);
+        
+        assert_eq!(T::montgomery_m_inverse_as_biguint(), n_p);
+        assert_eq!(T::montgomery_r_inverse_as_biguint(), r_inv);
+    }    
+
+    #[test]
+    fn test_montgomery_constants_fq() {
+        test_montgomery_constants::<Fq>();
+    }
+
+    #[test]
+    fn test_montgomery_constants_fr() {
+        test_montgomery_constants::<Fr>();
+    }
 
     #[test]
     fn test_random_fq() {

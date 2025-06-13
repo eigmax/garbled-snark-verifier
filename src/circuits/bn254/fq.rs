@@ -5,7 +5,12 @@ use crate::circuits::bn254::fp254impl::Fp254Impl;
 pub struct Fq;
 
 impl Fp254Impl for Fq {
-    const MODULUS: &'static str = "21888242871839275222246405745257275088696311157297823662689037894645226208583";
+    const MODULUS: &'static str =
+        "21888242871839275222246405745257275088696311157297823662689037894645226208583";
+    const MONTGOMERY_M_INVERSE: &'static str = 
+        "4759646384140481320982610724935209484903937857060724391493050186936685796471";
+    const MONTGOMERY_R_INVERSE: &'static str = 
+        "18289368484950178621272022062020525048389989670507786348948026221581485535495";
     const N_BITS: usize = 254;
 
     fn half_modulus() -> BigUint {
@@ -22,9 +27,9 @@ impl Fp254Impl for Fq {
 
 #[cfg(test)]
 mod tests {
-    use ark_ff::Field;
-    use crate::circuits::bn254::utils::{fq_from_wires, random_fq, wires_set_from_fq};
     use super::*;
+    use crate::circuits::{bigint::utils::biguint_from_wires, bn254::utils::{fq_from_wires, random_fq, wires_set_from_fq}};
+    use ark_ff::Field;
 
     #[test]
     fn test_fq_add() {
@@ -98,7 +103,7 @@ mod tests {
             gate.evaluate();
         }
         let c = fq_from_wires(circuit.0);
-        assert_eq!(c + c , a);
+        assert_eq!(c + c, a);
     }
 
     #[test]
@@ -160,7 +165,7 @@ mod tests {
             gate.evaluate();
         }
         let c = fq_from_wires(circuit.0);
-        assert_eq!(c*a , ark_bn254::Fq::ONE);
+        assert_eq!(c * a, ark_bn254::Fq::ONE);
     }
 
     #[test]
@@ -173,6 +178,28 @@ mod tests {
         }
 
         let c = fq_from_wires(circuit.0);
-        assert_eq!(c + c + c + c + c + c , a);
+        assert_eq!(c + c + c + c + c + c, a);
+    }
+
+    #[test]
+    fn test_montgomery_mul() {
+        for _ in 0..5 {
+            let r = ark_bn254::Fq::from(Fq::montgomery_r_as_biguint());
+            let a = random_fq();
+            let b = random_fq();
+            //let a = ark_bn254::Fq::from(BigUint::from(2_u8));
+            //let b = ark_bn254::Fq::from(BigUint::from(3_u8));
+            let mont_a = a * r;
+            let mont_b = b * r;
+            //println!("a = {}\nb = {}\nmont_a = {}\nmont_b = {}", a, b, mont_a, mont_b);
+            let circuit = Fq::montgomery_mul(wires_set_from_fq(mont_a.clone()), wires_set_from_fq(mont_b.clone()));
+            circuit.print_gate_type_counts();
+            for mut gate in circuit.1 {
+                gate.evaluate();
+            }
+            let c = biguint_from_wires(circuit.0);
+            //println!("c = {}", c);
+            assert_eq!(ark_bn254::Fq::from(c), a * b * r);
+        }
     }
 }
