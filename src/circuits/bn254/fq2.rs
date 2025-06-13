@@ -232,6 +232,27 @@ impl Fq2 {
         circuit
     }
 
+    pub fn inverse(a: Wires) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+
+        let a_c0_square = circuit.extend(Fq::square(a_c0.clone()));
+        let a_c1_square = circuit.extend(Fq::square(a_c1.clone()));
+        let norm = circuit.extend(Fq::add(a_c0_square, a_c1_square));
+        let inverse_norm = circuit.extend(Fq::inverse(norm));
+
+        let res_c0 = circuit.extend(Fq::mul(a_c0, inverse_norm.clone()));
+        let neg_a_c1 = circuit.extend(Fq::neg(a_c1));
+        let res_c1 = circuit.extend(Fq::mul(neg_a_c1, inverse_norm.clone()));
+
+        circuit.add_wires(res_c0);
+        circuit.add_wires(res_c1);
+        circuit
+    }
+
     pub fn frobenius(a: Wires, i: usize) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
@@ -402,6 +423,18 @@ mod tests {
         }
         let c = fq2_from_wires(circuit.0);
         assert_eq!(c, a * a);
+    }
+
+    #[test]
+    fn test_fq_inverse() {
+        let a = random_fq2();
+        let circuit = Fq2::inverse(wires_set_from_fq2(a.clone()));
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = fq2_from_wires(circuit.0);
+        assert_eq!(c * a, ark_bn254::Fq2::ONE);
     }
 
     #[test]
