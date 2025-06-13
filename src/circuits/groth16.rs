@@ -2,6 +2,7 @@ use ark_ec::pairing::{MillerLoopOutput, Pairing};
 use ark_ec::{AffineRepr, VariableBaseMSM};
 use ark_ff::Field;
 use crate::bag::*;
+use crate::circuits::bn254::finalexp::final_exponentiation_evaluate;
 use crate::circuits::bn254::fq12::Fq12;
 use crate::circuits::bn254::g1::G1Projective;
 use crate::circuits::bn254::pairing::multi_miller_loop_groth16_evaluate;
@@ -32,7 +33,8 @@ pub fn groth16_verifier_evaluate(public: Wires, proof_a: Wires, proof_b: Wires, 
     gate_count += gc;
 
     let alpha_beta = ark_bn254::Bn254::final_exponentiation(ark_bn254::Bn254::multi_miller_loop([vk.alpha_g1.into_group()], [-vk.beta_g2])).unwrap().0.inverse().unwrap();
-    let f = wires_set_from_fq12(ark_bn254::Bn254::final_exponentiation(MillerLoopOutput(fq12_from_wires(f))).unwrap().0);
+    let (f, gc) = final_exponentiation_evaluate(f); // wires_set_from_fq12(ark_bn254::Bn254::final_exponentiation(MillerLoopOutput(fq12_from_wires(f))).unwrap().0);
+    gate_count += gc;
 
     let (result, gc) = Fq12::equal_constant_evaluate(f, alpha_beta);
     gate_count += gc;

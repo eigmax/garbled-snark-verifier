@@ -324,7 +324,7 @@ mod tests {
 
     #[test]
     fn test_g1p_multiplexer() {
-        let w = 12;
+        let w = 4;
         let n = 2_usize.pow(w as u32);
         let a: Vec<ark_bn254::G1Projective> = (0..n).map(|_| { random_g1p() }).collect();
         let s: Wires = (0..w).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect();

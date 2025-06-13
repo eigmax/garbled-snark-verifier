@@ -339,12 +339,12 @@ impl GateCount {
 impl GateCount {
     pub fn msm() -> Self {
         Self {
-            and: 0,
-            or: 0,
-            xor: 0,
-            nand: 0,
-            not: 0,
-            xnor: 0,
+            and: 128808400,
+            or: 76938400,
+            xor: 102685425,
+            nand: 213127590,
+            not: 123282230,
+            xnor: 51296850,
             nimp: 0,
             nsor: 0,
         }
@@ -358,6 +358,32 @@ impl GateCount {
             nand: 17650968,
             not: 11861704,
             xnor: 5861174,
+            nimp: 0,
+            nsor: 0,
+        }
+    }
+
+    pub fn fq12_mul() -> Self {
+        Self {
+            and: 14793358,
+            or: 8875324,
+            xor: 11846173,
+            nand: 17836896,
+            not: 11985288,
+            xnor: 5912170,
+            nimp: 0,
+            nsor: 0,
+        }
+    }
+
+    pub fn fq12_inverse() -> Self {
+        Self {
+            and: 41464294,
+            or: 22347965,
+            xor: 32020868,
+            nand: 43551348,
+            not: 28864311,
+            xnor: 13277144,
             nimp: 0,
             nsor: 0,
         }
