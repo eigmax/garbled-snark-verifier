@@ -1,5 +1,4 @@
 use std::iter::zip;
-
 use crate::{bag::*, circuits::bn254::{fp254impl::Fp254Impl, fq::Fq, fq2::Fq2, fq6::Fq6}};
 use ark_ff::{Field, Fp12Config};
 
@@ -43,6 +42,18 @@ impl Fq12 {
         circuit.add_wire(wire);
 
         circuit
+    }
+
+    pub fn equal_constant_evaluate(a: Wires, b: ark_bn254::Fq12) -> (Wires, usize) {
+        let circuit = Fq12::equal_constant(a, b);
+
+        let n = circuit.1.len();
+
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+
+        (circuit.0, n)
     }
 
     pub fn add(a: Wires, b: Wires) -> Circuit {
@@ -129,6 +140,18 @@ impl Fq12 {
         circuit.add_wires(wires_7);
         circuit.add_wires(wires_9);
         circuit
+    }
+
+    pub fn mul_evaluate(a: Wires, b: Wires) -> (Wires, usize) {
+        let circuit = Fq12::mul(a, b);
+
+        let n = circuit.1.len();
+
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+
+        (circuit.0, n)
     }
 
     pub fn mul_by_constant(a: Wires, b: ark_bn254::Fq12) -> Circuit {
@@ -240,6 +263,18 @@ impl Fq12 {
         circuit
     }
 
+    pub fn square_evaluate(a: Wires) -> (Wires, usize) {
+        let circuit = Fq12::square(a);
+
+        let n = circuit.1.len();
+
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+
+        (circuit.0, n)
+    }
+
     pub fn frobenius(a: Wires, i: usize) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
@@ -254,6 +289,44 @@ impl Fq12 {
         circuit.0.extend(frobenius_a_c0);
         circuit.0.extend(result);
         circuit
+    }
+
+    pub fn frobenius_evaluate(a: Wires, i: usize) -> (Wires, usize) {
+        let circuit = Fq12::frobenius(a, i);
+
+        let n = circuit.1.len();
+
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+
+        (circuit.0, n)
+    }
+
+    pub fn conjugate(a: Wires) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq6::N_BITS].to_vec();
+        let a_c1 = a[Fq6::N_BITS..2*Fq6::N_BITS].to_vec();
+
+        let new_a_c1 = circuit.extend(Fq6::neg(a_c1));
+
+        circuit.0.extend(a_c0);
+        circuit.0.extend(new_a_c1);
+        circuit
+    }
+
+    pub fn conjugate_evaluate(a: Wires) -> (Wires, usize) {
+        let circuit = Fq12::conjugate(a);
+
+        let n = circuit.1.len();
+
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+
+        (circuit.0, n)
     }
 }
 
@@ -431,5 +504,36 @@ mod tests {
         }
         let c = fq12_from_wires(circuit.0);
         assert_eq!(c, a.frobenius_map(1));
+
+        let circuit = Fq12::frobenius(wires_set_from_fq12(a.clone()), 2);
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = fq12_from_wires(circuit.0);
+        assert_eq!(c, a.frobenius_map(2));
+
+        let circuit = Fq12::frobenius(wires_set_from_fq12(a.clone()), 3);
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = fq12_from_wires(circuit.0);
+        assert_eq!(c, a.frobenius_map(3));
+    }
+
+    #[test]
+    fn test_fq12_conjugate() {
+        let a = random_fq12();
+
+        let circuit = Fq12::conjugate(wires_set_from_fq12(a.clone()));
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let mut b = a.clone();
+        b.conjugate_in_place();
+        let c = fq12_from_wires(circuit.0);
+        assert_eq!(c, b);
     }
 }

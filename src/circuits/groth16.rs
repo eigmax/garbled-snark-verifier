@@ -7,30 +7,6 @@ use crate::circuits::bn254::g1::G1Projective;
 use crate::circuits::bn254::pairing::multi_miller_loop_groth16_circuit_evaluate;
 use crate::circuits::bn254::utils::{fq12_from_wires, fr_from_wires, wires_set_from_fq12, wires_set_from_g1p};
 
-pub fn fq12_mul_evaluate(a: Wires, b: Wires) -> (Wires, usize) {
-    let circuit = Fq12::mul(a, b);
-
-    let n = circuit.1.len();
-
-    for mut gate in circuit.1 {
-        gate.evaluate();
-    }
-
-    (circuit.0, n)
-}
-
-pub fn fq12_equal_constant_evaluate(a: Wires, b: ark_bn254::Fq12) -> (Wires, usize) {
-    let circuit = Fq12::equal_constant(a, b);
-
-    let n = circuit.1.len();
-
-    for mut gate in circuit.1 {
-        gate.evaluate();
-    }
-
-    (circuit.0, n)
-}
-
 pub fn groth16_verifier(public: Vec<ark_bn254::Fr>, proof: ark_groth16::Proof<ark_bn254::Bn254>, vk: ark_groth16::VerifyingKey<ark_bn254::Bn254>) -> bool {
     let scalars = [
         vec![ark_bn254::Fr::ONE],
@@ -58,7 +34,7 @@ pub fn groth16_verifier_circuit(public: Wires, proof_a: Wires, proof_b: Wires, p
     let alpha_beta = ark_bn254::Bn254::final_exponentiation(ark_bn254::Bn254::multi_miller_loop([vk.alpha_g1.into_group()], [-vk.beta_g2])).unwrap().0.inverse().unwrap();
     let f = wires_set_from_fq12(ark_bn254::Bn254::final_exponentiation(MillerLoopOutput(fq12_from_wires(f))).unwrap().0);
 
-    let (result, gc) = fq12_equal_constant_evaluate(f, alpha_beta);
+    let (result, gc) = Fq12::equal_constant_evaluate(f, alpha_beta);
     gate_count += gc;
     (result[0].clone(), gate_count)
 }

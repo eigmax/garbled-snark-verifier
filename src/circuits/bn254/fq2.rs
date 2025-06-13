@@ -1,5 +1,4 @@
 use ark_ff::{Field, Fp2Config};
-
 use crate::{bag::*, circuits::bn254::{fp254impl::Fp254Impl, fq::Fq}};
 
 pub struct Fq2;

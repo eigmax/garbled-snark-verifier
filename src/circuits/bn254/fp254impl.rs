@@ -230,6 +230,11 @@ pub trait Fp254Impl {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
 
+        if b == ark_bn254::Fq::ZERO {
+            circuit.add_wires(wires_set_from_fq(ark_bn254::Fq::ZERO));
+            return circuit;
+        }
+
         if b == ark_bn254::Fq::ONE {
             circuit.add_wires(a);
             return circuit;

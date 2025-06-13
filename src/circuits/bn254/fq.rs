@@ -1,5 +1,4 @@
 use num_bigint::BigUint;
-
 use crate::circuits::bn254::fp254impl::Fp254Impl;
 
 pub struct Fq;
@@ -20,6 +19,7 @@ impl Fp254Impl for Fq {
     fn one_third_modulus() -> BigUint {
         BigUint::from(ark_bn254::Fq::from(1) / ark_bn254::Fq::from(3))
     }
+    
     fn two_third_modulus() -> BigUint {
         BigUint::from(ark_bn254::Fq::from(2) / ark_bn254::Fq::from(3))
     }
@@ -28,7 +28,7 @@ impl Fp254Impl for Fq {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::circuits::{bigint::utils::biguint_from_wires, bn254::utils::{fq_from_wires, random_fq, wires_set_from_fq}};
+    use crate::circuits::bn254::utils::{fq_from_wires, random_fq, wires_set_from_fq};
     use ark_ff::Field;
 
     #[test]
@@ -197,9 +197,9 @@ mod tests {
             for mut gate in circuit.1 {
                 gate.evaluate();
             }
-            let c = biguint_from_wires(circuit.0);
+            let c = fq_from_wires(circuit.0);
             //println!("c = {}", c);
-            assert_eq!(ark_bn254::Fq::from(c), a * b * r);
+            assert_eq!(c, a * b * r);
         }
     }
 }

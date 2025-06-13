@@ -405,12 +405,10 @@ impl Fq6 {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use ark_ff::{Field, Fp12Config};
     use serial_test::serial;
-
     use crate::circuits::bn254::utils::{ fq6_from_wires, random_fq2, random_fq6, wires_set_from_fq2, wires_set_from_fq6};
     use super::*;
 

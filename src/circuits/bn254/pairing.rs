@@ -1,7 +1,6 @@
 use std::iter::zip;
-
 use ark_ec::{bn::BnConfig, short_weierstrass::SWCurveConfig};
-use ark_ff::{AdditiveGroup, Field, Fp2Config};
+use ark_ff::{AdditiveGroup, Field};
 use crate::{bag::*, circuits::bn254::{fp254impl::Fp254Impl, fq::Fq, fq12::Fq12, fq2::Fq2, utils::{fq12_from_wires, fq2_from_wires, g1p_from_wires, g2a_from_wires, wires_set_from_fq12, wires_set_from_fq2}}};
 
 pub fn double_in_place(r: &mut ark_bn254::G2Projective) -> (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2) {
@@ -121,12 +120,12 @@ pub fn add_in_place_circuit(r: Wires, q: Wires) -> Circuit {
     let theta = circuit.extend(Fq2::sub(ry.clone(), wires_1.clone()));
 
     let wires_2 = circuit.extend(Fq2::mul(qx.clone(), rz.clone()));
-    let lamda = circuit.extend(Fq2::sub(rx.clone(), wires_2.clone()));
+    let lambda = circuit.extend(Fq2::sub(rx.clone(), wires_2.clone()));
 
     let c = circuit.extend(Fq2::square(theta.clone()));
-    let d = circuit.extend(Fq2::square(lamda.clone()));
+    let d = circuit.extend(Fq2::square(lambda.clone()));
 
-    let e = circuit.extend(Fq2::mul(lamda.clone(), d.clone()));
+    let e = circuit.extend(Fq2::mul(lambda.clone(), d.clone()));
 
     let f = circuit.extend(Fq2::mul(rz.clone(), c.clone()));
 
@@ -140,10 +139,10 @@ pub fn add_in_place_circuit(r: Wires, q: Wires) -> Circuit {
     let neg_theta = circuit.extend(Fq2::neg(theta.clone()));
 
     let wires_5 = circuit.extend(Fq2::mul(theta.clone(),qx.clone()));
-    let wires_6 = circuit.extend(Fq2::mul(lamda.clone(),qy.clone()));
+    let wires_6 = circuit.extend(Fq2::mul(lambda.clone(),qy.clone()));
     let j = circuit.extend(Fq2::sub(wires_5.clone(), wires_6.clone()));
 
-    let mut new_r = circuit.extend(Fq2::mul(lamda.clone(), h.clone()));
+    let mut new_r = circuit.extend(Fq2::mul(lambda.clone(), h.clone()));
     let wires_7 = circuit.extend(Fq2::sub(g.clone(), h.clone()));
     let wires_8 = circuit.extend(Fq2::mul(theta.clone(), wires_7.clone()));
     let wires_9 = circuit.extend(Fq2::mul(e.clone(), ry.clone()));
@@ -152,7 +151,7 @@ pub fn add_in_place_circuit(r: Wires, q: Wires) -> Circuit {
     let new_r_z = circuit.extend(Fq2::mul(rz.clone(), e.clone()));
     new_r.extend(new_r_z);
 
-    circuit.add_wires(lamda);
+    circuit.add_wires(lambda);
     circuit.add_wires(neg_theta);
     circuit.add_wires(j);
     circuit.add_wires(new_r);
@@ -176,28 +175,11 @@ pub fn add_in_place_evaluate(r: Wires, q: Wires) -> ((Wires, Wires, Wires), Wire
 
 }
 
-pub fn frobenius_in_place(a: ark_bn254::Fq2, power: usize) -> ark_bn254::Fq2 {
-    let c0 = a.c0;
-    let mut c1 = a.c1;
-    c1 *= &ark_bn254::Fq2Config::FROBENIUS_COEFF_FP2_C1[power % 2];
-    ark_bn254::Fq2::new(c0, c1)
-}
-
-pub fn frobenius_in_place_circuit(a: Wires, power: usize) -> Circuit {
-    let mut circuit = Circuit::empty();
-    let c0 = a[0..Fq::N_BITS].to_vec();
-    let c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
-    let new_c1 = circuit.extend(Fq::mul_by_constant(c1, ark_bn254::Fq2Config::FROBENIUS_COEFF_FP2_C1[power % 2] ));
-    circuit.add_wires(c0);
-    circuit.add_wires(new_c1);
-    circuit
-}
-
 pub fn mul_by_char(r: ark_bn254::G2Affine) -> ark_bn254::G2Affine {
     let mut s = r;
-    s.x = frobenius_in_place(s.x, 1);
+    s.x = s.x.frobenius_map(1);
     s.x *= &ark_bn254::Config::TWIST_MUL_BY_Q_X;
-    s.y = frobenius_in_place(s.y, 1);
+    s.y = s.y.frobenius_map(1);
     s.y *= &ark_bn254::Config::TWIST_MUL_BY_Q_Y;
     s
 }
@@ -207,9 +189,9 @@ pub fn mul_by_char_circuit(r: Wires) -> Circuit {
     let r_x = r[0..Fq2::N_BITS].to_vec();
     let r_y = r[Fq2::N_BITS..2*Fq2::N_BITS].to_vec();
 
-    let mut s_x = circuit.extend(frobenius_in_place_circuit(r_x, 1));
+    let mut s_x = circuit.extend(Fq2::frobenius(r_x, 1));
     s_x = circuit.extend(Fq2::mul_by_constant(s_x, ark_bn254::Config::TWIST_MUL_BY_Q_X.clone()));
-    let mut s_y = circuit.extend(frobenius_in_place_circuit(r_y, 1));
+    let mut s_y = circuit.extend(Fq2::frobenius(r_y, 1));
     s_y = circuit.extend(Fq2::mul_by_constant(s_y, ark_bn254::Config::TWIST_MUL_BY_Q_Y.clone()));
     circuit.add_wires(s_x);
     circuit.add_wires(s_y);
@@ -404,18 +386,6 @@ pub fn ell_by_constant_circuit_evaluate(f: Wires, coeffs: (ark_bn254::Fq2, ark_b
     (circuit.0, n)
 }
 
-pub fn fq12_square_evaluate(f: Wires) -> (Wires, usize) {
-    let circuit = Fq12::square(f);
-
-    let n = circuit.1.len();
-
-    for mut gate in circuit.1 {
-        gate.evaluate();
-    }
-
-    (circuit.0, n)
-}
-
 pub fn miller_loop(p: ark_bn254::G1Projective, q: ark_bn254::G2Affine) -> ark_bn254::Fq12 {
     let qell = ell_coeffs(q);
     let mut q_ell = qell.iter();
@@ -450,7 +420,7 @@ pub fn miller_loop_circuit_evaluate(p: Wires, q: Wires) -> (Wires, usize) {
 
     for i in (1..ark_bn254::Config::ATE_LOOP_COUNT.len()).rev() {
         if i != ark_bn254::Config::ATE_LOOP_COUNT.len() - 1 {
-            let (new_f, gc) = (wires_set_from_fq12(fq12_from_wires(f).square()), 70631715); // fq12_square_evaluate(f);
+            let (new_f, gc) = (wires_set_from_fq12(fq12_from_wires(f).square()), 70631715); // Fq12::square_evaluate(f);
             f = new_f;
             gate_count += gc;
         }
@@ -551,7 +521,7 @@ pub fn multi_miller_loop_circuit_evaluate(ps: Vec<Wires>, qs: Vec<Wires>) -> (Wi
 
     for i in (1..ark_bn254::Config::ATE_LOOP_COUNT.len()).rev() {
         if i != ark_bn254::Config::ATE_LOOP_COUNT.len() - 1 {
-            let (new_f, gc) = (wires_set_from_fq12(fq12_from_wires(f).square()), 70631715); // fq12_square_evaluate(f);
+            let (new_f, gc) = (wires_set_from_fq12(fq12_from_wires(f).square()), 70631715); // Fq12::square_evaluate(f);
             f = new_f;
             gate_count += gc;
         }
@@ -603,7 +573,7 @@ pub fn multi_miller_loop_groth16_circuit_evaluate(p1: Wires, p2: Wires, p3: Wire
 
     for i in (1..ark_bn254::Config::ATE_LOOP_COUNT.len()).rev() {
         if i != ark_bn254::Config::ATE_LOOP_COUNT.len() - 1 {
-            let (new_f, gc) = (wires_set_from_fq12(fq12_from_wires(f).square()), 70631715); // fq12_square_evaluate(f);
+            let (new_f, gc) = (wires_set_from_fq12(fq12_from_wires(f).square()), 70631715); // Fq12::square_evaluate(f);
             f = new_f;
             gate_count += gc;
         }
