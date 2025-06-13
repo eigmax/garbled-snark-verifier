@@ -132,6 +132,19 @@ mod tests {
     }
 
     #[test]
+    fn test_fq_mul_montgomery() {
+        let a = random_fq();
+        let b = random_fq();
+        let circuit = Fq::mul_montgomery(wires_set_from_fq(Fq::as_montgomery(a)), wires_set_from_fq(Fq::as_montgomery(b)));
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = fq_from_wires(circuit.0);
+        assert_eq!(c, Fq::as_montgomery(a * b));
+    }
+
+    #[test]
     fn test_fq_mul_by_constant() {
         let a = random_fq();
         let b = random_fq();
@@ -179,27 +192,5 @@ mod tests {
 
         let c = fq_from_wires(circuit.0);
         assert_eq!(c + c + c + c + c + c, a);
-    }
-
-    #[test]
-    fn test_montgomery_mul() {
-        for _ in 0..5 {
-            let r = ark_bn254::Fq::from(Fq::montgomery_r_as_biguint());
-            let a = random_fq();
-            let b = random_fq();
-            //let a = ark_bn254::Fq::from(BigUint::from(2_u8));
-            //let b = ark_bn254::Fq::from(BigUint::from(3_u8));
-            let mont_a = a * r;
-            let mont_b = b * r;
-            //println!("a = {}\nb = {}\nmont_a = {}\nmont_b = {}", a, b, mont_a, mont_b);
-            let circuit = Fq::montgomery_mul(wires_set_from_fq(mont_a.clone()), wires_set_from_fq(mont_b.clone()));
-            circuit.print_gate_type_counts();
-            for mut gate in circuit.1 {
-                gate.evaluate();
-            }
-            let c = fq_from_wires(circuit.0);
-            //println!("c = {}", c);
-            assert_eq!(c, a * b * r);
-        }
     }
 }

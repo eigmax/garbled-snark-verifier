@@ -7,6 +7,10 @@ pub struct Fq12;
 impl Fq12 {
     pub const N_BITS: usize = 2 * Fq6::N_BITS;
 
+    pub fn as_montgomery(a: ark_bn254::Fq12) -> ark_bn254::Fq12 {
+        ark_bn254::Fq12::new(Fq6::as_montgomery(a.c0), Fq6::as_montgomery(a.c1))
+    }
+
     pub fn equal_constant(a: Wires, b: ark_bn254::Fq12) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
@@ -136,6 +140,30 @@ impl Fq12 {
         let wires_6 = circuit.extend(Fq6::mul_by_nonresidue(wires_4.clone()));
         let wires_7 = circuit.extend(Fq6::add(wires_6.clone(), wires_3.clone()));
         let wires_8 = circuit.extend(Fq6::mul(wires_1.clone(), wires_2.clone()));
+        let wires_9 = circuit.extend(Fq6::sub(wires_8.clone(), wires_5.clone()));
+        circuit.add_wires(wires_7);
+        circuit.add_wires(wires_9);
+        circuit
+    }
+
+    pub fn mul_montgomery(a: Wires, b: Wires) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        assert_eq!(b.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq6::N_BITS].to_vec();
+        let a_c1 = a[Fq6::N_BITS..2*Fq6::N_BITS].to_vec();
+        let b_c0 = b[0..Fq6::N_BITS].to_vec();
+        let b_c1 = b[Fq6::N_BITS..2*Fq6::N_BITS].to_vec();
+
+        let wires_1 = circuit.extend(Fq6::add(a_c0.clone(), a_c1.clone()));
+        let wires_2 = circuit.extend(Fq6::add(b_c0.clone(), b_c1.clone()));
+        let wires_3 = circuit.extend(Fq6::mul_montgomery(a_c0.clone(), b_c0.clone()));
+        let wires_4 = circuit.extend(Fq6::mul_montgomery(a_c1.clone(), b_c1.clone()));
+        let wires_5 = circuit.extend(Fq6::add(wires_3.clone(), wires_4.clone()));
+        let wires_6 = circuit.extend(Fq6::mul_by_nonresidue(wires_4.clone()));
+        let wires_7 = circuit.extend(Fq6::add(wires_6.clone(), wires_3.clone()));
+        let wires_8 = circuit.extend(Fq6::mul_montgomery(wires_1.clone(), wires_2.clone()));
         let wires_9 = circuit.extend(Fq6::sub(wires_8.clone(), wires_5.clone()));
         circuit.add_wires(wires_7);
         circuit.add_wires(wires_9);
@@ -420,6 +448,20 @@ mod tests {
         }
         let c = fq12_from_wires(circuit.0);
         assert_eq!(c, a * b);
+    }
+
+    #[test]
+    #[serial]
+    fn test_fq12_mul_montgomery() {
+        let a = random_fq12();
+        let b = random_fq12();
+        let circuit = Fq12::mul_montgomery(wires_set_from_fq12(Fq12::as_montgomery(a.clone())), wires_set_from_fq12(Fq12::as_montgomery(b.clone())));
+        circuit.print_gate_type_counts();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = fq12_from_wires(circuit.0);
+        assert_eq!(c, Fq12::as_montgomery(a * b));
     }
 
     #[test]
