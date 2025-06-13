@@ -14,7 +14,7 @@ pub fn convert_between_blake3_and_normal_form() -> Script {
 }
 
 pub fn bit_to_usize(bit: bool) -> usize {
-    if bit {1} else {0}
+    if bit { 1 } else { 0 }
 }
 
 pub const LIMB_LEN: u8 = 29;

@@ -1,5 +1,8 @@
+use crate::{
+    bag::*,
+    circuits::bn254::{fp254impl::Fp254Impl, fq::Fq},
+};
 use ark_ff::{Field, Fp2Config};
-use crate::{bag::*, circuits::bn254::{fp254impl::Fp254Impl, fq::Fq}};
 
 pub struct Fq2;
 
@@ -16,9 +19,9 @@ impl Fq2 {
         let mut circuit = Circuit::empty();
 
         let a_c0 = a[0..Fq::N_BITS].to_vec();
-        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
         let b_c0 = b[0..Fq::N_BITS].to_vec();
-        let b_c1 = b[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let b_c1 = b[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
         let wires_1 = circuit.extend(Fq::add(a_c0, b_c0));
         let wires_2 = circuit.extend(Fq::add(a_c1, b_c1));
         circuit.add_wires(wires_1);
@@ -31,7 +34,7 @@ impl Fq2 {
         let mut circuit = Circuit::empty();
 
         let a_c0 = a[0..Fq::N_BITS].to_vec();
-        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
 
         let wires_1 = circuit.extend(Fq::add_constant(a_c0, b.c0));
         let wires_2 = circuit.extend(Fq::add_constant(a_c1, b.c1));
@@ -45,7 +48,7 @@ impl Fq2 {
         let mut circuit = Circuit::empty();
 
         let a_c0 = a[0..Fq::N_BITS].to_vec();
-        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
 
         let wires_1 = circuit.extend(Fq::neg(a_c0));
         let wires_2 = circuit.extend(Fq::neg(a_c1));
@@ -60,9 +63,9 @@ impl Fq2 {
         let mut circuit = Circuit::empty();
 
         let a_c0 = a[0..Fq::N_BITS].to_vec();
-        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
         let b_c0 = b[0..Fq::N_BITS].to_vec();
-        let b_c1 = b[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let b_c1 = b[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
         let wires_1 = circuit.extend(Fq::sub(a_c0, b_c0));
         let wires_2 = circuit.extend(Fq::sub(a_c1, b_c1));
         circuit.add_wires(wires_1);
@@ -75,7 +78,7 @@ impl Fq2 {
         let mut circuit = Circuit::empty();
 
         let a_c0 = a[0..Fq::N_BITS].to_vec();
-        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
 
         let wires_1 = circuit.extend(Fq::double(a_c0));
         let wires_2 = circuit.extend(Fq::double(a_c1));
@@ -89,7 +92,7 @@ impl Fq2 {
         let mut circuit = Circuit::empty();
 
         let a_c0 = a[0..Fq::N_BITS].to_vec();
-        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
 
         let wires_1 = circuit.extend(Fq::half(a_c0));
         let wires_2 = circuit.extend(Fq::half(a_c1));
@@ -114,9 +117,9 @@ impl Fq2 {
         let mut circuit = Circuit::empty();
 
         let a_c0 = a[0..Fq::N_BITS].to_vec();
-        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
         let b_c0 = b[0..Fq::N_BITS].to_vec();
-        let b_c1 = b[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let b_c1 = b[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
 
         let wires_1 = circuit.extend(Fq::add(a_c0.clone(), a_c1.clone()));
         let wires_2 = circuit.extend(Fq::add(b_c0.clone(), b_c1.clone()));
@@ -137,9 +140,9 @@ impl Fq2 {
         let mut circuit = Circuit::empty();
 
         let a_c0 = a[0..Fq::N_BITS].to_vec();
-        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
         let b_c0 = b[0..Fq::N_BITS].to_vec();
-        let b_c1 = b[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let b_c1 = b[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
 
         let wires_1 = circuit.extend(Fq::add(a_c0.clone(), a_c1.clone()));
         let wires_2 = circuit.extend(Fq::add(b_c0.clone(), b_c1.clone()));
@@ -164,7 +167,7 @@ impl Fq2 {
         }
 
         let a_c0 = a[0..Fq::N_BITS].to_vec();
-        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
 
         let wires_1 = circuit.extend(Fq::add(a_c0.clone(), a_c1.clone()));
         let wires_2 = circuit.extend(Fq::mul_by_constant(a_c0.clone(), b.c0.clone()));
@@ -184,7 +187,7 @@ impl Fq2 {
         let mut circuit = Circuit::empty();
 
         let a_c0 = a[0..Fq::N_BITS].to_vec();
-        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
 
         let wires_1 = circuit.extend(Fq::mul(a_c0.clone(), b.clone()));
         let wires_2 = circuit.extend(Fq::mul(a_c1.clone(), b.clone()));
@@ -198,7 +201,7 @@ impl Fq2 {
         let mut circuit = Circuit::empty();
 
         let a_c0 = a[0..Fq::N_BITS].to_vec();
-        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
 
         let wires_1 = circuit.extend(Fq::mul_by_constant(a_c0.clone(), b.clone()));
         let wires_2 = circuit.extend(Fq::mul_by_constant(a_c1.clone(), b.clone()));
@@ -223,7 +226,7 @@ impl Fq2 {
         let mut circuit = Circuit::empty();
 
         let a_c0 = a[0..Fq::N_BITS].to_vec();
-        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
 
         let a0_3 = circuit.extend(Fq::triple(a_c0.clone()));
         let a0_9 = circuit.extend(Fq::triple(a0_3.clone()));
@@ -244,7 +247,7 @@ impl Fq2 {
         let mut circuit = Circuit::empty();
 
         let a_c0 = a[0..Fq::N_BITS].to_vec();
-        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
 
         let wires_1 = circuit.extend(Fq::add(a_c0.clone(), a_c1.clone()));
         let wires_2 = circuit.extend(Fq::square(a_c0.clone()));
@@ -263,7 +266,7 @@ impl Fq2 {
         let mut circuit = Circuit::empty();
 
         let a_c0 = a[0..Fq::N_BITS].to_vec();
-        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
 
         let a_c0_square = circuit.extend(Fq::square(a_c0.clone()));
         let a_c1_square = circuit.extend(Fq::square(a_c1.clone()));
@@ -284,9 +287,13 @@ impl Fq2 {
         let mut circuit = Circuit::empty();
 
         let a_c0 = a[0..Fq::N_BITS].to_vec();
-        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
 
-        let result = circuit.extend(Fq::mul_by_constant(a_c1, ark_bn254::Fq2Config::FROBENIUS_COEFF_FP2_C1[i % ark_bn254::Fq2Config::FROBENIUS_COEFF_FP2_C1.len()]));
+        let result = circuit.extend(Fq::mul_by_constant(
+            a_c1,
+            ark_bn254::Fq2Config::FROBENIUS_COEFF_FP2_C1
+                [i % ark_bn254::Fq2Config::FROBENIUS_COEFF_FP2_C1.len()],
+        ));
         circuit.0.extend(a_c0);
         circuit.0.extend(result);
         circuit
@@ -297,7 +304,7 @@ impl Fq2 {
         let mut circuit = Circuit::empty();
 
         let a_c0 = a[0..Fq::N_BITS].to_vec();
-        let a_c1 = a[Fq::N_BITS..2*Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
 
         let wires_1 = circuit.extend(Fq::div6(a_c0));
         let wires_2 = circuit.extend(Fq::div6(a_c1));
@@ -309,9 +316,11 @@ impl Fq2 {
 
 #[cfg(test)]
 mod tests {
-    use ark_ff::{AdditiveGroup, Fp6Config};
-    use crate::circuits::bn254::utils::{fq2_from_wires, random_fq, random_fq2, wires_set_from_fq, wires_set_from_fq2};
     use super::*;
+    use crate::circuits::bn254::utils::{
+        fq2_from_wires, random_fq, random_fq2, wires_set_from_fq, wires_set_from_fq2,
+    };
+    use ark_ff::{AdditiveGroup, Fp6Config};
 
     #[test]
     fn test_fq2_add() {
@@ -392,7 +401,10 @@ mod tests {
     fn test_fq2_mul_montgomery() {
         let a = random_fq2();
         let b = random_fq2();
-        let circuit = Fq2::mul_montgomery(wires_set_from_fq2(Fq2::as_montgomery(a.clone())), wires_set_from_fq2(Fq2::as_montgomery(b.clone())));
+        let circuit = Fq2::mul_montgomery(
+            wires_set_from_fq2(Fq2::as_montgomery(a.clone())),
+            wires_set_from_fq2(Fq2::as_montgomery(b.clone())),
+        );
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -506,6 +518,6 @@ mod tests {
             gate.evaluate();
         }
         let c = fq2_from_wires(circuit.0);
-        assert_eq!(c + c + c + c + c + c , a);
+        assert_eq!(c + c + c + c + c + c, a);
     }
 }

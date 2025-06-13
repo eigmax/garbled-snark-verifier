@@ -1,14 +1,14 @@
-use num_bigint::BigUint;
 use crate::circuits::bn254::fp254impl::Fp254Impl;
+use num_bigint::BigUint;
 
 pub struct Fq;
 
 impl Fp254Impl for Fq {
     const MODULUS: &'static str =
         "21888242871839275222246405745257275088696311157297823662689037894645226208583";
-    const MONTGOMERY_M_INVERSE: &'static str = 
+    const MONTGOMERY_M_INVERSE: &'static str =
         "4759646384140481320982610724935209484903937857060724391493050186936685796471";
-    const MONTGOMERY_R_INVERSE: &'static str = 
+    const MONTGOMERY_R_INVERSE: &'static str =
         "18289368484950178621272022062020525048389989670507786348948026221581485535495";
     const N_BITS: usize = 254;
 
@@ -19,7 +19,7 @@ impl Fp254Impl for Fq {
     fn one_third_modulus() -> BigUint {
         BigUint::from(ark_bn254::Fq::from(1) / ark_bn254::Fq::from(3))
     }
-    
+
     fn two_third_modulus() -> BigUint {
         BigUint::from(ark_bn254::Fq::from(2) / ark_bn254::Fq::from(3))
     }
@@ -135,7 +135,10 @@ mod tests {
     fn test_fq_mul_montgomery() {
         let a = random_fq();
         let b = random_fq();
-        let circuit = Fq::mul_montgomery(wires_set_from_fq(Fq::as_montgomery(a)), wires_set_from_fq(Fq::as_montgomery(b)));
+        let circuit = Fq::mul_montgomery(
+            wires_set_from_fq(Fq::as_montgomery(a)),
+            wires_set_from_fq(Fq::as_montgomery(b)),
+        );
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();

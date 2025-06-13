@@ -113,7 +113,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         bits.resize(Self::N_BITS, false);
         for i in 0..Self::N_BITS {
             bit_wires.push(Rc::new(RefCell::new(Wire::new())));
-            bit_wires[i].borrow_mut().set(bits[i]); 
+            bit_wires[i].borrow_mut().set(bits[i]);
         }
         return Self::self_or_zero(bit_wires, s);
     }

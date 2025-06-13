@@ -19,7 +19,10 @@ pub fn full_adder(a: Wirex, b: Wirex, c: Wirex) -> Circuit {
     let gate_3 = Gate::xor(d.clone(), c.clone(), result.clone());
     let gate_4 = Gate::and(d.clone(), c.clone(), f.clone());
     let gate_5 = Gate::or(e.clone(), f.clone(), carry.clone());
-    Circuit::new(vec![result, carry], vec![gate_1, gate_2, gate_3, gate_4, gate_5])
+    Circuit::new(
+        vec![result, carry],
+        vec![gate_1, gate_2, gate_3, gate_4, gate_5],
+    )
 }
 
 pub fn half_subtracter(a: Wirex, b: Wirex) -> Circuit {
@@ -29,7 +32,10 @@ pub fn half_subtracter(a: Wirex, b: Wirex) -> Circuit {
     let gate_not_a = Gate::not(a.clone(), not_a.clone());
     let gate_result = Gate::xor(a.clone(), b.clone(), result.clone());
     let gate_borrow = Gate::and(not_a.clone(), b.clone(), borrow.clone());
-    Circuit::new(vec![result, borrow], vec![gate_not_a, gate_result, gate_borrow])
+    Circuit::new(
+        vec![result, borrow],
+        vec![gate_not_a, gate_result, gate_borrow],
+    )
 }
 
 pub fn full_subtracter(a: Wirex, b: Wirex, c: Wirex) -> Circuit {
@@ -49,7 +55,10 @@ pub fn full_subtracter(a: Wirex, b: Wirex, c: Wirex) -> Circuit {
     let gate_6 = Gate::and(b.clone(), g.clone(), h.clone());
     let gate_7 = Gate::or(f.clone(), h.clone(), borrow.clone());
 
-    Circuit::new(vec![result, borrow], vec![gate_1, gate_2, gate_3, gate_4, gate_5, gate_6, gate_7])
+    Circuit::new(
+        vec![result, borrow],
+        vec![gate_1, gate_2, gate_3, gate_4, gate_5, gate_6, gate_7],
+    )
 }
 
 pub fn selector(a: Wirex, b: Wirex, c: Wirex) -> Circuit {
@@ -77,11 +86,11 @@ pub fn multiplexer(a: Wires, s: Wires, w: usize) -> Circuit {
 
     let a1 = a[0..(n / 2)].to_vec();
     let a2 = a[(n / 2)..n].to_vec();
-    let su = s[0..w-1].to_vec();
-    let sv = s[w-1].clone();
+    let su = s[0..w - 1].to_vec();
+    let sv = s[w - 1].clone();
 
-    let b1 = circuit.extend(multiplexer(a1, su.clone(), w-1))[0].clone();
-    let b2 = circuit.extend(multiplexer(a2, su.clone(), w-1))[0].clone();
+    let b1 = circuit.extend(multiplexer(a1, su.clone(), w - 1))[0].clone();
+    let b2 = circuit.extend(multiplexer(a2, su.clone(), w - 1))[0].clone();
 
     let b = circuit.extend(selector(b2, b1, sv))[0].clone();
 
@@ -92,9 +101,14 @@ pub fn multiplexer(a: Wires, s: Wires, w: usize) -> Circuit {
 
 #[cfg(test)]
 mod tests {
-    use rand::{rng, Rng};
+    use rand::{Rng, rng};
 
-    use crate::{bag::*, circuits::basic::{full_adder, full_subtracter, half_adder, half_subtracter, multiplexer, selector}};
+    use crate::{
+        bag::*,
+        circuits::basic::{
+            full_adder, full_subtracter, half_adder, half_subtracter, multiplexer, selector,
+        },
+    };
 
     #[test]
     fn test_half_adder() {
@@ -265,8 +279,8 @@ mod tests {
     fn test_multiplexer() {
         let w = 5;
         let n = 2_usize.pow(w as u32);
-        let a: Wires = (0..n).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect();
-        let s: Wires = (0..w).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect();
+        let a: Wires = (0..n).map(|_| Rc::new(RefCell::new(Wire::new()))).collect();
+        let s: Wires = (0..w).map(|_| Rc::new(RefCell::new(Wire::new()))).collect();
 
         for wire in a.clone() {
             wire.borrow_mut().set(rng().random());
@@ -275,7 +289,7 @@ mod tests {
         let mut u = 0;
         for wire in s.iter().rev() {
             let x = rng().random();
-            u = u + u + if x {1} else {0};
+            u = u + u + if x { 1 } else { 0 };
             wire.borrow_mut().set(x);
         }
 

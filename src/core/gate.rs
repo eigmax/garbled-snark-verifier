@@ -1,7 +1,7 @@
-use std::ops::{Add, AddAssign};
 use crate::bag::*;
 use crate::core::utils::{LIMB_LEN, N_LIMBS, bit_to_usize, convert_between_blake3_and_normal_form};
 use bitvm::{bigint::U256, hash::blake3::blake3_compute_script_with_limb, treepp::*};
+use std::ops::{Add, AddAssign};
 
 #[derive(Clone)]
 pub struct Gate {
@@ -301,14 +301,14 @@ impl AddAssign for GateCount {
 impl GateCount {
     pub fn zero() -> Self {
         Self {
-            and: 0, 
-            or: 0, 
-            xor: 0, 
-            nand: 0, 
-            not: 0, 
-            xnor: 0, 
-            nimp: 0, 
-            nsor: 0
+            and: 0,
+            or: 0,
+            xor: 0,
+            nand: 0,
+            not: 0,
+            xnor: 0,
+            nimp: 0,
+            nsor: 0,
         }
     }
 

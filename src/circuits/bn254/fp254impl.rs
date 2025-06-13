@@ -2,7 +2,7 @@ use crate::{
     bag::*,
     circuits::{
         basic::selector,
-        bigint::{utils::bits_from_biguint, U254},
+        bigint::{U254, utils::bits_from_biguint},
         bn254::utils::{bits_from_fq, wires_for_fq, wires_set_from_fq},
     },
 };
@@ -12,7 +12,8 @@ use std::str::FromStr;
 
 pub trait Fp254Impl {
     const MODULUS: &'static str;
-    const MONTGOMERY_R: &'static str = "28948022309329048855892746252171976963317496166410141009864396001978282409984"; //2^254
+    const MONTGOMERY_R: &'static str =
+        "28948022309329048855892746252171976963317496166410141009864396001978282409984"; //2^254
     const MONTGOMERY_M_INVERSE: &'static str; // MODULUS^-1 modulo R
     const MONTGOMERY_R_INVERSE: &'static str; // R^-1 modulo MODULUS
     const N_BITS: usize;
@@ -515,17 +516,25 @@ pub trait Fp254Impl {
     fn mul_montgomery(a: Wires, b: Wires) -> Circuit {
         let mut circuit = Circuit::empty();
         let x = circuit.extend(U254::mul(a, b));
-        
+
         let x_low = x[..254].to_vec();
         let x_high = x[254..].to_vec();
-        let q = circuit.extend(U254::mul_by_constant(x_low, Self::montgomery_m_inverse_as_biguint()))[0..254].to_vec();
-        let sub = circuit.extend(U254::mul_by_constant(q, Self::modulus_as_biguint()))[254..508].to_vec(); //might be needing one more bit, since plus modulo might be too much for 254 bits
+        let q = circuit.extend(U254::mul_by_constant(
+            x_low,
+            Self::montgomery_m_inverse_as_biguint(),
+        ))[0..254]
+            .to_vec();
+        let sub =
+            circuit.extend(U254::mul_by_constant(q, Self::modulus_as_biguint()))[254..508].to_vec(); //might be needing one more bit, since plus modulo might be too much for 254 bits
         let bound_check = circuit.extend(U254::greater_than(sub.clone(), x_high.clone()));
-        let subtract_if_too_much = circuit.extend(U254::self_or_zero_constant(Self::modulus_as_biguint(), bound_check[0].clone()));
+        let subtract_if_too_much = circuit.extend(U254::self_or_zero_constant(
+            Self::modulus_as_biguint(),
+            bound_check[0].clone(),
+        ));
         let new_sub = circuit.extend(U254::optimized_sub(sub, subtract_if_too_much, false));
         let result = circuit.extend(U254::optimized_sub(x_high, new_sub, false));
         circuit.add_wires(result);
-        
+
         return circuit;
     }
 }

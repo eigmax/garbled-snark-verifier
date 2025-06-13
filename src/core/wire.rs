@@ -1,5 +1,5 @@
-use crate::core::{s::S};
-use crate::core::utils::{convert_between_blake3_and_normal_form, LIMB_LEN, N_LIMBS};
+use crate::core::s::S;
+use crate::core::utils::{LIMB_LEN, N_LIMBS, convert_between_blake3_and_normal_form};
 use bitvm::{bigint::U256, hash::blake3::blake3_compute_script_with_limb, treepp::*};
 
 #[derive(Clone, Debug)]
@@ -31,8 +31,7 @@ impl Wire {
     pub fn select(&self, selector: bool) -> S {
         if selector {
             self.label1.clone()
-        }
-        else {
+        } else {
             self.label0.clone()
         }
     }
@@ -40,8 +39,7 @@ impl Wire {
     pub fn select_hash(&self, selector: bool) -> S {
         if selector {
             self.hash1.clone()
-        }
-        else {
+        } else {
             self.hash0.clone()
         }
     }

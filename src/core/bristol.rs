@@ -1,5 +1,5 @@
-use std::fs;
 use crate::bag::*;
+use std::fs;
 
 pub fn parser(filename: &str) -> (Circuit, Vec<Wires>, Vec<Wires>) {
     let data = fs::read_to_string(filename).expect("error");
@@ -46,7 +46,16 @@ pub fn parser(filename: &str) -> (Circuit, Vec<Wires>, Vec<Wires>) {
             output_wires.push(words.next().unwrap().parse().unwrap());
         }
         let gate_type = words.next().unwrap().to_lowercase();
-        let gate = Gate::new(wires[input_wires[0]].clone(), if noi == 1 { wires[input_wires[0]].clone() } else { wires[input_wires[1]].clone() }, wires[output_wires[0]].clone(), gate_type);
+        let gate = Gate::new(
+            wires[input_wires[0]].clone(),
+            if noi == 1 {
+                wires[input_wires[0]].clone()
+            } else {
+                wires[input_wires[1]].clone()
+            },
+            wires[output_wires[0]].clone(),
+            gate_type,
+        );
         gates.push(gate);
         i += 1;
     }
@@ -82,8 +91,8 @@ pub fn parser(filename: &str) -> (Circuit, Vec<Wires>, Vec<Wires>) {
 
 #[cfg(test)]
 mod tests {
-    use rand::{rng, Rng};
     use super::*;
+    use rand::{Rng, rng};
 
     #[test]
     fn test_bristol_adder() {
@@ -105,7 +114,7 @@ mod tests {
         }
         let mut c: u64 = 0;
         for bit in result_bits.iter().rev() {
-            c = 2 * c + if *bit {1} else {0};
+            c = 2 * c + if *bit { 1 } else { 0 };
         }
         assert_eq!(c, a.wrapping_add(b));
     }
@@ -130,7 +139,7 @@ mod tests {
         }
         let mut c: u64 = 0;
         for bit in result_bits.iter().rev() {
-            c = 2 * c + if *bit {1} else {0};
+            c = 2 * c + if *bit { 1 } else { 0 };
         }
         assert_eq!(c, a.wrapping_mul(b));
     }
@@ -155,7 +164,7 @@ mod tests {
         }
         let mut c: u64 = 0;
         for bit in result_bits.iter().rev() {
-            c = 2 * c + if *bit {1} else {0};
+            c = 2 * c + if *bit { 1 } else { 0 };
         }
         assert_eq!(c, a.wrapping_sub(b));
     }

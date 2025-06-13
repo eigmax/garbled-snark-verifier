@@ -6,8 +6,8 @@ use crate::circuits::bn254::g1::G1Projective;
 use crate::circuits::bn254::{fq::Fq, fq2::Fq2, fq6::Fq6, fq12::Fq12};
 use ark_ff::UniformRand;
 use ark_std::rand::SeedableRng;
-use num_bigint::{BigUint, BigInt, ToBigInt};
-use num_traits::{Zero, One};
+use num_bigint::{BigInt, BigUint, ToBigInt};
+use num_traits::{One, Zero};
 use rand::{Rng, rng};
 use rand_chacha::ChaCha20Rng;
 
@@ -402,7 +402,6 @@ pub fn calculate_montgomery_constants(modulus: BigUint, r: BigUint) -> (BigUint,
     (r_inv, n_prime)
 }
 
-
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -412,14 +411,17 @@ pub mod tests {
         let r = T::montgomery_r_as_biguint();
         let (r_inv, n_p) = calculate_montgomery_constants(modulus.clone(), r.clone());
 
-        assert_eq!((r.clone() * r_inv.clone()) % modulus.clone(), BigUint::one());
+        assert_eq!(
+            (r.clone() * r_inv.clone()) % modulus.clone(),
+            BigUint::one()
+        );
         assert_eq!((n_p.clone() * modulus.clone()) % r.clone(), BigUint::one());
-        
+
         println!("modulus inverse: {}\nr_inverse: {}", n_p, r_inv);
-        
+
         assert_eq!(T::montgomery_m_inverse_as_biguint(), n_p);
         assert_eq!(T::montgomery_r_inverse_as_biguint(), r_inv);
-    }    
+    }
 
     #[test]
     fn test_montgomery_constants_fq() {

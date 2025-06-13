@@ -58,7 +58,16 @@ impl Circuit {
                 _ => panic!("this gate type is not allowed"),
             }
         }
-        GateCount {and, or, xor, nand, not, xnor, nimp, nsor}
+        GateCount {
+            and,
+            or,
+            xor,
+            nand,
+            not,
+            xnor,
+            nimp,
+            nsor,
+        }
     }
 }
 

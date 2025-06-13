@@ -297,11 +297,9 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        circuits::bigint::{
-            U254,
-            utils::{biguint_from_bits, biguint_from_wires, random_u254, wires_set_from_u254},
-        },
+    use crate::circuits::bigint::{
+        U254,
+        utils::{biguint_from_bits, biguint_from_wires, random_u254, wires_set_from_u254},
     };
     use num_bigint::BigUint;
     use std::str::FromStr;

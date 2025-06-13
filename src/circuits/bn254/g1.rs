@@ -1,6 +1,17 @@
-use std::{cmp::min, iter::zip};
+use crate::{
+    bag::*,
+    circuits::{
+        basic::multiplexer,
+        bn254::{
+            fp254impl::Fp254Impl,
+            fq::Fq,
+            fr::Fr,
+            utils::{wires_set_from_fq, wires_set_from_g1p},
+        },
+    },
+};
 use ark_ff::AdditiveGroup;
-use crate::{bag::*, circuits::{basic::multiplexer, bn254::{fp254impl::Fp254Impl, fq::Fq, fr::Fr, utils::{wires_set_from_fq, wires_set_from_g1p}}}};
+use std::{cmp::min, iter::zip};
 
 pub struct G1Projective;
 
@@ -16,11 +27,11 @@ impl G1Projective {
         let mut circuit = Circuit::empty();
 
         let x1 = p[0..Fq::N_BITS].to_vec();
-        let y1 = p[Fq::N_BITS..2*Fq::N_BITS].to_vec();
-        let z1 = p[2*Fq::N_BITS..3*Fq::N_BITS].to_vec();
+        let y1 = p[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
+        let z1 = p[2 * Fq::N_BITS..3 * Fq::N_BITS].to_vec();
         let x2 = q[0..Fq::N_BITS].to_vec();
-        let y2 = q[Fq::N_BITS..2*Fq::N_BITS].to_vec();
-        let z2 = q[2*Fq::N_BITS..3*Fq::N_BITS].to_vec();
+        let y2 = q[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
+        let z2 = q[2 * Fq::N_BITS..3 * Fq::N_BITS].to_vec();
 
         let z1s = circuit.extend(Fq::square(z1.clone()));
         let z2s = circuit.extend(Fq::square(z2.clone()));
@@ -50,14 +61,26 @@ impl G1Projective {
         let z2_0 = circuit.extend(Fq::equal_zero(z2.clone()))[0].clone();
         let zero = wires_set_from_fq(ark_bn254::Fq::ZERO);
         let s = vec![z1_0, z2_0];
-        let x = circuit.extend(Fq::multiplexer(vec![x3, x2, x1, zero.clone()], s.clone(), 2));
-        let y = circuit.extend(Fq::multiplexer(vec![y3, y2, y1, zero.clone()], s.clone(), 2));
-        let z = circuit.extend(Fq::multiplexer(vec![z3, z2, z1, zero.clone()], s.clone(), 2));
+        let x = circuit.extend(Fq::multiplexer(
+            vec![x3, x2, x1, zero.clone()],
+            s.clone(),
+            2,
+        ));
+        let y = circuit.extend(Fq::multiplexer(
+            vec![y3, y2, y1, zero.clone()],
+            s.clone(),
+            2,
+        ));
+        let z = circuit.extend(Fq::multiplexer(
+            vec![z3, z2, z1, zero.clone()],
+            s.clone(),
+            2,
+        ));
 
         circuit.add_wires(x);
         circuit.add_wires(y);
         circuit.add_wires(z);
-    
+
         circuit
     }
 
@@ -75,8 +98,8 @@ impl G1Projective {
         let mut circuit = Circuit::empty();
 
         let x = p[0..Fq::N_BITS].to_vec();
-        let y = p[Fq::N_BITS..2*Fq::N_BITS].to_vec();
-        let z = p[2*Fq::N_BITS..3*Fq::N_BITS].to_vec();
+        let y = p[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
+        let z = p[2 * Fq::N_BITS..3 * Fq::N_BITS].to_vec();
 
         let x2 = circuit.extend(Fq::square(x.clone()));
         let y2 = circuit.extend(Fq::square(y.clone()));
@@ -118,7 +141,7 @@ impl G1Projective {
         let mut circuit = Circuit::empty();
 
         for i in 0..Self::N_BITS {
-            let ith_wires = a.iter().map(|x| { x[i].clone() }).collect();
+            let ith_wires = a.iter().map(|x| x[i].clone()).collect();
             let ith_result = circuit.extend(multiplexer(ith_wires, s.clone(), w))[0].clone();
             circuit.add_wire(ith_result);
         }
@@ -135,7 +158,10 @@ impl G1Projective {
         (circuit.0, n)
     }
 
-    pub fn scalar_mul_by_constant_base<const W: usize>(s: Wires, base: ark_bn254::G1Projective) -> Circuit {
+    pub fn scalar_mul_by_constant_base<const W: usize>(
+        s: Wires,
+        base: ark_bn254::G1Projective,
+    ) -> Circuit {
         assert_eq!(s.len(), Fr::N_BITS);
         let mut circuit = Circuit::empty();
         let n = 2_usize.pow(W as u32);
@@ -148,7 +174,10 @@ impl G1Projective {
             p = p + base;
         }
 
-        let bases_wires = bases.iter().map(|p| { wires_set_from_g1p(*p) }).collect::<Vec<Wires>>();
+        let bases_wires = bases
+            .iter()
+            .map(|p| wires_set_from_g1p(*p))
+            .collect::<Vec<Wires>>();
 
         let mut to_be_added = Vec::new();
 
@@ -156,8 +185,12 @@ impl G1Projective {
         while index < Fr::N_BITS {
             let w = min(W, Fr::N_BITS - index);
             let m = 2_usize.pow(w as u32);
-            let selector = s[index..(index+w)].to_vec();
-            let result = circuit.extend(Self::multiplexer(bases_wires.clone()[0..m].to_vec(), selector, w));
+            let selector = s[index..(index + w)].to_vec();
+            let result = circuit.extend(Self::multiplexer(
+                bases_wires.clone()[0..m].to_vec(),
+                selector,
+                w,
+            ));
             to_be_added.push(result);
             index += W;
             let mut new_bases = Vec::new();
@@ -181,7 +214,10 @@ impl G1Projective {
         circuit
     }
 
-    pub fn scalar_mul_by_constant_base_evaluate<const W: usize>(s: Wires, base: ark_bn254::G1Projective) -> (Wires, GateCount) {
+    pub fn scalar_mul_by_constant_base_evaluate<const W: usize>(
+        s: Wires,
+        base: ark_bn254::G1Projective,
+    ) -> (Wires, GateCount) {
         assert_eq!(s.len(), Fr::N_BITS);
         let mut gate_count = GateCount::zero();
         let n = 2_usize.pow(W as u32);
@@ -194,7 +230,10 @@ impl G1Projective {
             p = p + base;
         }
 
-        let mut bases_wires = bases.iter().map(|p| { wires_set_from_g1p(*p) }).collect::<Vec<Wires>>();
+        let mut bases_wires = bases
+            .iter()
+            .map(|p| wires_set_from_g1p(*p))
+            .collect::<Vec<Wires>>();
 
         let mut to_be_added = Vec::new();
 
@@ -202,8 +241,9 @@ impl G1Projective {
         while index < Fr::N_BITS {
             let w = min(W, Fr::N_BITS - index);
             let m = 2_usize.pow(w as u32);
-            let selector = s[index..(index+w)].to_vec();
-            let (result, gc) = Self::multiplexer_evaluate(bases_wires.clone()[0..m].to_vec(), selector, w);
+            let selector = s[index..(index + w)].to_vec();
+            let (result, gc) =
+                Self::multiplexer_evaluate(bases_wires.clone()[0..m].to_vec(), selector, w);
             gate_count += gc;
             to_be_added.push(result);
             index += W;
@@ -216,7 +256,10 @@ impl G1Projective {
                 new_bases.push(new_b);
             }
             bases = new_bases;
-            bases_wires = bases.iter().map(|p| { wires_set_from_g1p(*p) }).collect::<Vec<Wires>>();
+            bases_wires = bases
+                .iter()
+                .map(|p| wires_set_from_g1p(*p))
+                .collect::<Vec<Wires>>();
         }
 
         let mut acc = to_be_added[0].clone();
@@ -229,7 +272,10 @@ impl G1Projective {
         (acc, gate_count)
     }
 
-    pub fn msm_with_constant_bases_evaluate<const W: usize>(scalars: Vec<Wires>, bases: Vec<ark_bn254::G1Projective>) -> (Wires, GateCount) {
+    pub fn msm_with_constant_bases_evaluate<const W: usize>(
+        scalars: Vec<Wires>,
+        bases: Vec<ark_bn254::G1Projective>,
+    ) -> (Wires, GateCount) {
         assert_eq!(scalars.len(), bases.len());
         let mut gate_count = GateCount::zero();
         let mut to_be_added = Vec::new();
@@ -252,10 +298,12 @@ impl G1Projective {
 
 #[cfg(test)]
 mod tests {
-    use rand::{rng, Rng};
-    use ark_ec::{scalar_mul::variable_base::VariableBaseMSM, CurveGroup};
-    use crate::circuits::bn254::utils::{g1p_from_wires, random_fr, random_g1p, wires_set_from_fr, wires_set_from_g1p};
     use super::*;
+    use crate::circuits::bn254::utils::{
+        g1p_from_wires, random_fr, random_g1p, wires_set_from_fr, wires_set_from_g1p,
+    };
+    use ark_ec::{CurveGroup, scalar_mul::variable_base::VariableBaseMSM};
+    use rand::{Rng, rng};
 
     #[test]
     #[ignore]
@@ -263,7 +311,8 @@ mod tests {
         let a = random_g1p();
         let b = random_g1p();
         let c = ark_bn254::G1Projective::ZERO;
-        let circuit = G1Projective::add(wires_set_from_g1p(a.clone()), wires_set_from_g1p(b.clone()));
+        let circuit =
+            G1Projective::add(wires_set_from_g1p(a.clone()), wires_set_from_g1p(b.clone()));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -271,21 +320,24 @@ mod tests {
         let d = g1p_from_wires(circuit.0);
         assert_eq!(d, a + b);
 
-        let circuit = G1Projective::add(wires_set_from_g1p(a.clone()), wires_set_from_g1p(c.clone()));
+        let circuit =
+            G1Projective::add(wires_set_from_g1p(a.clone()), wires_set_from_g1p(c.clone()));
         for mut gate in circuit.1 {
             gate.evaluate();
         }
         let d = g1p_from_wires(circuit.0);
         assert_eq!(d, a);
 
-        let circuit = G1Projective::add(wires_set_from_g1p(c.clone()), wires_set_from_g1p(b.clone()));
+        let circuit =
+            G1Projective::add(wires_set_from_g1p(c.clone()), wires_set_from_g1p(b.clone()));
         for mut gate in circuit.1 {
             gate.evaluate();
         }
         let d = g1p_from_wires(circuit.0);
         assert_eq!(d, b);
 
-        let circuit = G1Projective::add(wires_set_from_g1p(c.clone()), wires_set_from_g1p(c.clone()));
+        let circuit =
+            G1Projective::add(wires_set_from_g1p(c.clone()), wires_set_from_g1p(c.clone()));
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -297,7 +349,10 @@ mod tests {
     fn test_g1p_add_evaluate() {
         let a = random_g1p();
         let b = random_g1p();
-        let (c_wires, gate_count) = G1Projective::add_evaluate(wires_set_from_g1p(a.clone()), wires_set_from_g1p(b.clone()));
+        let (c_wires, gate_count) = G1Projective::add_evaluate(
+            wires_set_from_g1p(a.clone()),
+            wires_set_from_g1p(b.clone()),
+        );
         gate_count.print();
         let c = g1p_from_wires(c_wires);
         assert_eq!(c, a + b);
@@ -328,8 +383,8 @@ mod tests {
     fn test_g1p_multiplexer() {
         let w = 10;
         let n = 2_usize.pow(w as u32);
-        let a: Vec<ark_bn254::G1Projective> = (0..n).map(|_| { random_g1p() }).collect();
-        let s: Wires = (0..w).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect();
+        let a: Vec<ark_bn254::G1Projective> = (0..n).map(|_| random_g1p()).collect();
+        let s: Wires = (0..w).map(|_| Rc::new(RefCell::new(Wire::new()))).collect();
 
         let mut a_wires = Vec::new();
         for e in a.clone() {
@@ -339,7 +394,7 @@ mod tests {
         let mut u = 0;
         for wire in s.iter().rev() {
             let x = rng().random();
-            u = u + u + if x {1} else {0};
+            u = u + u + if x { 1 } else { 0 };
             wire.borrow_mut().set(x);
         }
 
@@ -360,8 +415,8 @@ mod tests {
     fn test_g1p_multiplexer_evaluate() {
         let w = 10;
         let n = 2_usize.pow(w as u32);
-        let a: Vec<ark_bn254::G1Projective> = (0..n).map(|_| { random_g1p() }).collect();
-        let s: Wires = (0..w).map(|_| { Rc::new(RefCell::new(Wire::new())) }).collect();
+        let a: Vec<ark_bn254::G1Projective> = (0..n).map(|_| random_g1p()).collect();
+        let s: Wires = (0..w).map(|_| Rc::new(RefCell::new(Wire::new()))).collect();
 
         let mut a_wires = Vec::new();
         for e in a.clone() {
@@ -371,7 +426,7 @@ mod tests {
         let mut u = 0;
         for wire in s.iter().rev() {
             let x = rng().random();
-            u = u + u + if x {1} else {0};
+            u = u + u + if x { 1 } else { 0 };
             wire.borrow_mut().set(x);
         }
 
@@ -388,7 +443,8 @@ mod tests {
     fn test_g1p_scalar_mul() {
         let base = random_g1p();
         let s = random_fr();
-        let circuit = G1Projective::scalar_mul_by_constant_base::<10>(wires_set_from_fr(s.clone()), base);
+        let circuit =
+            G1Projective::scalar_mul_by_constant_base::<10>(wires_set_from_fr(s.clone()), base);
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -402,7 +458,10 @@ mod tests {
     fn test_g1p_scalar_mul_with_constant_base_evaluate() {
         let base = random_g1p();
         let s = random_fr();
-        let (result_wires, gate_count) = G1Projective::scalar_mul_by_constant_base_evaluate::<10>(wires_set_from_fr(s.clone()), base);
+        let (result_wires, gate_count) = G1Projective::scalar_mul_by_constant_base_evaluate::<10>(
+            wires_set_from_fr(s.clone()),
+            base,
+        );
         gate_count.print();
         let result = g1p_from_wires(result_wires);
         assert_eq!(result, base * s);
@@ -411,12 +470,18 @@ mod tests {
     #[test]
     fn test_msm_with_constant_bases_evaluate() {
         let n = 1;
-        let bases = (0..n).map(|_| { random_g1p() }).collect::<Vec<_>>();
-        let scalars = (0..n).map(|_| { random_fr() }).collect::<Vec<_>>();
-        let (result_wires, gate_count) = G1Projective::msm_with_constant_bases_evaluate::<10>(scalars.iter().map(|s| { wires_set_from_fr(s.clone()) }).collect(), bases.clone());
+        let bases = (0..n).map(|_| random_g1p()).collect::<Vec<_>>();
+        let scalars = (0..n).map(|_| random_fr()).collect::<Vec<_>>();
+        let (result_wires, gate_count) = G1Projective::msm_with_constant_bases_evaluate::<10>(
+            scalars
+                .iter()
+                .map(|s| wires_set_from_fr(s.clone()))
+                .collect(),
+            bases.clone(),
+        );
         gate_count.print();
         let result = g1p_from_wires(result_wires);
-        let bases_affine = bases.iter().map(|g| { g.into_affine() }).collect::<Vec<_>>();
+        let bases_affine = bases.iter().map(|g| g.into_affine()).collect::<Vec<_>>();
         let expected = ark_bn254::G1Projective::msm(&bases_affine, &scalars).unwrap();
         assert_eq!(result, expected);
     }

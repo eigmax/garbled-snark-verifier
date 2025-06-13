@@ -1,6 +1,6 @@
-use std::{iter::zip, ops::Add};
-use rand::{rng, Rng};
 use blake3::hash;
+use rand::{Rng, rng};
+use std::{iter::zip, ops::Add};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct S(pub [u8; 32]);
@@ -52,8 +52,8 @@ impl Add for S {
 
 #[cfg(test)]
 mod tests {
-    use bitvm::{bigint::U256, treepp::*};
     use super::*;
+    use bitvm::{bigint::U256, treepp::*};
 
     #[test]
     fn test_s() {
@@ -80,4 +80,3 @@ mod tests {
         assert!(result.success);
     }
 }
-
