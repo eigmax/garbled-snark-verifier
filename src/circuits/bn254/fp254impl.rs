@@ -33,6 +33,10 @@ pub trait Fp254Impl {
         BigUint::from_str(Self::MONTGOMERY_R_INVERSE).unwrap()
     }
 
+    fn as_montgomery(a: ark_bn254::Fq) -> ark_bn254::Fq {
+        a * ark_bn254::Fq::from(Self::montgomery_r_as_biguint())
+    }
+
     fn modulus_as_bits() -> Vec<bool> {
         bits_from_biguint(Self::modulus_as_biguint())
     }
@@ -229,6 +233,11 @@ pub trait Fp254Impl {
     fn mul_by_constant(a: Wires, b: ark_bn254::Fq) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
+
+        if b == ark_bn254::Fq::ZERO {
+            circuit.add_wires(wires_set_from_fq(ark_bn254::Fq::ZERO));
+            return circuit;
+        }
 
         if b == ark_bn254::Fq::ONE {
             circuit.add_wires(a);
@@ -503,7 +512,7 @@ pub trait Fp254Impl {
         circuit
     }
 
-    fn montgomery_mul(a: Wires, b: Wires) -> Circuit {
+    fn mul_montgomery(a: Wires, b: Wires) -> Circuit {
         let mut circuit = Circuit::empty();
         let x = circuit.extend(U254::mul(a, b));
         
