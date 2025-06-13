@@ -280,7 +280,7 @@ mod tests {
         }
 
         let circuit = multiplexer(a.clone(), s.clone(), w);
-        circuit.print_gate_type_counts();
+        circuit.gate_counts().print();
 
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -292,4 +292,3 @@ mod tests {
         assert_eq!(result, expected);
     }
 }
-

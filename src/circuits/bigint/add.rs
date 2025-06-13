@@ -314,7 +314,7 @@ mod tests {
             wires_set_from_u254(a.clone()),
             wires_set_from_u254(b.clone()),
         );
-        circuit.print_gate_type_counts();
+        circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -327,7 +327,7 @@ mod tests {
         let a = random_u254();
         let b = random_u254();
         let circuit = U254::add_constant(wires_set_from_u254(a.clone()), b.clone());
-        circuit.print_gate_type_counts();
+        circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -343,7 +343,7 @@ mod tests {
             wires_set_from_u254(a.clone()),
             wires_set_from_u254(b.clone()),
         );
-        circuit.print_gate_type_counts();
+        circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -367,7 +367,7 @@ mod tests {
             wires_set_from_u254(a.clone()),
             wires_set_from_u254(b.clone()),
         );
-        circuit.print_gate_type_counts();
+        circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -379,7 +379,7 @@ mod tests {
     fn test_double() {
         let a = random_u254();
         let circuit = U254::double(wires_set_from_u254(a.clone()));
-        circuit.print_gate_type_counts();
+        circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -391,7 +391,7 @@ mod tests {
     fn test_half() {
         let a = random_u254();
         let circuit = U254::half(wires_set_from_u254(a.clone()));
-        circuit.print_gate_type_counts();
+        circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -404,7 +404,7 @@ mod tests {
     fn test_odd_part() {
         let a = random_u254();
         let circuit = U254::odd_part(wires_set_from_u254(a.clone()));
-        circuit.print_gate_type_counts();
+        circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -423,7 +423,7 @@ mod tests {
                 wires_set_from_u254(b.clone()),
                 true,
             );
-            circuit.print_gate_type_counts();
+            circuit.gate_counts().print();
             let bound_check = circuit.0.pop().unwrap();
             let output_wires = circuit.0;
             for mut gate in circuit.1 {

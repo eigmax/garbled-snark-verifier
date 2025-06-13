@@ -4,7 +4,7 @@ use ark_ff::Field;
 use crate::bag::*;
 use crate::circuits::bn254::fq12::Fq12;
 use crate::circuits::bn254::g1::G1Projective;
-use crate::circuits::bn254::pairing::multi_miller_loop_groth16_circuit_evaluate;
+use crate::circuits::bn254::pairing::multi_miller_loop_groth16_evaluate;
 use crate::circuits::bn254::utils::{fq12_from_wires, fr_from_wires, wires_set_from_fq12, wires_set_from_g1p};
 
 pub fn groth16_verifier(public: Vec<ark_bn254::Fr>, proof: ark_groth16::Proof<ark_bn254::Bn254>, vk: ark_groth16::VerifyingKey<ark_bn254::Bn254>) -> bool {
@@ -20,15 +20,15 @@ pub fn groth16_verifier(public: Vec<ark_bn254::Fr>, proof: ark_groth16::Proof<ar
     return f == alpha_beta;
 }
 
-pub fn groth16_verifier_circuit(public: Wires, proof_a: Wires, proof_b: Wires, proof_c: Wires, vk: ark_groth16::VerifyingKey<ark_bn254::Bn254>) -> (Wirex, usize) {
-    let mut gate_count = 0;
-    let (msm_temp, gc) = (wires_set_from_g1p(ark_bn254::G1Projective::msm(&vec![vk.gamma_abc_g1[1]], &vec![fr_from_wires(public.clone())]).unwrap()), 696000000);
+pub fn groth16_verifier_evaluate(public: Wires, proof_a: Wires, proof_b: Wires, proof_c: Wires, vk: ark_groth16::VerifyingKey<ark_bn254::Bn254>) -> (Wirex, GateCount) {
+    let mut gate_count = GateCount::zero();
+    let (msm_temp, gc) = (wires_set_from_g1p(ark_bn254::G1Projective::msm(&vec![vk.gamma_abc_g1[1]], &vec![fr_from_wires(public.clone())]).unwrap()), GateCount::msm());
     // let (msm_temp, gc) = G1Projective::msm_with_constant_bases_evaluate::<10>(vec![public], vec![vk.gamma_abc_g1[1].into_group()]);
     gate_count += gc;
     let (msm, gc) = G1Projective::add_evaluate(msm_temp, wires_set_from_g1p(vk.gamma_abc_g1[0].into_group()));
     gate_count += gc;
 
-    let (f, gc) = multi_miller_loop_groth16_circuit_evaluate(msm, proof_c, proof_a, -vk.gamma_g2, -vk.delta_g2, proof_b);
+    let (f, gc) = multi_miller_loop_groth16_evaluate(msm, proof_c, proof_a, -vk.gamma_g2, -vk.delta_g2, proof_b);
     gate_count += gc;
 
     let alpha_beta = ark_bn254::Bn254::final_exponentiation(ark_bn254::Bn254::multi_miller_loop([vk.alpha_g1.into_group()], [-vk.beta_g2])).unwrap().0.inverse().unwrap();
@@ -113,7 +113,7 @@ mod tests {
     }
 
     #[test]
-    fn test_groth16_verifier_circuit() {
+    fn test_groth16_verifier_evaluate() {
         let k = 6;
         let mut rng = ark_std::rand::rngs::StdRng::seed_from_u64(test_rng().next_u64());
         let circuit = DummyCircuit::<<ark_bn254::Bn254 as Pairing>::ScalarField> {
@@ -136,8 +136,8 @@ mod tests {
         let proof_b = wires_set_from_g2a(proof.b);
         let proof_c = wires_set_from_g1p(proof.c.into_group());
 
-        let (result, gate_count) = groth16_verifier_circuit(public, proof_a, proof_b, proof_c, vk);
-        println!("gate_count: {:?}", gate_count);
+        let (result, gate_count) = groth16_verifier_evaluate(public, proof_a, proof_b, proof_c, vk);
+        gate_count.print();
         assert!(result.borrow().get_value());
     }
 }

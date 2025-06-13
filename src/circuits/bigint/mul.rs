@@ -102,7 +102,7 @@ mod tests {
             let b = random_u254();
             let circuit = U254::mul(wires_set_from_u254(a.clone()),wires_set_from_u254(b.clone()));
             let c = a * b;
-            circuit.print_gate_type_counts();
+            circuit.gate_counts().print();
 
             for mut gate in circuit.1 {
                 gate.evaluate();
@@ -125,7 +125,7 @@ mod tests {
             let b = random_u254();
             let circuit = U254::mul_by_constant(wires_set_from_u254(a.clone()),b.clone());
             let c = a * b;
-            circuit.print_gate_type_counts();
+            circuit.gate_counts().print();
 
             for mut gate in circuit.1 {
                 gate.evaluate();

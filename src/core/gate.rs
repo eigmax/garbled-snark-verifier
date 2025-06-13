@@ -1,3 +1,4 @@
+use std::ops::{Add, AddAssign};
 use crate::bag::*;
 use crate::core::utils::{LIMB_LEN, N_LIMBS, bit_to_usize, convert_between_blake3_and_normal_form};
 use bitvm::{bigint::U256, hash::blake3::blake3_compute_script_with_limb, treepp::*};
@@ -252,6 +253,165 @@ impl Gate {
                 OP_NOT OP_VERIFY
             }
             OP_TRUE
+        }
+    }
+}
+
+pub struct GateCount {
+    pub and: usize,
+    pub or: usize,
+    pub xor: usize,
+    pub nand: usize,
+    pub not: usize,
+    pub xnor: usize,
+    pub nimp: usize,
+    pub nsor: usize,
+}
+
+impl Add for GateCount {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self::Output {
+        Self {
+            and: self.and + other.and,
+            or: self.or + other.or,
+            xor: self.xor + other.xor,
+            nand: self.nand + other.nand,
+            not: self.not + other.not,
+            xnor: self.xnor + other.xnor,
+            nimp: self.nimp + other.nimp,
+            nsor: self.nsor + other.nsor,
+        }
+    }
+}
+
+impl AddAssign for GateCount {
+    fn add_assign(&mut self, other: Self) {
+        self.and = self.and + other.and;
+        self.or = self.or + other.or;
+        self.xor = self.xor + other.xor;
+        self.nand = self.nand + other.nand;
+        self.not = self.not + other.not;
+        self.xnor = self.xnor + other.xnor;
+        self.nimp = self.nimp + other.nimp;
+        self.nsor = self.nsor + other.nsor;
+    }
+}
+
+impl GateCount {
+    pub fn zero() -> Self {
+        Self {
+            and: 0, 
+            or: 0, 
+            xor: 0, 
+            nand: 0, 
+            not: 0, 
+            xnor: 0, 
+            nimp: 0, 
+            nsor: 0
+        }
+    }
+
+    pub fn total_gate_count(&self) -> usize {
+        self.and + self.or + self.xor + self.nand + self.not + self.xnor + self.nimp + self.nsor
+    }
+
+    pub fn nonfree_gate_count(&self) -> usize {
+        self.and + self.or + self.nand + self.nimp + self.nsor
+    }
+
+    pub fn print(&self) {
+        println!("and:  {:?}", self.and);
+        println!("or:   {:?}", self.or);
+        println!("xor:  {:?}", self.xor);
+        println!("nand: {:?}", self.nand);
+        println!("not:  {:?}", self.not);
+        println!("xnor: {:?}", self.xnor);
+        println!("nimp: {:?}", self.nimp);
+        println!("nsor: {:?}", self.nsor);
+        println!("");
+        println!("total: {:?}", self.total_gate_count());
+        println!("nonfree: {:?}", self.nonfree_gate_count());
+    }
+}
+
+// these are here to speed up tests
+impl GateCount {
+    pub fn msm() -> Self {
+        Self {
+            and: 0,
+            or: 0,
+            xor: 0,
+            nand: 0,
+            not: 0,
+            xnor: 0,
+            nimp: 0,
+            nsor: 0,
+        }
+    }
+
+    pub fn fq12_square() -> Self {
+        Self {
+            and: 14689194,
+            or: 8799016,
+            xor: 11748341,
+            nand: 17650968,
+            not: 11861704,
+            xnor: 5861174,
+            nimp: 0,
+            nsor: 0,
+        }
+    }
+
+    pub fn double_in_place() -> Self {
+        Self {
+            and: 9224370,
+            or: 5611730,
+            xor: 7459948,
+            nand: 11352276,
+            not: 7627100,
+            xnor: 3771914,
+            nimp: 0,
+            nsor: 0,
+        }
+    }
+
+    pub fn add_in_place() -> Self {
+        Self {
+            and: 12615983,
+            or: 7543041,
+            xor: 10070137,
+            nand: 15127986,
+            not: 10164952,
+            xnor: 5027209,
+            nimp: 0,
+            nsor: 0,
+        }
+    }
+
+    pub fn ell() -> Self {
+        Self {
+            and: 13963948,
+            or: 8354104,
+            xor: 11156899,
+            nand: 16741140,
+            not: 11250566,
+            xnor: 5564020,
+            nimp: 0,
+            nsor: 0,
+        }
+    }
+
+    pub fn ell_by_constant() -> Self {
+        Self {
+            and: 11438002,
+            or: 7357571,
+            xor: 9665248,
+            nand: 15223236,
+            not: 10232611,
+            xnor: 5060584,
+            nimp: 0,
+            nsor: 0,
         }
     }
 }

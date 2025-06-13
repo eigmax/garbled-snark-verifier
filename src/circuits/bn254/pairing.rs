@@ -1,7 +1,7 @@
 use std::iter::zip;
 use ark_ec::{bn::BnConfig, short_weierstrass::SWCurveConfig};
 use ark_ff::{AdditiveGroup, Field};
-use crate::{bag::*, circuits::bn254::{fp254impl::Fp254Impl, fq::Fq, fq12::Fq12, fq2::Fq2, utils::{fq12_from_wires, fq2_from_wires, g1p_from_wires, g2a_from_wires, wires_set_from_fq12, wires_set_from_fq2}}};
+use crate::{bag::*, circuits::bn254::{fp254impl::Fp254Impl, fq::Fq, fq12::Fq12, fq2::Fq2, utils::{fq12_from_wires, fq2_from_wires, g1p_from_wires, g2a_from_wires, g2p_from_wires_unchecked, wires_set_from_fq12, wires_set_from_fq2, wires_set_from_g2p}}};
 
 pub fn double_in_place(r: &mut ark_bn254::G2Projective) -> (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2) {
     let half = ark_bn254::Fq::from(Fq::half_modulus());
@@ -25,6 +25,29 @@ pub fn double_in_place(r: &mut ark_bn254::G2Projective) -> (ark_bn254::Fq2, ark_
     };
     *r = new_r;
     (-h, j.double() + &j, i)
+}
+
+pub fn double_in_place2(r: ark_bn254::G2Projective) -> (ark_bn254::G2Projective, (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2)) {
+    let half = ark_bn254::Fq::from(Fq::half_modulus());
+    let mut a = r.x * &r.y;
+    a.mul_assign_by_fp(&half);
+    let b = r.y.square();
+    let c = r.z.square();
+    let e = ark_bn254::g2::Config::COEFF_B * &(c.double() + &c);
+    let f = e.double() + &e;
+    let mut g = b + &f;
+    g.mul_assign_by_fp(&half);
+    let h = (r.y + &r.z).square() - &(b + &c);
+    let i = e - &b;
+    let j = r.x.square();
+    let e_square = e.square();
+
+    let new_r = ark_bn254::G2Projective {
+        x: a * &(b - &f),
+        y: g.square() - &(e_square.double() + &e_square),
+        z: b * &h,
+    };
+    (new_r, (-h, j.double() + &j, i))
 }
 
 pub fn double_in_place_circuit(r: Wires) -> Circuit {
@@ -69,11 +92,9 @@ pub fn double_in_place_circuit(r: Wires) -> Circuit {
     circuit
 }
 
-pub fn double_in_place_evaluate(r: Wires) -> ((Wires, Wires, Wires), Wires, usize) {
+pub fn double_in_place_evaluate(r: Wires) -> ((Wires, Wires, Wires), Wires, GateCount) {
     let circuit = double_in_place_circuit(r);
-
-    let n = circuit.1.len();
-
+    let n = circuit.gate_counts();
     for mut gate in circuit.1 {
         gate.evaluate();
     }
@@ -93,6 +114,7 @@ pub fn add_in_place(r: &mut ark_bn254::G2Projective, q: &ark_bn254::G2Affine) ->
     let f = r.z * &c;
     let g = r.x * &d;
     let h = e + &f - &g.double();
+    let j = theta * &q.x - &(lambda * &q.y);
 
     let new_r = ark_bn254::G2Projective {
         x: lambda * &h,
@@ -100,9 +122,28 @@ pub fn add_in_place(r: &mut ark_bn254::G2Projective, q: &ark_bn254::G2Affine) ->
         z: r.z * &e,
     };
     *r = new_r;
-    let j = theta * &q.x - &(lambda * &q.y);
 
     (lambda, -theta, j)
+}
+
+pub fn add_in_place2(r: ark_bn254::G2Projective, q: &ark_bn254::G2Affine) -> (ark_bn254::G2Projective, (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2)) {
+    let theta = r.y - &(q.y * &r.z);
+    let lambda = r.x - &(q.x * &r.z);
+    let c = theta.square();
+    let d = lambda.square();
+    let e = lambda * &d;
+    let f = r.z * &c;
+    let g = r.x * &d;
+    let h = e + &f - &g.double();
+    let j = theta * &q.x - &(lambda * &q.y);
+
+    let new_r = ark_bn254::G2Projective {
+        x: lambda * &h,
+        y: theta * &(g - &h) - &(e * &r.y),
+        z: r.z * &e,
+    };
+
+    (new_r, (lambda, -theta, j))
 }
 
 pub fn add_in_place_circuit(r: Wires, q: Wires) -> Circuit {
@@ -158,21 +199,17 @@ pub fn add_in_place_circuit(r: Wires, q: Wires) -> Circuit {
     circuit
 }
 
-pub fn add_in_place_evaluate(r: Wires, q: Wires) -> ((Wires, Wires, Wires), Wires, usize) {
+pub fn add_in_place_evaluate(r: Wires, q: Wires) -> ((Wires, Wires, Wires), Wires, GateCount) {
     let circuit = add_in_place_circuit(r, q);
-
-    let n = circuit.1.len();
-
+    let n = circuit.gate_counts();
     for mut gate in circuit.1 {
         gate.evaluate();
     }
-
     let c0 = circuit.0[0..Fq2::N_BITS].to_vec();
     let c1 = circuit.0[Fq2::N_BITS..2*Fq2::N_BITS].to_vec();
     let c2 = circuit.0[Fq2::N_BITS*2..Fq2::N_BITS*3].to_vec();
     let r = circuit.0[Fq2::N_BITS*3..Fq2::N_BITS*6].to_vec();
     ((c0, c1, c2), r, n)
-
 }
 
 pub fn mul_by_char(r: ark_bn254::G2Affine) -> ark_bn254::G2Affine {
@@ -198,32 +235,26 @@ pub fn mul_by_char_circuit(r: Wires) -> Circuit {
     circuit
 }
 
-pub fn mul_by_char_evaluate(r: Wires) -> (Wires, usize) {
+pub fn mul_by_char_evaluate(r: Wires) -> (Wires, GateCount) {
     let circuit = mul_by_char_circuit(r);
-
-    let n = circuit.1.len();
-
+    let n = circuit.gate_counts();
     for mut gate in circuit.1 {
         gate.evaluate();
     }
-
     (circuit.0, n)
 }
 
-pub fn g2_affine_neg_evaluate(r: Wires) -> (Wires, usize) {
+pub fn g2_affine_neg_evaluate(r: Wires) -> (Wires, GateCount) {
     let mut circuit = Circuit::empty();
     let x = r[0..Fq2::N_BITS].to_vec();
     let y = r[Fq2::N_BITS..2*Fq2::N_BITS].to_vec();
     let new_y = circuit.extend(Fq2::neg(y));
     circuit.add_wires(x);
     circuit.add_wires(new_y);
-
-    let n = circuit.1.len();
-
+    let n = circuit.gate_counts();
     for mut gate in circuit.1 {
         gate.evaluate();
     }
-
     (circuit.0, n)
 }
 
@@ -256,8 +287,8 @@ pub fn ell_coeffs(q: ark_bn254::G2Affine) -> Vec<(ark_bn254::Fq2, ark_bn254::Fq2
     ellc
 }
 
-pub fn ell_coeffs_circuit_evaluate(q: Wires) -> (Vec<(Wires, Wires, Wires)>, usize) {
-    let mut gate_count = 0;
+pub fn ell_coeffs_evaluate(q: Wires) -> (Vec<(Wires, Wires, Wires)>, GateCount) {
+    let mut gate_count = GateCount::zero();
     let mut ellc = Vec::new();
     let mut r = Vec::new();
     r.extend_from_slice(&q[0..Fq2::N_BITS]);
@@ -267,23 +298,35 @@ pub fn ell_coeffs_circuit_evaluate(q: Wires) -> (Vec<(Wires, Wires, Wires)>, usi
     let (neg_q, gc) = g2_affine_neg_evaluate(q.clone());
     gate_count += gc;
     for bit in ark_bn254::Config::ATE_LOOP_COUNT.iter().rev().skip(1) {
-        let (coeffs, new_r, gc) = double_in_place_evaluate(r);
-        ellc.push(coeffs);
-        gate_count+=gc;
-        r = new_r;
+        // let (coeffs, new_r, gc) = double_in_place_evaluate(r);
+        // ellc.push(coeffs);
+        // gate_count += gc;
+        // r = new_r;
+        let ((new_r, coeffs), gc) = (double_in_place2(g2p_from_wires_unchecked(r)), GateCount::double_in_place());
+        ellc.push((wires_set_from_fq2(coeffs.0), wires_set_from_fq2(coeffs.1), wires_set_from_fq2(coeffs.2)));
+        gate_count += gc;
+        r = wires_set_from_g2p(new_r);
 
         match bit {
             1 => {
-                let (coeffs, new_r, gc) = add_in_place_evaluate(r, q.clone());
-                ellc.push(coeffs);
-                gate_count+=gc;
-                r = new_r;
+                // let (coeffs, new_r, gc) = add_in_place_evaluate(r, q.clone());
+                // ellc.push(coeffs);
+                // gate_count += gc;
+                // r = new_r;
+                let ((new_r, coeffs), gc) = (add_in_place2(g2p_from_wires_unchecked(r), &g2a_from_wires(q.clone())), GateCount::add_in_place());
+                ellc.push((wires_set_from_fq2(coeffs.0), wires_set_from_fq2(coeffs.1), wires_set_from_fq2(coeffs.2)));
+                gate_count += gc;
+                r = wires_set_from_g2p(new_r);
             },
             -1 => {
-                let (coeffs, new_r, gc) = add_in_place_evaluate(r, neg_q.clone());
-                ellc.push(coeffs);
-                gate_count+=gc;
-                r = new_r;
+                // let (coeffs, new_r, gc) = add_in_place_evaluate(r, neg_q.clone());
+                // ellc.push(coeffs);
+                // gate_count += gc;
+                // r = new_r;
+                let ((new_r, coeffs), gc) = (add_in_place2(g2p_from_wires_unchecked(r), &g2a_from_wires(neg_q.clone())), GateCount::add_in_place());
+                ellc.push((wires_set_from_fq2(coeffs.0), wires_set_from_fq2(coeffs.1), wires_set_from_fq2(coeffs.2)));
+                gate_count += gc;
+                r = wires_set_from_g2p(new_r);
             },
             _ => {},
         }
@@ -295,14 +338,25 @@ pub fn ell_coeffs_circuit_evaluate(q: Wires) -> (Vec<(Wires, Wires, Wires)>, usi
     let (new_q2, gc) = g2_affine_neg_evaluate(q2);
     gate_count += gc;
     q2 = new_q2;
-    let (coeffs , new_r, gc) = add_in_place_evaluate(r, q1);
-    gate_count += gc;
-    ellc.push(coeffs);
-    r = new_r;
-    let (coeffs, _new_r, gc) = add_in_place_evaluate(r, q2);
-    gate_count += gc;
-    ellc.push(coeffs);
+
+    // let (coeffs, new_r, gc) = add_in_place_evaluate(r, q1);
+    // gate_count += gc;
+    // ellc.push(coeffs);
     // r = new_r;
+    let ((new_r, coeffs), gc) = (add_in_place2(g2p_from_wires_unchecked(r), &g2a_from_wires(q1)), GateCount::add_in_place());
+    ellc.push((wires_set_from_fq2(coeffs.0), wires_set_from_fq2(coeffs.1), wires_set_from_fq2(coeffs.2)));
+    gate_count += gc;
+    r = wires_set_from_g2p(new_r);
+
+    // let (coeffs, _new_r, gc) = add_in_place_evaluate(r, q2);
+    // gate_count += gc;
+    // ellc.push(coeffs);
+    // // r = new_r;
+    let ((_new_r, coeffs), gc) = (add_in_place2(g2p_from_wires_unchecked(r), &g2a_from_wires(q2)), GateCount::add_in_place());
+    ellc.push((wires_set_from_fq2(coeffs.0), wires_set_from_fq2(coeffs.1), wires_set_from_fq2(coeffs.2)));
+    gate_count += gc;
+    // r = wires_set_from_g2p(new_r);
+
     (ellc, gate_count)
 }
 
@@ -345,15 +399,12 @@ pub fn ell_circuit(f: Wires, coeffs: (Wires, Wires, Wires), p: Wires) -> Circuit
     circuit
 }
 
-pub fn ell_circuit_evaluate(f: Wires, coeffs: (Wires, Wires, Wires), p: Wires) -> (Wires, usize) {
+pub fn ell_evaluate(f: Wires, coeffs: (Wires, Wires, Wires), p: Wires) -> (Wires, GateCount) {
     let circuit = ell_circuit(f, coeffs, p);
-
-    let n = circuit.1.len();
-
+    let n = circuit.gate_counts();
     for mut gate in circuit.1 {
         gate.evaluate();
     }
-
     (circuit.0, n)
 }
 
@@ -374,15 +425,12 @@ pub fn ell_by_constant_circuit(f: Wires, coeffs: (ark_bn254::Fq2, ark_bn254::Fq2
     circuit
 }
 
-pub fn ell_by_constant_circuit_evaluate(f: Wires, coeffs: (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2), p: Wires) -> (Wires, usize) {
+pub fn ell_by_constant_evaluate(f: Wires, coeffs: (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2), p: Wires) -> (Wires, GateCount) {
     let circuit = ell_by_constant_circuit(f, coeffs, p);
-
-    let n = circuit.1.len();
-
+    let n = circuit.gate_counts();
     for mut gate in circuit.1 {
         gate.evaluate();
     }
-
     (circuit.0, n)
 }
 
@@ -410,9 +458,9 @@ pub fn miller_loop(p: ark_bn254::G1Projective, q: ark_bn254::G2Affine) -> ark_bn
     f
 }
 
-pub fn miller_loop_circuit_evaluate(p: Wires, q: Wires) -> (Wires, usize) {
-    let mut gate_count = 0;
-    let (qell, gc) = (ell_coeffs(g2a_from_wires(q)).iter().map(|(c0, c1, c2)| { (wires_set_from_fq2(*c0), wires_set_from_fq2(*c1), wires_set_from_fq2(*c2)) }).collect::<Vec<_>>(), 4290000000); // ell_coeffs_circuit_evaluate(q);
+pub fn miller_loop_evaluate(p: Wires, q: Wires) -> (Wires, GateCount) {
+    let mut gate_count = GateCount::zero();
+    let (qell, gc) = ell_coeffs_evaluate(q);
     gate_count += gc;
     let mut q_ell = qell.iter();
 
@@ -420,31 +468,31 @@ pub fn miller_loop_circuit_evaluate(p: Wires, q: Wires) -> (Wires, usize) {
 
     for i in (1..ark_bn254::Config::ATE_LOOP_COUNT.len()).rev() {
         if i != ark_bn254::Config::ATE_LOOP_COUNT.len() - 1 {
-            let (new_f, gc) = (wires_set_from_fq12(fq12_from_wires(f).square()), 70631715); // Fq12::square_evaluate(f);
+            let (new_f, gc) = (wires_set_from_fq12(fq12_from_wires(f).square()), GateCount::fq12_square()); // Fq12::square_evaluate(f);
             f = new_f;
             gate_count += gc;
         }
 
         let qell_next = q_ell.next().unwrap().clone();
-        let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), 67030677); // ell_circuit_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
+        let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), GateCount::ell()); // ell_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
         f = new_f;
         gate_count += gc;
 
         let bit = ark_bn254::Config::ATE_LOOP_COUNT[i - 1];
         if bit == 1 || bit == -1 {
             let qell_next = q_ell.next().unwrap().clone();
-            let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), 67030677); // ell_circuit_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
+            let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), GateCount::ell()); // ell_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
             f = new_f;
             gate_count += gc;
         }
     }
 
     let qell_next = q_ell.next().unwrap().clone();
-    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), 67030677); // ell_circuit_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
+    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), GateCount::ell()); // ell_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
     f = new_f;
     gate_count += gc;
     let qell_next = q_ell.next().unwrap().clone();
-    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), 67030677); // ell_circuit_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
+    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), GateCount::ell()); // ell_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
     f = new_f;
     gate_count += gc;
 
@@ -499,11 +547,11 @@ pub fn multi_miller_loop(ps: Vec<ark_bn254::G1Projective>, qs: Vec<ark_bn254::G2
     f
 }
 
-pub fn multi_miller_loop_circuit_evaluate(ps: Vec<Wires>, qs: Vec<Wires>) -> (Wires, usize) {
-    let mut gate_count = 0;
+pub fn multi_miller_loop_evaluate(ps: Vec<Wires>, qs: Vec<Wires>) -> (Wires, GateCount) {
+    let mut gate_count = GateCount::zero();
     let mut qells = Vec::new();
     for q in qs {
-        let (qell, gc) = (ell_coeffs(g2a_from_wires(q)).iter().map(|(c0, c1, c2)| { (wires_set_from_fq2(*c0), wires_set_from_fq2(*c1), wires_set_from_fq2(*c2)) }).collect::<Vec<_>>(), 4290000000); // ell_coeffs_circuit_evaluate(q);
+        let (qell, gc) = ell_coeffs_evaluate(q);
         gate_count += gc;
         qells.push(qell);
     }
@@ -521,14 +569,14 @@ pub fn multi_miller_loop_circuit_evaluate(ps: Vec<Wires>, qs: Vec<Wires>) -> (Wi
 
     for i in (1..ark_bn254::Config::ATE_LOOP_COUNT.len()).rev() {
         if i != ark_bn254::Config::ATE_LOOP_COUNT.len() - 1 {
-            let (new_f, gc) = (wires_set_from_fq12(fq12_from_wires(f).square()), 70631715); // Fq12::square_evaluate(f);
+            let (new_f, gc) = (wires_set_from_fq12(fq12_from_wires(f).square()), GateCount::fq12_square()); // Fq12::square_evaluate(f);
             f = new_f;
             gate_count += gc;
         }
 
         let qells_next = q_ells.next().unwrap().clone();
         for (qell_next, p) in zip(qells_next, ps.clone()) {
-            let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), 67030677); // ell_circuit_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
+            let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), GateCount::ell()); // ell_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
             f = new_f;
             gate_count += gc;
         }
@@ -537,7 +585,7 @@ pub fn multi_miller_loop_circuit_evaluate(ps: Vec<Wires>, qs: Vec<Wires>) -> (Wi
         if bit == 1 || bit == -1 {
             let qells_next = q_ells.next().unwrap().clone();
             for (qell_next, p) in zip(qells_next, ps.clone()) {
-                let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), 67030677); // ell_circuit_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
+                let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), GateCount::ell()); // ell_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
                 f = new_f;
                 gate_count += gc;
             }
@@ -546,24 +594,24 @@ pub fn multi_miller_loop_circuit_evaluate(ps: Vec<Wires>, qs: Vec<Wires>) -> (Wi
 
     let qells_next = q_ells.next().unwrap().clone();
     for (qell_next, p) in zip(qells_next, ps.clone()) {
-        let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), 67030677); // ell_circuit_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
+        let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), GateCount::ell()); // ell_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
         f = new_f;
         gate_count += gc;
     }
     let qells_next = q_ells.next().unwrap().clone();
     for (qell_next, p) in zip(qells_next, ps.clone()) {
-        let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), 67030677); // ell_circuit_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
+        let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(qell_next.0), fq2_from_wires(qell_next.1), fq2_from_wires(qell_next.2)), g1p_from_wires(p.clone()))), GateCount::ell()); // ell_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
         f = new_f;
         gate_count += gc;
     }
     (f, gate_count)
 }
 
-pub fn multi_miller_loop_groth16_circuit_evaluate(p1: Wires, p2: Wires, p3: Wires, q1: ark_bn254::G2Affine, q2: ark_bn254::G2Affine, q3: Wires) -> (Wires, usize) {
-    let mut gate_count = 0;
+pub fn multi_miller_loop_groth16_evaluate(p1: Wires, p2: Wires, p3: Wires, q1: ark_bn254::G2Affine, q2: ark_bn254::G2Affine, q3: Wires) -> (Wires, GateCount) {
+    let mut gate_count = GateCount::zero();
     let q1ell = ell_coeffs(q1);
     let q2ell = ell_coeffs(q2);
-    let (q3ell, gc) = (ell_coeffs(g2a_from_wires(q3)).iter().map(|(c0, c1, c2)| { (wires_set_from_fq2(*c0), wires_set_from_fq2(*c1), wires_set_from_fq2(*c2)) }).collect::<Vec<_>>(), 4290000000); // ell_coeffs_circuit_evaluate(q3);
+    let (q3ell, gc) = ell_coeffs_evaluate(q3);
     gate_count += gc;
     let mut q1_ell = q1ell.iter();
     let mut q2_ell = q2ell.iter();
@@ -573,72 +621,72 @@ pub fn multi_miller_loop_groth16_circuit_evaluate(p1: Wires, p2: Wires, p3: Wire
 
     for i in (1..ark_bn254::Config::ATE_LOOP_COUNT.len()).rev() {
         if i != ark_bn254::Config::ATE_LOOP_COUNT.len() - 1 {
-            let (new_f, gc) = (wires_set_from_fq12(fq12_from_wires(f).square()), 70631715); // Fq12::square_evaluate(f);
+            let (new_f, gc) = (wires_set_from_fq12(fq12_from_wires(f).square()), GateCount::fq12_square()); // Fq12::square_evaluate(f);
             f = new_f;
             gate_count += gc;
         }
 
         let q1ell_next = q1_ell.next().unwrap();
-        let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), *q1ell_next, g1p_from_wires(p1.clone()))), 58977252); // ell_by_constant_circuit_evaluate(f, q1_ell.next().unwrap().clone(), p.clone());
+        let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), *q1ell_next, g1p_from_wires(p1.clone()))), GateCount::ell_by_constant()); // ell_by_constant_evaluate(f, q1_ell.next().unwrap().clone(), p.clone());
         f = new_f;
         gate_count += gc;
 
         let q2ell_next = q2_ell.next().unwrap();
-        let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), *q2ell_next, g1p_from_wires(p2.clone()))), 58977252); // ell_by_constant_circuit_evaluate(f, q2_ell.next().unwrap().clone(), p.clone());
+        let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), *q2ell_next, g1p_from_wires(p2.clone()))), GateCount::ell_by_constant()); // ell_by_constant_evaluate(f, q2_ell.next().unwrap().clone(), p.clone());
         f = new_f;
         gate_count += gc;
 
         let q3ell_next = q3_ell.next().unwrap().clone();
-        let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(q3ell_next.0), fq2_from_wires(q3ell_next.1), fq2_from_wires(q3ell_next.2)), g1p_from_wires(p3.clone()))), 67030677); // ell_circuit_evaluate(f, q3_ell.next().unwrap().clone(), p.clone());
+        let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(q3ell_next.0), fq2_from_wires(q3ell_next.1), fq2_from_wires(q3ell_next.2)), g1p_from_wires(p3.clone()))), GateCount::ell()); // ell_evaluate(f, q3_ell.next().unwrap().clone(), p.clone());
         f = new_f;
         gate_count += gc;
 
         let bit = ark_bn254::Config::ATE_LOOP_COUNT[i - 1];
         if bit == 1 || bit == -1 {
             let q1ell_next = q1_ell.next().unwrap();
-            let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), *q1ell_next, g1p_from_wires(p1.clone()))), 58977252); // ell_by_constant_circuit_evaluate(f, q1_ell.next().unwrap().clone(), p.clone());
+            let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), *q1ell_next, g1p_from_wires(p1.clone()))), GateCount::ell_by_constant()); // ell_by_constant_evaluate(f, q1_ell.next().unwrap().clone(), p.clone());
             f = new_f;
             gate_count += gc;
 
             let q2ell_next = q2_ell.next().unwrap();
-            let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), *q2ell_next, g1p_from_wires(p2.clone()))), 58977252); // ell_by_constant_circuit_evaluate(f, q2_ell.next().unwrap().clone(), p.clone());
+            let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), *q2ell_next, g1p_from_wires(p2.clone()))), GateCount::ell_by_constant()); // ell_by_constant_evaluate(f, q2_ell.next().unwrap().clone(), p.clone());
             f = new_f;
             gate_count += gc;
 
             let q3ell_next = q3_ell.next().unwrap().clone();
-            let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(q3ell_next.0), fq2_from_wires(q3ell_next.1), fq2_from_wires(q3ell_next.2)), g1p_from_wires(p3.clone()))), 67030677); // ell_circuit_evaluate(f, q3_ell.next().unwrap().clone(), p.clone());
+            let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(q3ell_next.0), fq2_from_wires(q3ell_next.1), fq2_from_wires(q3ell_next.2)), g1p_from_wires(p3.clone()))), GateCount::ell()); // ell_evaluate(f, q3_ell.next().unwrap().clone(), p.clone());
             f = new_f;
             gate_count += gc;
         }
     }
 
     let q1ell_next = q1_ell.next().unwrap();
-    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), *q1ell_next, g1p_from_wires(p1.clone()))), 58977252); // ell_by_constant_circuit_evaluate(f, q1_ell.next().unwrap().clone(), p.clone());
+    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), *q1ell_next, g1p_from_wires(p1.clone()))), GateCount::ell_by_constant()); // ell_by_constant_evaluate(f, q1_ell.next().unwrap().clone(), p.clone());
     f = new_f;
     gate_count += gc;
 
     let q2ell_next = q2_ell.next().unwrap();
-    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), *q2ell_next, g1p_from_wires(p2.clone()))), 58977252); // ell_by_constant_circuit_evaluate(f, q2_ell.next().unwrap().clone(), p.clone());
+    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), *q2ell_next, g1p_from_wires(p2.clone()))), GateCount::ell_by_constant()); // ell_by_constant_evaluate(f, q2_ell.next().unwrap().clone(), p.clone());
     f = new_f;
     gate_count += gc;
 
     let q3ell_next = q3_ell.next().unwrap().clone();
-    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(q3ell_next.0), fq2_from_wires(q3ell_next.1), fq2_from_wires(q3ell_next.2)), g1p_from_wires(p3.clone()))), 67030677); // ell_circuit_evaluate(f, q3_ell.next().unwrap().clone(), p.clone());
+    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(q3ell_next.0), fq2_from_wires(q3ell_next.1), fq2_from_wires(q3ell_next.2)), g1p_from_wires(p3.clone()))), GateCount::ell()); // ell_evaluate(f, q3_ell.next().unwrap().clone(), p.clone());
     f = new_f;
     gate_count += gc;
 
     let q1ell_next = q1_ell.next().unwrap();
-    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), *q1ell_next, g1p_from_wires(p1.clone()))), 58977252); // ell_by_constant_circuit_evaluate(f, q1_ell.next().unwrap().clone(), p.clone());
+    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), *q1ell_next, g1p_from_wires(p1.clone()))), GateCount::ell_by_constant()); // ell_by_constant_evaluate(f, q1_ell.next().unwrap().clone(), p.clone());
     f = new_f;
     gate_count += gc;
 
     let q2ell_next = q2_ell.next().unwrap();
-    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), *q2ell_next, g1p_from_wires(p2.clone()))), 58977252); // ell_by_constant_circuit_evaluate(f, q2_ell.next().unwrap().clone(), p.clone());
+    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), *q2ell_next, g1p_from_wires(p2.clone()))), GateCount::ell_by_constant()); // ell_by_constant_evaluate(f, q2_ell.next().unwrap().clone(), p.clone());
     f = new_f;
     gate_count += gc;
 
     let q3ell_next = q3_ell.next().unwrap().clone();
-    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(q3ell_next.0), fq2_from_wires(q3ell_next.1), fq2_from_wires(q3ell_next.2)), g1p_from_wires(p3.clone()))), 67030677); // ell_circuit_evaluate(f, q3_ell.next().unwrap().clone(), p.clone());
+    let (new_f, gc) = (wires_set_from_fq12(ell2(fq12_from_wires(f), (fq2_from_wires(q3ell_next.0), fq2_from_wires(q3ell_next.1), fq2_from_wires(q3ell_next.2)), g1p_from_wires(p3.clone()))), GateCount::ell()); // ell_evaluate(f, q3_ell.next().unwrap().clone(), p.clone());
     f = new_f;
     gate_count += gc;
 
@@ -648,7 +696,6 @@ pub fn multi_miller_loop_groth16_circuit_evaluate(p1: Wires, p2: Wires, p3: Wire
 #[cfg(test)]
 mod tests {
     use std::iter::zip;
-
     use ark_ff::UniformRand;
     use ark_std::rand::SeedableRng;
     use ark_ec::pairing::Pairing;
@@ -657,12 +704,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_double_in_place_circuit() {
+    fn test_double_in_place() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let mut r = ark_bn254::G2Projective::rand(&mut prng);
 
         let circuit = double_in_place_circuit(wires_set_from_g2p(r));
-        circuit.print_gate_type_counts();
+        circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -682,36 +729,13 @@ mod tests {
     }
 
     #[test]
-    fn test_double_in_place_circuit_evaluate() {
-        let mut prng = ChaCha20Rng::seed_from_u64(0);
-        let mut r = ark_bn254::G2Projective::rand(&mut prng);
-
-        let ((c0, c1, c2), new_r, gate_count) = double_in_place_evaluate(wires_set_from_g2p(r));
-        println!("gate_count: {:?}", gate_count);
-
-        let c0 = fq2_from_wires(c0);
-        let c1 = fq2_from_wires(c1);
-        let c2 = fq2_from_wires(c2);
-        let rx = fq2_from_wires(new_r[0*Fq2::N_BITS..1*Fq2::N_BITS].to_vec());
-        let ry = fq2_from_wires(new_r[1*Fq2::N_BITS..2*Fq2::N_BITS].to_vec());
-        let rz = fq2_from_wires(new_r[2*Fq2::N_BITS..3*Fq2::N_BITS].to_vec());
-        let coeffs = double_in_place(&mut r);
-        assert_eq!(c0, coeffs.0);
-        assert_eq!(c1, coeffs.1);
-        assert_eq!(c2, coeffs.2);
-        assert_eq!(r.x, rx);
-        assert_eq!(r.y, ry);
-        assert_eq!(r.z, rz);
-    }
-
-    #[test]
-    fn test_add_in_place_circuit() {
+    fn test_add_in_place() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let mut r = ark_bn254::G2Projective::rand(&mut prng);
         let q = ark_bn254::G2Affine::rand(&mut prng);
 
         let circuit = add_in_place_circuit(wires_set_from_g2p(r), wires_set_from_g2a(q));
-        circuit.print_gate_type_counts();
+        circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -731,12 +755,12 @@ mod tests {
     }
 
     #[test]
-    fn test_mul_by_char_circuit() {
+    fn test_mul_by_char() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let q = ark_bn254::G2Affine::rand(&mut prng);
 
         let circuit = mul_by_char_circuit(wires_set_from_g2a(q));
-        circuit.print_gate_type_counts();
+        circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -748,13 +772,13 @@ mod tests {
     }
 
     #[test]
-    fn test_ell_coeffs_circuit_evaluate() {
+    fn test_ell_coeffs_evaluate() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let q = ark_bn254::G2Affine::rand(&mut prng);
 
         let expected_coeffs = ell_coeffs(q);
-        let (coeffs, gate_count) = ell_coeffs_circuit_evaluate(wires_set_from_g2a(q));
-        println!("gate_count: {:?}", gate_count);
+        let (coeffs, gate_count) = ell_coeffs_evaluate(wires_set_from_g2a(q));
+        gate_count.print();
         
         for (a, b) in zip(coeffs, expected_coeffs) {
             assert_eq!(fq2_from_wires(a.0), b.0);
@@ -764,14 +788,14 @@ mod tests {
     }
     
     #[test]
-    fn test_ell_circuit() {
+    fn test_ell() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let mut f = ark_bn254::Fq12::rand(&mut prng);
         let coeffs = (ark_bn254::Fq2::rand(&mut prng), ark_bn254::Fq2::rand(&mut prng), ark_bn254::Fq2::rand(&mut prng));
         let p = ark_bn254::G1Projective::rand(&mut prng);
 
         let circuit = ell_circuit(wires_set_from_fq12(f), (wires_set_from_fq2(coeffs.0), wires_set_from_fq2(coeffs.1), wires_set_from_fq2(coeffs.2)), wires_set_from_g1p(p));
-        circuit.print_gate_type_counts();
+        circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -781,14 +805,14 @@ mod tests {
     }
 
     #[test]
-    fn test_ell_by_constant_circuit() {
+    fn test_ell_by_constant() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let mut f = ark_bn254::Fq12::rand(&mut prng);
         let coeffs = (ark_bn254::Fq2::rand(&mut prng), ark_bn254::Fq2::rand(&mut prng), ark_bn254::Fq2::rand(&mut prng));
         let p = ark_bn254::G1Projective::rand(&mut prng);
 
         let circuit = ell_by_constant_circuit(wires_set_from_fq12(f), coeffs, wires_set_from_g1p(p));
-        circuit.print_gate_type_counts();
+        circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -809,14 +833,14 @@ mod tests {
     }
 
     #[test]
-    fn test_miller_loop_circuit_evaluate() {
+    fn test_miller_loop_evaluate() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let p = ark_bn254::G1Projective::rand(&mut prng);
         let q = ark_bn254::G2Affine::rand(&mut prng);
 
         let expected_f = miller_loop(p, q);
-        let (f, gate_count) = miller_loop_circuit_evaluate(wires_set_from_g1p(p), wires_set_from_g2a(q));
-        println!("gate_count: {:?}", gate_count);
+        let (f, gate_count) = miller_loop_evaluate(wires_set_from_g1p(p), wires_set_from_g2a(q));
+        gate_count.print();
         
         assert_eq!(fq12_from_wires(f), expected_f);
     }
@@ -834,21 +858,21 @@ mod tests {
     }
 
     #[test]
-    fn test_multi_miller_loop_circuit_evaluate() {
+    fn test_multi_miller_loop_evaluate() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let n = 3;
         let ps = (0..n).map(|_| { ark_bn254::G1Projective::rand(&mut prng) }).collect::<Vec<_>>();
         let qs = (0..n).map(|_| { ark_bn254::G2Affine::rand(&mut prng) }).collect::<Vec<_>>();
 
         let expected_f = multi_miller_loop(ps.clone(), qs.clone());
-        let (f, gate_count) = multi_miller_loop_circuit_evaluate(ps.iter().map(|p| { wires_set_from_g1p(*p) }).collect(), qs.iter().map(|q| { wires_set_from_g2a(*q) }).collect());
-        println!("gate_count: {:?}", gate_count);
+        let (f, gate_count) = multi_miller_loop_evaluate(ps.iter().map(|p| { wires_set_from_g1p(*p) }).collect(), qs.iter().map(|q| { wires_set_from_g2a(*q) }).collect());
+        gate_count.print();
         
         assert_eq!(fq12_from_wires(f), expected_f);
     }
 
     #[test]
-    fn test_multi_miller_loop_groth16_circuit_evaluate() {
+    fn test_multi_miller_loop_groth16_evaluate() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let p1 = ark_bn254::G1Projective::rand(&mut prng);
         let p2 = ark_bn254::G1Projective::rand(&mut prng);
@@ -858,8 +882,8 @@ mod tests {
         let q3 = ark_bn254::G2Affine::rand(&mut prng);
 
         let expected_f = multi_miller_loop(vec![p1, p2, p3], vec![q1, q2, q3]);
-        let (f, gate_count) = multi_miller_loop_groth16_circuit_evaluate(wires_set_from_g1p(p1), wires_set_from_g1p(p2), wires_set_from_g1p(p3), q1, q2, wires_set_from_g2a(q3));
-        println!("gate_count: {:?}", gate_count);
+        let (f, gate_count) = multi_miller_loop_groth16_evaluate(wires_set_from_g1p(p1), wires_set_from_g1p(p2), wires_set_from_g1p(p3), q1, q2, wires_set_from_g2a(q3));
+        gate_count.print();
         
         assert_eq!(fq12_from_wires(f), expected_f);
     }

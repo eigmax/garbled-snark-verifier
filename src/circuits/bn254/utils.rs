@@ -304,6 +304,17 @@ pub fn g2p_from_bits(bits: Vec<bool>) -> ark_bn254::G2Projective {
     )
 }
 
+pub fn g2p_from_bits_unchecked(bits: Vec<bool>) -> ark_bn254::G2Projective {
+    let bits1 = &bits[0..Fq2::N_BITS].to_vec();
+    let bits2 = &bits[Fq2::N_BITS..Fq2::N_BITS * 2].to_vec();
+    let bits3 = &bits[Fq2::N_BITS * 2..Fq2::N_BITS * 3].to_vec();
+    ark_bn254::G2Projective {
+        x: fq2_from_bits(bits1.clone()),
+        y: fq2_from_bits(bits2.clone()),
+        z: fq2_from_bits(bits3.clone()),
+    }
+}
+
 pub fn wires_for_g2p() -> Wires {
     (0..G2Projective::N_BITS)
         .map(|_| Rc::new(RefCell::new(Wire::new())))
@@ -323,6 +334,10 @@ pub fn wires_set_from_g2p(u: ark_bn254::G2Projective) -> Wires {
 
 pub fn g2p_from_wires(wires: Wires) -> ark_bn254::G2Projective {
     g2p_from_bits(wires.iter().map(|wire| wire.borrow().get_value()).collect())
+}
+
+pub fn g2p_from_wires_unchecked(wires: Wires) -> ark_bn254::G2Projective {
+    g2p_from_bits_unchecked(wires.iter().map(|wire| wire.borrow().get_value()).collect())
 }
 
 pub fn bits_from_g2a(u: ark_bn254::G2Affine) -> Vec<bool> {

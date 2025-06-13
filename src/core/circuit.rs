@@ -1,4 +1,4 @@
-use crate::bag::*;
+use crate::{bag::*, core::gate::GateCount};
 
 pub struct Circuit(pub Wires, pub Vec<Gate>);
 
@@ -36,16 +36,29 @@ impl Circuit {
         self.1.len()
     }
 
-    // this makes tests run longer, comment out if you want to use it
-    pub fn print_gate_type_counts(&self) {
-        // for gate_type in ["and", "nand", "or", "nsor", "nimp", "xor", "xnor", "not"] {
-        //     println!(
-        //         "{:?}\t: {:?}",
-        //         gate_type,
-        //         self.1.iter().filter(|gate| gate.name == gate_type).count()
-        //     );
-        // }
-        println!("total gate count: {:?}", self.gate_count());
+    pub fn gate_counts(&self) -> GateCount {
+        let mut and = 0;
+        let mut or = 0;
+        let mut xor = 0;
+        let mut nand = 0;
+        let mut not = 0;
+        let mut xnor = 0;
+        let mut nimp = 0;
+        let mut nsor = 0;
+        for gate in self.1.clone() {
+            match gate.name.as_str() {
+                "and" => and += 1,
+                "or" => or += 1,
+                "xor" => xor += 1,
+                "nand" => nand += 1,
+                "inv" | "not" => not += 1,
+                "xnor" => xnor += 1,
+                "nimp" => nimp += 1,
+                "nsor" => nsor += 1,
+                _ => panic!("this gate type is not allowed"),
+            }
+        }
+        GateCount {and, or, xor, nand, not, xnor, nimp, nsor}
     }
 }
 
