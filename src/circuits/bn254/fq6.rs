@@ -58,6 +58,10 @@ impl Fq6 {
             .collect()
     }
 
+    pub fn wires_set_montgomery(u: ark_bn254::Fq6) -> Wires {
+        Self::wires_set(Self::as_montgomery(u))
+    }
+
     pub fn from_wires(wires: Wires) -> ark_bn254::Fq6 {
         Self::from_bits(wires.iter().map(|wire| wire.borrow().get_value()).collect())
     }
