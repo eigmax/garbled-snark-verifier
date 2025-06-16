@@ -295,7 +295,7 @@ pub trait Fp254Impl {
             return circuit;
         }
 
-        if b == ark_bn254::Fq::ONE {
+        if b == Fq::as_montgomery(ark_bn254::Fq::ONE) {
             circuit.add_wires(a);
             return circuit;
         }
@@ -490,6 +490,20 @@ pub trait Fp254Impl {
             k = circuit.extend(U254::select(k, updated_k, selector[0].clone()));
         }
         circuit.add_wires(s.clone());
+        circuit
+    }
+
+    fn inverse_montgomery(a: Wires) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let b = circuit.extend(Fq::inverse(a.clone()));
+        let result = circuit.extend(Fq::mul_by_constant(
+            b,
+            ark_bn254::Fq::from(Fq::montgomery_r_as_biguint()).square(),
+        ));
+
+        circuit.add_wires(result);
         circuit
     }
 

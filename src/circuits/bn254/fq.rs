@@ -92,7 +92,7 @@ impl Fq {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ff::Field;
+    use ark_ff::{AdditiveGroup, Field};
 
     #[test]
     fn test_fq_random() {
@@ -234,6 +234,41 @@ mod tests {
     }
 
     #[test]
+    fn test_fq_mul_by_constant_montgomery() {
+        let a = Fq::random();
+        let b = Fq::random();
+        let c = ark_bn254::Fq::ONE;
+        let d = ark_bn254::Fq::ZERO;
+
+        let circuit =
+            Fq::mul_by_constant_montgomery(Fq::wires_set_montgomery(a), Fq::as_montgomery(b));
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let e = Fq::from_wires(circuit.0);
+        assert_eq!(e, Fq::as_montgomery(a * b));
+
+        let circuit =
+            Fq::mul_by_constant_montgomery(Fq::wires_set_montgomery(a), Fq::as_montgomery(c));
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let e = Fq::from_wires(circuit.0);
+        assert_eq!(e, Fq::as_montgomery(a * c));
+
+        let circuit =
+            Fq::mul_by_constant_montgomery(Fq::wires_set_montgomery(a), Fq::as_montgomery(d));
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let e = Fq::from_wires(circuit.0);
+        assert_eq!(e, Fq::as_montgomery(a * d));
+    }
+
+    #[test]
     fn test_fq_square() {
         let a = Fq::random();
         let circuit = Fq::square(Fq::wires_set(a));
@@ -246,6 +281,18 @@ mod tests {
     }
 
     #[test]
+    fn test_fq_square_montgomery() {
+        let a = Fq::random();
+        let circuit = Fq::square_montgomery(Fq::wires_set_montgomery(a));
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = Fq::from_wires(circuit.0);
+        assert_eq!(c, Fq::as_montgomery(a * a));
+    }
+
+    #[test]
     fn test_fq_inverse() {
         let a = Fq::random();
         let circuit = Fq::inverse(Fq::wires_set(a));
@@ -254,7 +301,19 @@ mod tests {
             gate.evaluate();
         }
         let c = Fq::from_wires(circuit.0);
-        assert_eq!(c.inverse().unwrap(), a);
+        assert_eq!(c, a.inverse().unwrap());
+    }
+
+    #[test]
+    fn test_fq_inverse_montgomery() {
+        let a = Fq::random();
+        let circuit = Fq::inverse_montgomery(Fq::wires_set_montgomery(a));
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = Fq::from_wires(circuit.0);
+        assert_eq!(c, Fq::as_montgomery(a.inverse().unwrap()));
     }
 
     #[test]

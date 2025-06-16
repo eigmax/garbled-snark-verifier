@@ -227,6 +227,30 @@ impl Fq2 {
         circuit
     }
 
+    pub fn mul_by_constant_montgomery(a: Wires, b: ark_bn254::Fq2) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        if b == ark_bn254::Fq2::ONE {
+            circuit.add_wires(a);
+            return circuit;
+        }
+
+        let a_c0 = a[0..Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
+
+        let wires_1 = circuit.extend(Fq::add(a_c0.clone(), a_c1.clone()));
+        let wires_2 = circuit.extend(Fq::mul_by_constant_montgomery(a_c0.clone(), b.c0));
+        let wires_3 = circuit.extend(Fq::mul_by_constant_montgomery(a_c1.clone(), b.c1));
+        let wires_4 = circuit.extend(Fq::mul_by_constant_montgomery(wires_1.clone(), b.c0 + b.c1));
+        let wires_5 = circuit.extend(Fq::sub(wires_2.clone(), wires_3.clone()));
+        let wires_6 = circuit.extend(Fq::add(wires_2.clone(), wires_3.clone()));
+        let wires_7 = circuit.extend(Fq::sub(wires_4.clone(), wires_6.clone()));
+        circuit.add_wires(wires_5);
+        circuit.add_wires(wires_7);
+        circuit
+    }
+
     pub fn mul_by_fq(a: Wires, b: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         assert_eq!(b.len(), Fq::N_BITS);
@@ -237,6 +261,21 @@ impl Fq2 {
 
         let wires_1 = circuit.extend(Fq::mul(a_c0.clone(), b.clone()));
         let wires_2 = circuit.extend(Fq::mul(a_c1.clone(), b.clone()));
+        circuit.add_wires(wires_1);
+        circuit.add_wires(wires_2);
+        circuit
+    }
+
+    pub fn mul_by_fq_montgomery(a: Wires, b: Wires) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        assert_eq!(b.len(), Fq::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
+
+        let wires_1 = circuit.extend(Fq::mul_montgomery(a_c0.clone(), b.clone()));
+        let wires_2 = circuit.extend(Fq::mul_montgomery(a_c1.clone(), b.clone()));
         circuit.add_wires(wires_1);
         circuit.add_wires(wires_2);
         circuit
@@ -256,12 +295,37 @@ impl Fq2 {
         circuit
     }
 
+    pub fn mul_by_constant_fq_montgomery(a: Wires, b: ark_bn254::Fq) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
+
+        let wires_1 = circuit.extend(Fq::mul_by_constant_montgomery(a_c0.clone(), b));
+        let wires_2 = circuit.extend(Fq::mul_by_constant_montgomery(a_c1.clone(), b));
+        circuit.add_wires(wires_1);
+        circuit.add_wires(wires_2);
+        circuit
+    }
+
     pub fn mul_constant_by_fq(a: ark_bn254::Fq2, b: Wires) -> Circuit {
         assert_eq!(b.len(), Fq::N_BITS);
         let mut circuit = Circuit::empty();
 
         let wires_1 = circuit.extend(Fq::mul_by_constant(b.clone(), a.c0));
         let wires_2 = circuit.extend(Fq::mul_by_constant(b.clone(), a.c1));
+        circuit.add_wires(wires_1);
+        circuit.add_wires(wires_2);
+        circuit
+    }
+
+    pub fn mul_constant_by_fq_montgomery(a: ark_bn254::Fq2, b: Wires) -> Circuit {
+        assert_eq!(b.len(), Fq::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let wires_1 = circuit.extend(Fq::mul_by_constant_montgomery(b.clone(), a.c0));
+        let wires_2 = circuit.extend(Fq::mul_by_constant_montgomery(b.clone(), a.c1));
         circuit.add_wires(wires_1);
         circuit.add_wires(wires_2);
         circuit
@@ -307,6 +371,25 @@ impl Fq2 {
         circuit
     }
 
+    pub fn square_montgomery(a: Wires) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
+
+        let wires_1 = circuit.extend(Fq::add(a_c0.clone(), a_c1.clone()));
+        let wires_2 = circuit.extend(Fq::square_montgomery(a_c0.clone()));
+        let wires_3 = circuit.extend(Fq::square_montgomery(a_c1.clone()));
+        let wires_4 = circuit.extend(Fq::add(wires_2.clone(), wires_3.clone()));
+        let wires_5 = circuit.extend(Fq::sub(wires_2.clone(), wires_3.clone()));
+        let wires_6 = circuit.extend(Fq::square_montgomery(wires_1.clone()));
+        let wires_7 = circuit.extend(Fq::sub(wires_6.clone(), wires_4.clone()));
+        circuit.add_wires(wires_5);
+        circuit.add_wires(wires_7);
+        circuit
+    }
+
     pub fn inverse(a: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
@@ -328,6 +411,27 @@ impl Fq2 {
         circuit
     }
 
+    pub fn inverse_montgomery(a: Wires) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
+
+        let a_c0_square = circuit.extend(Fq::square_montgomery(a_c0.clone()));
+        let a_c1_square = circuit.extend(Fq::square_montgomery(a_c1.clone()));
+        let norm = circuit.extend(Fq::add(a_c0_square, a_c1_square));
+        let inverse_norm = circuit.extend(Fq::inverse_montgomery(norm));
+
+        let res_c0 = circuit.extend(Fq::mul_montgomery(a_c0, inverse_norm.clone()));
+        let neg_a_c1 = circuit.extend(Fq::neg(a_c1));
+        let res_c1 = circuit.extend(Fq::mul_montgomery(neg_a_c1, inverse_norm.clone()));
+
+        circuit.add_wires(res_c0);
+        circuit.add_wires(res_c1);
+        circuit
+    }
+
     pub fn frobenius(a: Wires, i: usize) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
@@ -339,6 +443,25 @@ impl Fq2 {
             a_c1,
             ark_bn254::Fq2Config::FROBENIUS_COEFF_FP2_C1
                 [i % ark_bn254::Fq2Config::FROBENIUS_COEFF_FP2_C1.len()],
+        ));
+        circuit.0.extend(a_c0);
+        circuit.0.extend(result);
+        circuit
+    }
+
+    pub fn frobenius_montgomery(a: Wires, i: usize) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq::N_BITS].to_vec();
+        let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
+
+        let result = circuit.extend(Fq::mul_by_constant_montgomery(
+            a_c1,
+            Fq::as_montgomery(
+                ark_bn254::Fq2Config::FROBENIUS_COEFF_FP2_C1
+                    [i % ark_bn254::Fq2Config::FROBENIUS_COEFF_FP2_C1.len()],
+            ),
         ));
         circuit.0.extend(a_c0);
         circuit.0.extend(result);
@@ -480,6 +603,20 @@ mod tests {
     }
 
     #[test]
+    fn test_fq2_mul_by_constant_montgomery() {
+        let a = Fq2::random();
+        let b = Fq2::random();
+        let circuit =
+            Fq2::mul_by_constant_montgomery(Fq2::wires_set_montgomery(a), Fq2::as_montgomery(b));
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = Fq2::from_wires(circuit.0);
+        assert_eq!(c, Fq2::as_montgomery(a * b));
+    }
+
+    #[test]
     fn test_fq2_mul_by_fq() {
         let a = Fq2::random();
         let b = Fq::random();
@@ -493,6 +630,23 @@ mod tests {
     }
 
     #[test]
+    fn test_fq2_mul_by_fq_montgomery() {
+        let a = Fq2::random();
+        let b = Fq::random();
+        let circuit =
+            Fq2::mul_by_fq_montgomery(Fq2::wires_set_montgomery(a), Fq::wires_set_montgomery(b));
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = Fq2::from_wires(circuit.0);
+        assert_eq!(
+            c,
+            Fq2::as_montgomery(a * ark_bn254::Fq2::new(b, ark_bn254::Fq::ZERO))
+        );
+    }
+
+    #[test]
     fn test_fq2_mul_by_constant_fq() {
         let a = Fq2::random();
         let b = Fq::random();
@@ -503,6 +657,23 @@ mod tests {
         }
         let c = Fq2::from_wires(circuit.0);
         assert_eq!(c, a * ark_bn254::Fq2::new(b, ark_bn254::Fq::ZERO));
+    }
+
+    #[test]
+    fn test_fq2_mul_by_constant_fq_montgomery() {
+        let a = Fq2::random();
+        let b = Fq::random();
+        let circuit =
+            Fq2::mul_by_constant_fq_montgomery(Fq2::wires_set_montgomery(a), Fq::as_montgomery(b));
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = Fq2::from_wires(circuit.0);
+        assert_eq!(
+            c,
+            Fq2::as_montgomery(a * ark_bn254::Fq2::new(b, ark_bn254::Fq::ZERO))
+        );
     }
 
     #[test]
@@ -530,6 +701,18 @@ mod tests {
     }
 
     #[test]
+    fn test_fq2_square_montgomery() {
+        let a = Fq2::random();
+        let circuit = Fq2::square_montgomery(Fq2::wires_set_montgomery(a));
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = Fq2::from_wires(circuit.0);
+        assert_eq!(c, Fq2::as_montgomery(a * a));
+    }
+
+    #[test]
     fn test_fq2_inverse() {
         let a = Fq2::random();
         let circuit = Fq2::inverse(Fq2::wires_set(a));
@@ -538,7 +721,19 @@ mod tests {
             gate.evaluate();
         }
         let c = Fq2::from_wires(circuit.0);
-        assert_eq!(c.inverse().unwrap(), a);
+        assert_eq!(c, a.inverse().unwrap());
+    }
+
+    #[test]
+    fn test_fq2_inverse_montgomery() {
+        let a = Fq2::random();
+        let circuit = Fq2::inverse_montgomery(Fq2::wires_set_montgomery(a));
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = Fq2::from_wires(circuit.0);
+        assert_eq!(c, Fq2::as_montgomery(a.inverse().unwrap()));
     }
 
     #[test]
@@ -560,6 +755,27 @@ mod tests {
         }
         let c = Fq2::from_wires(circuit.0);
         assert_eq!(c, a.frobenius_map(1));
+    }
+
+    #[test]
+    fn test_fq2_frobenius_montgomery() {
+        let a = Fq2::random();
+
+        let circuit = Fq2::frobenius_montgomery(Fq2::wires_set_montgomery(a), 0);
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = Fq2::from_wires(circuit.0);
+        assert_eq!(c, Fq2::as_montgomery(a.frobenius_map(0)));
+
+        let circuit = Fq2::frobenius_montgomery(Fq2::wires_set_montgomery(a), 1);
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = Fq2::from_wires(circuit.0);
+        assert_eq!(c, Fq2::as_montgomery(a.frobenius_map(1)));
     }
 
     #[test]
