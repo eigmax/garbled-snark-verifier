@@ -79,6 +79,10 @@ impl Fr {
             .collect()
     }
 
+    pub fn wires_set_montgomery(u: ark_bn254::Fr) -> Wires {
+        Self::wires_set(Self::as_montgomery(u))
+    }
+
     pub fn from_wires(wires: Wires) -> ark_bn254::Fr {
         Self::from_bits(wires.iter().map(|wire| wire.borrow().get_value()).collect())
     }
