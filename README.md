@@ -49,9 +49,3 @@ this folder contains all the circuit functions. At the end, it will contain the 
 **bigint**: contains u254 circuits
 
 **bn254**: contains circuits related to bn254 curve such as field arithmetic circuits etc.
-
-## TODO
-
-- [x] Fq, Fq2, Fq6, Fq12 operations
-- [ ] G1::add, G1::double, G1::scalar_mul, msm.
-- [ ] G1 G2 line evaluation functions, Pairing
