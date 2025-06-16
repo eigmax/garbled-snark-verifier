@@ -1,9 +1,9 @@
 use crate::bag::*;
 use crate::circuits::bn254::finalexp::final_exponentiation_evaluate_fast;
 use crate::circuits::bn254::fq12::Fq12;
+use crate::circuits::bn254::fr::Fr;
 use crate::circuits::bn254::g1::G1Projective;
 use crate::circuits::bn254::pairing::multi_miller_loop_groth16_evaluate_fast;
-use crate::circuits::bn254::utils::{fr_from_wires, wires_set_from_g1p};
 use ark_ec::pairing::Pairing;
 use ark_ec::{AffineRepr, VariableBaseMSM};
 use ark_ff::Field;
@@ -40,8 +40,8 @@ pub fn groth16_verifier_evaluate(
 ) -> (Wirex, GateCount) {
     let mut gate_count = GateCount::zero();
     let (msm_temp, gc) = (
-        wires_set_from_g1p(
-            ark_bn254::G1Projective::msm(&[vk.gamma_abc_g1[1]], &[fr_from_wires(public.clone())])
+        G1Projective::wires_set(
+            ark_bn254::G1Projective::msm(&[vk.gamma_abc_g1[1]], &[Fr::from_wires(public.clone())])
                 .unwrap(),
         ),
         GateCount::msm(),
@@ -50,7 +50,7 @@ pub fn groth16_verifier_evaluate(
     gate_count += gc;
     let (msm, gc) = G1Projective::add_evaluate(
         msm_temp,
-        wires_set_from_g1p(vk.gamma_abc_g1[0].into_group()),
+        G1Projective::wires_set(vk.gamma_abc_g1[0].into_group()),
     );
     gate_count += gc;
 
@@ -72,7 +72,7 @@ pub fn groth16_verifier_evaluate(
     .0
     .inverse()
     .unwrap();
-    let (f, gc) = final_exponentiation_evaluate_fast(f); // wires_set_from_fq12(ark_bn254::Bn254::final_exponentiation(MillerLoopOutput(fq12_from_wires(f))).unwrap().0);
+    let (f, gc) = final_exponentiation_evaluate_fast(f); // Fq12::wires_set(ark_bn254::Bn254::final_exponentiation(MillerLoopOutput(Fq12::from_wires(f))).unwrap().0);
     gate_count += gc;
 
     let (result, gc) = Fq12::equal_constant_evaluate(f, alpha_beta);
@@ -82,8 +82,9 @@ pub fn groth16_verifier_evaluate(
 
 #[cfg(test)]
 mod tests {
+    use crate::circuits::bn254::g2::G2Affine;
+
     use super::*;
-    use crate::circuits::bn254::utils::{wires_set_from_fr, wires_set_from_g2a};
     use ark_crypto_primitives::snark::{CircuitSpecificSetupSNARK, SNARK};
     use ark_ff::{PrimeField, UniformRand};
     use ark_groth16::Groth16;
@@ -165,10 +166,10 @@ mod tests {
 
         println!("proof is correct in rust");
 
-        let public = wires_set_from_fr(c);
-        let proof_a = wires_set_from_g1p(proof.a.into_group());
-        let proof_b = wires_set_from_g2a(proof.b);
-        let proof_c = wires_set_from_g1p(proof.c.into_group());
+        let public = Fr::wires_set(c);
+        let proof_a = G1Projective::wires_set(proof.a.into_group());
+        let proof_b = G2Affine::wires_set(proof.b);
+        let proof_c = G1Projective::wires_set(proof.c.into_group());
 
         let (result, gate_count) = groth16_verifier_evaluate(public, proof_a, proof_b, proof_c, vk);
         gate_count.print();

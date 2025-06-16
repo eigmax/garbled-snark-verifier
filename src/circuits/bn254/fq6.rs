@@ -1,5 +1,8 @@
 use crate::{bag::*, circuits::bn254::fq2::Fq2};
-use ark_ff::{Fp6Config, fields::AdditiveGroup};
+use ark_ff::{Fp6Config, UniformRand, fields::AdditiveGroup};
+use ark_std::rand::SeedableRng;
+use rand::{Rng, rng};
+use rand_chacha::ChaCha20Rng;
 
 pub struct Fq6;
 
@@ -12,6 +15,51 @@ impl Fq6 {
             Fq2::as_montgomery(a.c1),
             Fq2::as_montgomery(a.c2),
         )
+    }
+
+    pub fn random() -> ark_bn254::Fq6 {
+        let mut prng = ChaCha20Rng::seed_from_u64(rng().random());
+        ark_bn254::Fq6::rand(&mut prng)
+    }
+
+    pub fn to_bits(u: ark_bn254::Fq6) -> Vec<bool> {
+        let mut bits = Vec::new();
+        bits.extend(Fq2::to_bits(u.c0));
+        bits.extend(Fq2::to_bits(u.c1));
+        bits.extend(Fq2::to_bits(u.c2));
+        bits
+    }
+
+    pub fn from_bits(bits: Vec<bool>) -> ark_bn254::Fq6 {
+        let bits1 = &bits[0..Fq2::N_BITS].to_vec();
+        let bits2 = &bits[Fq2::N_BITS..Fq2::N_BITS * 2].to_vec();
+        let bits3 = &bits[Fq2::N_BITS * 2..Fq2::N_BITS * 3].to_vec();
+        ark_bn254::Fq6::new(
+            Fq2::from_bits(bits1.clone()),
+            Fq2::from_bits(bits2.clone()),
+            Fq2::from_bits(bits3.clone()),
+        )
+    }
+
+    pub fn wires() -> Wires {
+        (0..Self::N_BITS)
+            .map(|_| Rc::new(RefCell::new(Wire::new())))
+            .collect()
+    }
+
+    pub fn wires_set(u: ark_bn254::Fq6) -> Wires {
+        Self::to_bits(u)[0..Self::N_BITS]
+            .iter()
+            .map(|bit| {
+                let wire = Rc::new(RefCell::new(Wire::new()));
+                wire.borrow_mut().set(*bit);
+                wire
+            })
+            .collect()
+    }
+
+    pub fn from_wires(wires: Wires) -> ark_bn254::Fq6 {
+        Self::from_bits(wires.iter().map(|wire| wire.borrow().get_value()).collect())
     }
 
     pub fn add(a: Wires, b: Wires) -> Circuit {
@@ -593,128 +641,135 @@ impl Fq6 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::circuits::bn254::utils::{
-        fq6_from_wires, random_fq2, random_fq6, wires_set_from_fq2, wires_set_from_fq6,
-    };
     use ark_ff::{Field, Fp12Config};
     use serial_test::serial;
 
     #[test]
+    fn test_fq6_random() {
+        let u = Fq6::random();
+        println!("u: {:?}", u);
+        let b = Fq6::to_bits(u);
+        let v = Fq6::from_bits(b);
+        println!("v: {:?}", v);
+        assert_eq!(u, v);
+    }
+
+    #[test]
     fn test_fq6_add() {
-        let a = random_fq6();
-        let b = random_fq6();
-        let circuit = Fq6::add(wires_set_from_fq6(a), wires_set_from_fq6(b));
+        let a = Fq6::random();
+        let b = Fq6::random();
+        let circuit = Fq6::add(Fq6::wires_set(a), Fq6::wires_set(b));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq6_from_wires(circuit.0);
+        let c = Fq6::from_wires(circuit.0);
         assert_eq!(c, a + b);
     }
 
     #[test]
     fn test_fq6_neg() {
-        let a = random_fq6();
-        let circuit = Fq6::neg(wires_set_from_fq6(a));
+        let a = Fq6::random();
+        let circuit = Fq6::neg(Fq6::wires_set(a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq6_from_wires(circuit.0);
+        let c = Fq6::from_wires(circuit.0);
         assert_eq!(c, -a);
     }
 
     #[test]
     fn test_fq6_sub() {
-        let a = random_fq6();
-        let b = random_fq6();
-        let circuit = Fq6::sub(wires_set_from_fq6(a), wires_set_from_fq6(b));
+        let a = Fq6::random();
+        let b = Fq6::random();
+        let circuit = Fq6::sub(Fq6::wires_set(a), Fq6::wires_set(b));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq6_from_wires(circuit.0);
+        let c = Fq6::from_wires(circuit.0);
         assert_eq!(c, a - b);
     }
 
     #[test]
     fn test_fq6_double() {
-        let a = random_fq6();
-        let circuit = Fq6::double(wires_set_from_fq6(a));
+        let a = Fq6::random();
+        let circuit = Fq6::double(Fq6::wires_set(a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq6_from_wires(circuit.0);
+        let c = Fq6::from_wires(circuit.0);
         assert_eq!(c, a + a);
     }
 
     #[test]
     fn test_fq6_div6() {
-        let a = random_fq6();
-        let circuit = Fq6::div6(wires_set_from_fq6(a));
+        let a = Fq6::random();
+        let circuit = Fq6::div6(Fq6::wires_set(a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq6_from_wires(circuit.0);
+        let c = Fq6::from_wires(circuit.0);
         assert_eq!(c + c + c + c + c + c, a);
     }
 
     #[test]
     #[serial]
     fn test_fq6_mul() {
-        let a = random_fq6();
-        let b = random_fq6();
-        let circuit = Fq6::mul(wires_set_from_fq6(a), wires_set_from_fq6(b));
+        let a = Fq6::random();
+        let b = Fq6::random();
+        let circuit = Fq6::mul(Fq6::wires_set(a), Fq6::wires_set(b));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq6_from_wires(circuit.0);
+        let c = Fq6::from_wires(circuit.0);
         assert_eq!(c, a * b);
     }
 
     #[test]
     #[serial]
     fn test_fq6_mul_montgomery() {
-        let a = random_fq6();
-        let b = random_fq6();
+        let a = Fq6::random();
+        let b = Fq6::random();
         let circuit = Fq6::mul_montgomery(
-            wires_set_from_fq6(Fq6::as_montgomery(a)),
-            wires_set_from_fq6(Fq6::as_montgomery(b)),
+            Fq6::wires_set(Fq6::as_montgomery(a)),
+            Fq6::wires_set(Fq6::as_montgomery(b)),
         );
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq6_from_wires(circuit.0);
+        let c = Fq6::from_wires(circuit.0);
         assert_eq!(c, Fq6::as_montgomery(a * b));
     }
 
     #[test]
     fn test_fq6_mul_by_constant() {
-        let a = random_fq6();
-        let b = random_fq6();
-        let circuit = Fq6::mul_by_constant(wires_set_from_fq6(a), b);
+        let a = Fq6::random();
+        let b = Fq6::random();
+        let circuit = Fq6::mul_by_constant(Fq6::wires_set(a), b);
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq6_from_wires(circuit.0);
+        let c = Fq6::from_wires(circuit.0);
         assert_eq!(c, a * b);
     }
 
     #[test]
     fn test_fq6_mul_by_fq2() {
-        let a = random_fq6();
-        let b = random_fq2();
-        let circuit = Fq6::mul_by_fq2(wires_set_from_fq6(a), wires_set_from_fq2(b));
+        let a = Fq6::random();
+        let b = Fq2::random();
+        let circuit = Fq6::mul_by_fq2(Fq6::wires_set(a), Fq2::wires_set(b));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq6_from_wires(circuit.0);
+        let c = Fq6::from_wires(circuit.0);
         assert_eq!(
             c,
             a * ark_bn254::Fq6::new(b, ark_bn254::Fq2::ZERO, ark_bn254::Fq2::ZERO)
@@ -723,14 +778,14 @@ mod tests {
 
     #[test]
     fn test_fq6_mul_by_constant_fq2() {
-        let a = random_fq6();
-        let b = random_fq2();
-        let circuit = Fq6::mul_by_constant_fq2(wires_set_from_fq6(a), b);
+        let a = Fq6::random();
+        let b = Fq2::random();
+        let circuit = Fq6::mul_by_constant_fq2(Fq6::wires_set(a), b);
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq6_from_wires(circuit.0);
+        let c = Fq6::from_wires(circuit.0);
         assert_eq!(
             c,
             a * ark_bn254::Fq6::new(b, ark_bn254::Fq2::ZERO, ark_bn254::Fq2::ZERO)
@@ -739,13 +794,13 @@ mod tests {
 
     #[test]
     fn test_fq6_mul_by_nonresidue() {
-        let a = random_fq6();
-        let circuit = Fq6::mul_by_nonresidue(wires_set_from_fq6(a));
+        let a = Fq6::random();
+        let circuit = Fq6::mul_by_nonresidue(Fq6::wires_set(a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq6_from_wires(circuit.0);
+        let c = Fq6::from_wires(circuit.0);
         let mut a_nonresiude = a;
         ark_bn254::Fq12Config::mul_fp6_by_nonresidue_in_place(&mut a_nonresiude);
         assert_eq!(c, a_nonresiude);
@@ -753,19 +808,15 @@ mod tests {
 
     #[test]
     fn test_fq6_mul_by_01() {
-        let a = random_fq6();
-        let c0 = random_fq2();
-        let c1 = random_fq2();
-        let circuit = Fq6::mul_by_01(
-            wires_set_from_fq6(a),
-            wires_set_from_fq2(c0),
-            wires_set_from_fq2(c1),
-        );
+        let a = Fq6::random();
+        let c0 = Fq2::random();
+        let c1 = Fq2::random();
+        let circuit = Fq6::mul_by_01(Fq6::wires_set(a), Fq2::wires_set(c0), Fq2::wires_set(c1));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq6_from_wires(circuit.0);
+        let c = Fq6::from_wires(circuit.0);
         let mut b = a;
         b.mul_by_01(&c0, &c1);
         assert_eq!(c, b);
@@ -774,47 +825,47 @@ mod tests {
     #[test]
     #[serial]
     fn test_fq6_square() {
-        let a = random_fq6();
-        let circuit = Fq6::square(wires_set_from_fq6(a));
+        let a = Fq6::random();
+        let circuit = Fq6::square(Fq6::wires_set(a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq6_from_wires(circuit.0);
+        let c = Fq6::from_wires(circuit.0);
         assert_eq!(c, a * a);
     }
 
     #[test]
     #[serial]
     fn test_fq6_inverse() {
-        let a = random_fq6();
-        let circuit = Fq6::inverse(wires_set_from_fq6(a));
+        let a = Fq6::random();
+        let circuit = Fq6::inverse(Fq6::wires_set(a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq6_from_wires(circuit.0);
+        let c = Fq6::from_wires(circuit.0);
         assert_eq!(c.inverse().unwrap(), a);
     }
 
     #[test]
     fn test_fq6_frobenius() {
-        let a = random_fq6();
+        let a = Fq6::random();
 
-        let circuit = Fq6::frobenius(wires_set_from_fq6(a), 0);
+        let circuit = Fq6::frobenius(Fq6::wires_set(a), 0);
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq6_from_wires(circuit.0);
+        let c = Fq6::from_wires(circuit.0);
         assert_eq!(c, a.frobenius_map(0));
 
-        let circuit = Fq6::frobenius(wires_set_from_fq6(a), 1);
+        let circuit = Fq6::frobenius(Fq6::wires_set(a), 1);
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq6_from_wires(circuit.0);
+        let c = Fq6::from_wires(circuit.0);
         assert_eq!(c, a.frobenius_map(1));
     }
 }

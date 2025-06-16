@@ -1,6 +1,9 @@
+use crate::{bag::*, circuits::bn254::fp254impl::Fp254Impl};
+use ark_ff::UniformRand;
+use ark_std::rand::SeedableRng;
 use num_bigint::BigUint;
-
-use crate::circuits::bn254::fp254impl::Fp254Impl;
+use rand::{Rng, rng};
+use rand_chacha::ChaCha20Rng;
 
 pub struct Fr;
 
@@ -22,5 +25,76 @@ impl Fp254Impl for Fr {
     }
     fn two_third_modulus() -> BigUint {
         BigUint::from(ark_bn254::Fr::from(2) / ark_bn254::Fr::from(3))
+    }
+}
+
+impl Fr {
+    pub fn as_montgomery(a: ark_bn254::Fr) -> ark_bn254::Fr {
+        a * ark_bn254::Fr::from(Self::montgomery_r_as_biguint())
+    }
+
+    pub fn random() -> ark_bn254::Fr {
+        let mut prng = ChaCha20Rng::seed_from_u64(rng().random());
+        ark_bn254::Fr::rand(&mut prng)
+    }
+
+    pub fn to_bits(u: ark_bn254::Fr) -> Vec<bool> {
+        let mut bytes = BigUint::from(u).to_bytes_le();
+        bytes.extend(vec![0_u8; 32 - bytes.len()]);
+        let mut bits = Vec::new();
+        for byte in bytes {
+            for i in 0..8 {
+                bits.push(((byte >> i) & 1) == 1)
+            }
+        }
+        bits.pop();
+        bits.pop();
+        bits
+    }
+
+    pub fn from_bits(bits: Vec<bool>) -> ark_bn254::Fr {
+        let zero = BigUint::ZERO;
+        let one = BigUint::from(1_u8);
+        let mut u = zero.clone();
+        for bit in bits.iter().rev() {
+            u = u.clone() + u.clone() + if *bit { one.clone() } else { zero.clone() };
+        }
+        ark_bn254::Fr::from(u)
+    }
+
+    pub fn wires() -> Wires {
+        (0..Self::N_BITS)
+            .map(|_| Rc::new(RefCell::new(Wire::new())))
+            .collect()
+    }
+
+    pub fn wires_set(u: ark_bn254::Fr) -> Wires {
+        Self::to_bits(u)[0..Self::N_BITS]
+            .iter()
+            .map(|bit| {
+                let wire = Rc::new(RefCell::new(Wire::new()));
+                wire.borrow_mut().set(*bit);
+                wire
+            })
+            .collect()
+    }
+
+    pub fn from_wires(wires: Wires) -> ark_bn254::Fr {
+        Self::from_bits(wires.iter().map(|wire| wire.borrow().get_value()).collect())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_fr_random() {
+        let u = Fr::random();
+        println!("u: {:?}", u);
+        let b = Fr::to_bits(u);
+        let v = Fr::from_bits(b);
+        println!("v: {:?}", v);
+        assert_eq!(u, v);
     }
 }

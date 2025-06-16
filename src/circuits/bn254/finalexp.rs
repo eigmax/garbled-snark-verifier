@@ -1,10 +1,4 @@
-use crate::{
-    bag::*,
-    circuits::bn254::{
-        fq12::Fq12,
-        utils::{fq12_from_wires, wires_set_from_fq12},
-    },
-};
+use crate::{bag::*, circuits::bn254::fq12::Fq12};
 use ark_ec::bn::BnConfig;
 use ark_ff::{BitIteratorBE, CyclotomicMultSubgroup, Field};
 
@@ -32,7 +26,7 @@ pub fn cyclotomic_exp(f: ark_bn254::Fq12) -> ark_bn254::Fq12 {
 }
 
 pub fn cyclotomic_exp_evaluate_fast(f: Wires) -> (Wires, GateCount) {
-    let mut res = wires_set_from_fq12(ark_bn254::Fq12::ONE);
+    let mut res = Fq12::wires_set(ark_bn254::Fq12::ONE);
     let mut gate_count = GateCount::zero();
     let mut found_nonzero = false;
     for value in BitIteratorBE::without_leading_zeros(ark_bn254::Config::X)
@@ -41,7 +35,7 @@ pub fn cyclotomic_exp_evaluate_fast(f: Wires) -> (Wires, GateCount) {
     {
         if found_nonzero {
             let (wires1, gc) = (
-                wires_set_from_fq12(fq12_from_wires(res.clone()).square()),
+                Fq12::wires_set(Fq12::from_wires(res.clone()).square()),
                 GateCount::fq12_square(),
             ); //Fq12::square_evaluate(res.clone());
             res = wires1;
@@ -53,7 +47,7 @@ pub fn cyclotomic_exp_evaluate_fast(f: Wires) -> (Wires, GateCount) {
 
             if value > 0 {
                 let (wires2, gc) = (
-                    wires_set_from_fq12(fq12_from_wires(res.clone()) * fq12_from_wires(f.clone())),
+                    Fq12::wires_set(Fq12::from_wires(res.clone()) * Fq12::from_wires(f.clone())),
                     GateCount::fq12_mul(),
                 ); // Fq12::mul_evaluate(res.clone(), f.clone());
                 res = wires2;
@@ -133,45 +127,45 @@ pub fn final_exponentiation(f: ark_bn254::Fq12) -> ark_bn254::Fq12 {
 pub fn final_exponentiation_evaluate_fast(f: Wires) -> (Wires, GateCount) {
     let mut gate_count = GateCount::zero();
     let (f_inv, gc) = (
-        wires_set_from_fq12(fq12_from_wires(f.clone()).inverse().unwrap()),
+        Fq12::wires_set(Fq12::from_wires(f.clone()).inverse().unwrap()),
         GateCount::fq12_inverse(),
     );
     gate_count += gc;
     let (f_conjugate, gc) = Fq12::conjugate_evaluate(f.clone());
     gate_count += gc;
     let (u, gc) = (
-        wires_set_from_fq12(fq12_from_wires(f_inv) * fq12_from_wires(f_conjugate)),
+        Fq12::wires_set(Fq12::from_wires(f_inv) * Fq12::from_wires(f_conjugate)),
         GateCount::fq12_mul(),
     ); // Fq12::mul_evaluate(f_inv, f_conjugate);
     gate_count += gc;
     let (u_frobenius, gc) = Fq12::frobenius_evaluate(u.clone(), 2);
     gate_count += gc;
     let (r, gc) = (
-        wires_set_from_fq12(fq12_from_wires(u_frobenius) * fq12_from_wires(u.clone())),
+        Fq12::wires_set(Fq12::from_wires(u_frobenius) * Fq12::from_wires(u.clone())),
         GateCount::fq12_mul(),
     ); // Fq12::mul_evaluate(u_frobenius, u.clone());
     gate_count += gc;
     let (y0, gc) = exp_by_neg_x_evaluate(r.clone());
     gate_count += gc;
     let (y1, gc) = (
-        wires_set_from_fq12(fq12_from_wires(y0).square()),
+        Fq12::wires_set(Fq12::from_wires(y0).square()),
         GateCount::fq12_square(),
     ); // Fq12::square_evaluate(y0);
     gate_count += gc;
     let (y2, gc) = (
-        wires_set_from_fq12(fq12_from_wires(y1.clone()).square()),
+        Fq12::wires_set(Fq12::from_wires(y1.clone()).square()),
         GateCount::fq12_square(),
     ); // Fq12::square_evaluate(y1.clone());
     gate_count += gc;
     let (y3, gc) = (
-        wires_set_from_fq12(fq12_from_wires(y1.clone()) * fq12_from_wires(y2)),
+        Fq12::wires_set(Fq12::from_wires(y1.clone()) * Fq12::from_wires(y2)),
         GateCount::fq12_mul(),
     ); // Fq12::mul_evaluate(y1.clone(), y2);
     gate_count += gc;
     let (y4, gc) = exp_by_neg_x_evaluate(y3.clone());
     gate_count += gc;
     let (y5, gc) = (
-        wires_set_from_fq12(fq12_from_wires(y4.clone()).square()),
+        Fq12::wires_set(Fq12::from_wires(y4.clone()).square()),
         GateCount::fq12_square(),
     ); // Fq12::square_evaluate(y4.clone());
     gate_count += gc;
@@ -182,55 +176,55 @@ pub fn final_exponentiation_evaluate_fast(f: Wires) -> (Wires, GateCount) {
     let (y8, gc) = Fq12::conjugate_evaluate(y6);
     gate_count += gc;
     let (y9, gc) = (
-        wires_set_from_fq12(fq12_from_wires(y8) * fq12_from_wires(y4.clone())),
+        Fq12::wires_set(Fq12::from_wires(y8) * Fq12::from_wires(y4.clone())),
         GateCount::fq12_mul(),
     ); // Fq12::mul_evaluate(y8, y4.clone());
     gate_count += gc;
     let (y10, gc) = (
-        wires_set_from_fq12(fq12_from_wires(y9) * fq12_from_wires(y7)),
+        Fq12::wires_set(Fq12::from_wires(y9) * Fq12::from_wires(y7)),
         GateCount::fq12_mul(),
     ); // Fq12::mul_evaluate(y9, y7);
     gate_count += gc;
     let (y11, gc) = (
-        wires_set_from_fq12(fq12_from_wires(y10.clone()) * fq12_from_wires(y1)),
+        Fq12::wires_set(Fq12::from_wires(y10.clone()) * Fq12::from_wires(y1)),
         GateCount::fq12_mul(),
     ); // Fq12::mul_evaluate(y10.clone(), y1);
     gate_count += gc;
     let (y12, gc) = (
-        wires_set_from_fq12(fq12_from_wires(y10.clone()) * fq12_from_wires(y4)),
+        Fq12::wires_set(Fq12::from_wires(y10.clone()) * Fq12::from_wires(y4)),
         GateCount::fq12_mul(),
     ); // Fq12::mul_evaluate(y10.clone(), y4);
     gate_count += gc;
     let (y13, gc) = (
-        wires_set_from_fq12(fq12_from_wires(y12) * fq12_from_wires(r.clone())),
+        Fq12::wires_set(Fq12::from_wires(y12) * Fq12::from_wires(r.clone())),
         GateCount::fq12_mul(),
     ); // Fq12::mul_evaluate(y12, r.clone());
     gate_count += gc;
     let (y14, gc) = Fq12::frobenius_evaluate(y11.clone(), 1);
     gate_count += gc;
     let (y15, gc) = (
-        wires_set_from_fq12(fq12_from_wires(y14) * fq12_from_wires(y13)),
+        Fq12::wires_set(Fq12::from_wires(y14) * Fq12::from_wires(y13)),
         GateCount::fq12_mul(),
     ); // Fq12::mul_evaluate(y14, y13);
     gate_count += gc;
     let (y16, gc) = Fq12::frobenius_evaluate(y10, 2);
     gate_count += gc;
     let (y17, gc) = (
-        wires_set_from_fq12(fq12_from_wires(y16) * fq12_from_wires(y15)),
+        Fq12::wires_set(Fq12::from_wires(y16) * Fq12::from_wires(y15)),
         GateCount::fq12_mul(),
     ); // Fq12::mul_evaluate(y16, y15);
     gate_count += gc;
     let (r2, gc) = Fq12::conjugate_evaluate(r);
     gate_count += gc;
     let (y18, gc) = (
-        wires_set_from_fq12(fq12_from_wires(r2) * fq12_from_wires(y11)),
+        Fq12::wires_set(Fq12::from_wires(r2) * Fq12::from_wires(y11)),
         GateCount::fq12_mul(),
     ); // Fq12::mul_evaluate(r2, y11);
     gate_count += gc;
     let (y19, gc) = Fq12::frobenius_evaluate(y18, 3);
     gate_count += gc;
     let (y20, gc) = (
-        wires_set_from_fq12(fq12_from_wires(y19) * fq12_from_wires(y17)),
+        Fq12::wires_set(Fq12::from_wires(y19) * Fq12::from_wires(y17)),
         GateCount::fq12_mul(),
     ); // Fq12::mul_evaluate(y19, y17);
     gate_count += gc;
@@ -244,7 +238,7 @@ mod tests {
             cyclotomic_exp, cyclotomic_exp_evaluate_fast, cyclotomic_exp_fastinv,
             final_exponentiation, final_exponentiation_evaluate_fast,
         },
-        utils::{fq12_from_wires, wires_set_from_fq12},
+        fq12::Fq12,
     };
     use ark_ec::{
         bn::BnConfig,
@@ -273,9 +267,9 @@ mod tests {
         let f = ark_bn254::Fq12::rand(&mut prng);
 
         let c = cyclotomic_exp(f); // f.cyclotomic_exp(ark_bn254::Config::X);
-        let (d, gate_count) = cyclotomic_exp_evaluate_fast(wires_set_from_fq12(f));
+        let (d, gate_count) = cyclotomic_exp_evaluate_fast(Fq12::wires_set(f));
         gate_count.print();
-        assert_eq!(c, fq12_from_wires(d));
+        assert_eq!(c, Fq12::from_wires(d));
     }
 
     #[test]
@@ -298,9 +292,9 @@ mod tests {
         let c = ark_bn254::Bn254::final_exponentiation(MillerLoopOutput(f))
             .unwrap()
             .0;
-        let (d, gate_count) = final_exponentiation_evaluate_fast(wires_set_from_fq12(f));
+        let (d, gate_count) = final_exponentiation_evaluate_fast(Fq12::wires_set(f));
         gate_count.print();
 
-        assert_eq!(fq12_from_wires(d), c);
+        assert_eq!(Fq12::from_wires(d), c);
     }
 }

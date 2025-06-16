@@ -2,7 +2,10 @@ use crate::{
     bag::*,
     circuits::bn254::{fp254impl::Fp254Impl, fq::Fq, fq2::Fq2, fq6::Fq6},
 };
-use ark_ff::{Field, Fp12Config};
+use ark_ff::{Field, Fp12Config, UniformRand};
+use ark_std::rand::SeedableRng;
+use rand::{Rng, rng};
+use rand_chacha::ChaCha20Rng;
 use std::iter::zip;
 
 pub struct Fq12;
@@ -12,6 +15,45 @@ impl Fq12 {
 
     pub fn as_montgomery(a: ark_bn254::Fq12) -> ark_bn254::Fq12 {
         ark_bn254::Fq12::new(Fq6::as_montgomery(a.c0), Fq6::as_montgomery(a.c1))
+    }
+
+    pub fn random() -> ark_bn254::Fq12 {
+        let mut prng = ChaCha20Rng::seed_from_u64(rng().random());
+        ark_bn254::Fq12::rand(&mut prng)
+    }
+
+    pub fn to_bits(u: ark_bn254::Fq12) -> Vec<bool> {
+        let mut bits = Vec::new();
+        bits.extend(Fq6::to_bits(u.c0));
+        bits.extend(Fq6::to_bits(u.c1));
+        bits
+    }
+
+    pub fn from_bits(bits: Vec<bool>) -> ark_bn254::Fq12 {
+        let bits1 = &bits[0..Fq6::N_BITS].to_vec();
+        let bits2 = &bits[Fq6::N_BITS..Fq6::N_BITS * 2].to_vec();
+        ark_bn254::Fq12::new(Fq6::from_bits(bits1.clone()), Fq6::from_bits(bits2.clone()))
+    }
+
+    pub fn wires() -> Wires {
+        (0..Self::N_BITS)
+            .map(|_| Rc::new(RefCell::new(Wire::new())))
+            .collect()
+    }
+
+    pub fn wires_set(u: ark_bn254::Fq12) -> Wires {
+        Self::to_bits(u)[0..Self::N_BITS]
+            .iter()
+            .map(|bit| {
+                let wire = Rc::new(RefCell::new(Wire::new()));
+                wire.borrow_mut().set(*bit);
+                wire
+            })
+            .collect()
+    }
+
+    pub fn from_wires(wires: Wires) -> ark_bn254::Fq12 {
+        Self::from_bits(wires.iter().map(|wire| wire.borrow().get_value()).collect())
     }
 
     pub fn equal_constant(a: Wires, b: ark_bn254::Fq12) -> Circuit {
@@ -379,17 +421,24 @@ impl Fq12 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::circuits::bn254::utils::{
-        fq12_from_wires, random_fq2, random_fq12, wires_set_from_fq2, wires_set_from_fq12,
-    };
     use ark_ff::Field;
     use serial_test::serial;
 
     #[test]
+    fn test_fq12_random() {
+        let u = Fq12::random();
+        println!("u: {:?}", u);
+        let b = Fq12::to_bits(u);
+        let v = Fq12::from_bits(b);
+        println!("v: {:?}", v);
+        assert_eq!(u, v);
+    }
+
+    #[test]
     fn test_fq12_equal_constant() {
-        let a = random_fq12();
-        let b = random_fq12();
-        let circuit = Fq12::equal_constant(wires_set_from_fq12(a), b);
+        let a = Fq12::random();
+        let b = Fq12::random();
+        let circuit = Fq12::equal_constant(Fq12::wires_set(a), b);
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -397,7 +446,7 @@ mod tests {
         let result = circuit.0[0].clone().borrow().get_value();
         assert_eq!(result, a == b);
 
-        let circuit = Fq12::equal_constant(wires_set_from_fq12(a), a);
+        let circuit = Fq12::equal_constant(Fq12::wires_set(a), a);
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -408,115 +457,111 @@ mod tests {
 
     #[test]
     fn test_fq12_add() {
-        let a = random_fq12();
-        let b = random_fq12();
-        let circuit = Fq12::add(wires_set_from_fq12(a), wires_set_from_fq12(b));
+        let a = Fq12::random();
+        let b = Fq12::random();
+        let circuit = Fq12::add(Fq12::wires_set(a), Fq12::wires_set(b));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq12_from_wires(circuit.0);
+        let c = Fq12::from_wires(circuit.0);
         assert_eq!(c, a + b);
     }
 
     #[test]
     fn test_fq12_neg() {
-        let a = random_fq12();
-        let circuit = Fq12::neg(wires_set_from_fq12(a));
+        let a = Fq12::random();
+        let circuit = Fq12::neg(Fq12::wires_set(a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq12_from_wires(circuit.0);
+        let c = Fq12::from_wires(circuit.0);
         assert_eq!(c, -a);
     }
 
     #[test]
     fn test_fq12_sub() {
-        let a = random_fq12();
-        let b = random_fq12();
-        let circuit = Fq12::sub(wires_set_from_fq12(a), wires_set_from_fq12(b));
+        let a = Fq12::random();
+        let b = Fq12::random();
+        let circuit = Fq12::sub(Fq12::wires_set(a), Fq12::wires_set(b));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq12_from_wires(circuit.0);
+        let c = Fq12::from_wires(circuit.0);
         assert_eq!(c, a - b);
     }
 
     #[test]
     fn test_fq12_double() {
-        let a = random_fq12();
-        let circuit = Fq12::double(wires_set_from_fq12(a));
+        let a = Fq12::random();
+        let circuit = Fq12::double(Fq12::wires_set(a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq12_from_wires(circuit.0);
+        let c = Fq12::from_wires(circuit.0);
         assert_eq!(c, a + a);
     }
 
     #[test]
     #[serial]
     fn test_fq12_mul() {
-        let a = random_fq12();
-        let b = random_fq12();
-        let circuit = Fq12::mul(wires_set_from_fq12(a), wires_set_from_fq12(b));
+        let a = Fq12::random();
+        let b = Fq12::random();
+        let circuit = Fq12::mul(Fq12::wires_set(a), Fq12::wires_set(b));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq12_from_wires(circuit.0);
+        let c = Fq12::from_wires(circuit.0);
         assert_eq!(c, a * b);
     }
 
     #[test]
     #[serial]
     fn test_fq12_mul_montgomery() {
-        let a = random_fq12();
-        let b = random_fq12();
+        let a = Fq12::random();
+        let b = Fq12::random();
         let circuit = Fq12::mul_montgomery(
-            wires_set_from_fq12(Fq12::as_montgomery(a)),
-            wires_set_from_fq12(Fq12::as_montgomery(b)),
+            Fq12::wires_set(Fq12::as_montgomery(a)),
+            Fq12::wires_set(Fq12::as_montgomery(b)),
         );
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq12_from_wires(circuit.0);
+        let c = Fq12::from_wires(circuit.0);
         assert_eq!(c, Fq12::as_montgomery(a * b));
     }
 
     #[test]
     #[serial]
     fn test_fq12_mul_by_constant() {
-        let a = random_fq12();
-        let b = random_fq12();
-        let circuit = Fq12::mul_by_constant(wires_set_from_fq12(a), b);
+        let a = Fq12::random();
+        let b = Fq12::random();
+        let circuit = Fq12::mul_by_constant(Fq12::wires_set(a), b);
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq12_from_wires(circuit.0);
+        let c = Fq12::from_wires(circuit.0);
         assert_eq!(c, a * b);
     }
 
     #[test]
     #[serial]
     fn test_fq12_mul_by_34() {
-        let a = random_fq12();
-        let c3 = random_fq2();
-        let c4 = random_fq2();
-        let circuit = Fq12::mul_by_34(
-            wires_set_from_fq12(a),
-            wires_set_from_fq2(c3),
-            wires_set_from_fq2(c4),
-        );
+        let a = Fq12::random();
+        let c3 = Fq2::random();
+        let c4 = Fq2::random();
+        let circuit = Fq12::mul_by_34(Fq12::wires_set(a), Fq2::wires_set(c3), Fq2::wires_set(c4));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq12_from_wires(circuit.0);
+        let c = Fq12::from_wires(circuit.0);
         let mut b = a;
         b.mul_by_034(&ark_bn254::Fq2::ONE, &c3, &c4);
         assert_eq!(c, b);
@@ -525,21 +570,21 @@ mod tests {
     #[test]
     #[serial]
     fn test_fq12_mul_by_034() {
-        let a = random_fq12();
-        let c0 = random_fq2();
-        let c3 = random_fq2();
-        let c4 = random_fq2();
+        let a = Fq12::random();
+        let c0 = Fq2::random();
+        let c3 = Fq2::random();
+        let c4 = Fq2::random();
         let circuit = Fq12::mul_by_034(
-            wires_set_from_fq12(a),
-            wires_set_from_fq2(c0),
-            wires_set_from_fq2(c3),
-            wires_set_from_fq2(c4),
+            Fq12::wires_set(a),
+            Fq2::wires_set(c0),
+            Fq2::wires_set(c3),
+            Fq2::wires_set(c4),
         );
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq12_from_wires(circuit.0);
+        let c = Fq12::from_wires(circuit.0);
         let mut b = a;
         b.mul_by_034(&c0, &c3, &c4);
         assert_eq!(c, b);
@@ -548,79 +593,79 @@ mod tests {
     #[test]
     #[serial]
     fn test_fq12_square() {
-        let a = random_fq12();
-        let circuit = Fq12::square(wires_set_from_fq12(a));
+        let a = Fq12::random();
+        let circuit = Fq12::square(Fq12::wires_set(a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq12_from_wires(circuit.0);
+        let c = Fq12::from_wires(circuit.0);
         assert_eq!(c, a * a);
     }
 
     #[test]
     #[serial]
     fn test_fq12_inverse() {
-        let a = random_fq12();
-        let circuit = Fq12::inverse(wires_set_from_fq12(a));
+        let a = Fq12::random();
+        let circuit = Fq12::inverse(Fq12::wires_set(a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq12_from_wires(circuit.0);
+        let c = Fq12::from_wires(circuit.0);
         assert_eq!(c.inverse().unwrap(), a);
     }
 
     #[test]
     #[serial]
     fn test_fq12_frobenius() {
-        let a = random_fq12();
+        let a = Fq12::random();
 
-        let circuit = Fq12::frobenius(wires_set_from_fq12(a), 0);
+        let circuit = Fq12::frobenius(Fq12::wires_set(a), 0);
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq12_from_wires(circuit.0);
+        let c = Fq12::from_wires(circuit.0);
         assert_eq!(c, a.frobenius_map(0));
 
-        let circuit = Fq12::frobenius(wires_set_from_fq12(a), 1);
+        let circuit = Fq12::frobenius(Fq12::wires_set(a), 1);
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq12_from_wires(circuit.0);
+        let c = Fq12::from_wires(circuit.0);
         assert_eq!(c, a.frobenius_map(1));
 
-        let circuit = Fq12::frobenius(wires_set_from_fq12(a), 2);
+        let circuit = Fq12::frobenius(Fq12::wires_set(a), 2);
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq12_from_wires(circuit.0);
+        let c = Fq12::from_wires(circuit.0);
         assert_eq!(c, a.frobenius_map(2));
 
-        let circuit = Fq12::frobenius(wires_set_from_fq12(a), 3);
+        let circuit = Fq12::frobenius(Fq12::wires_set(a), 3);
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        let c = fq12_from_wires(circuit.0);
+        let c = Fq12::from_wires(circuit.0);
         assert_eq!(c, a.frobenius_map(3));
     }
 
     #[test]
     fn test_fq12_conjugate() {
-        let a = random_fq12();
+        let a = Fq12::random();
 
-        let circuit = Fq12::conjugate(wires_set_from_fq12(a));
+        let circuit = Fq12::conjugate(Fq12::wires_set(a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
         let mut b = a;
         b.conjugate_in_place();
-        let c = fq12_from_wires(circuit.0);
+        let c = Fq12::from_wires(circuit.0);
         assert_eq!(c, b);
     }
 }

@@ -3,7 +3,7 @@ use crate::{
     circuits::{
         basic::selector,
         bigint::{U254, utils::bits_from_biguint},
-        bn254::utils::{bits_from_fq, wires_for_fq, wires_set_from_fq},
+        bn254::fq::Fq,
     },
 };
 use ark_ff::{AdditiveGroup, Field};
@@ -32,10 +32,6 @@ pub trait Fp254Impl {
 
     fn montgomery_r_inverse_as_biguint() -> BigUint {
         BigUint::from_str(Self::MONTGOMERY_R_INVERSE).unwrap()
-    }
-
-    fn as_montgomery(a: ark_bn254::Fq) -> ark_bn254::Fq {
-        a * ark_bn254::Fq::from(Self::montgomery_r_as_biguint())
     }
 
     fn modulus_as_bits() -> Vec<bool> {
@@ -136,7 +132,7 @@ pub trait Fp254Impl {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
 
-        let not_a = wires_for_fq();
+        let not_a = Fq::wires();
         for i in 0..Self::N_BITS {
             circuit.add(Gate::not(a[i].clone(), not_a[i].clone()));
         }
@@ -231,12 +227,37 @@ pub trait Fp254Impl {
         circuit
     }
 
+    fn mul_montgomery(a: Wires, b: Wires) -> Circuit {
+        let mut circuit = Circuit::empty();
+        let x = circuit.extend(U254::mul(a, b));
+
+        let x_low = x[..254].to_vec();
+        let x_high = x[254..].to_vec();
+        let q = circuit.extend(U254::mul_by_constant(
+            x_low,
+            Self::montgomery_m_inverse_as_biguint(),
+        ))[0..254]
+            .to_vec();
+        let sub =
+            circuit.extend(U254::mul_by_constant(q, Self::modulus_as_biguint()))[254..508].to_vec(); //might be needing one more bit, since plus modulo might be too much for 254 bits
+        let bound_check = circuit.extend(U254::greater_than(sub.clone(), x_high.clone()));
+        let subtract_if_too_much = circuit.extend(U254::self_or_zero_constant(
+            Self::modulus_as_biguint(),
+            bound_check[0].clone(),
+        ));
+        let new_sub = circuit.extend(U254::optimized_sub(sub, subtract_if_too_much, false));
+        let result = circuit.extend(U254::optimized_sub(x_high, new_sub, false));
+        circuit.add_wires(result);
+
+        circuit
+    }
+
     fn mul_by_constant(a: Wires, b: ark_bn254::Fq) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
 
         if b == ark_bn254::Fq::ZERO {
-            circuit.add_wires(wires_set_from_fq(ark_bn254::Fq::ZERO));
+            circuit.add_wires(Fq::wires_set(ark_bn254::Fq::ZERO));
             return circuit;
         }
 
@@ -245,7 +266,7 @@ pub trait Fp254Impl {
             return circuit;
         }
 
-        let b_bits = bits_from_fq(b);
+        let b_bits = Fq::to_bits(b);
         let mut i = Self::N_BITS - 1;
         while !b_bits[i] {
             i -= 1;
@@ -291,9 +312,9 @@ pub trait Fp254Impl {
         let neg_odd_part = circuit.extend(Self::neg(odd_part.clone()));
         let mut u = circuit.extend(U254::half(neg_odd_part));
         let mut v = odd_part;
-        let mut k = wires_set_from_fq(ark_bn254::Fq::ONE);
-        let mut r = wires_set_from_fq(ark_bn254::Fq::ONE);
-        let mut s = wires_set_from_fq(ark_bn254::Fq::from(2));
+        let mut k = Fq::wires_set(ark_bn254::Fq::ONE);
+        let mut r = Fq::wires_set(ark_bn254::Fq::ONE);
+        let mut s = Fq::wires_set(ark_bn254::Fq::from(2));
 
         for _ in 0..2 * Self::N_BITS {
             let x1x = u[0].clone();
@@ -453,7 +474,7 @@ pub trait Fp254Impl {
         let mut circuit = Circuit::empty();
 
         let half = circuit.extend(Self::half(a.clone()));
-        let mut result = wires_for_fq();
+        let mut result = Fq::wires();
         let mut r1 = Rc::new(RefCell::new(Wire::new()));
         let mut r2 = Rc::new(RefCell::new(Wire::new()));
         r1.borrow_mut().set(false);
@@ -510,31 +531,6 @@ pub trait Fp254Impl {
             r1.clone(),
         ));
         circuit.add_wires(result.clone());
-        circuit
-    }
-
-    fn mul_montgomery(a: Wires, b: Wires) -> Circuit {
-        let mut circuit = Circuit::empty();
-        let x = circuit.extend(U254::mul(a, b));
-
-        let x_low = x[..254].to_vec();
-        let x_high = x[254..].to_vec();
-        let q = circuit.extend(U254::mul_by_constant(
-            x_low,
-            Self::montgomery_m_inverse_as_biguint(),
-        ))[0..254]
-            .to_vec();
-        let sub =
-            circuit.extend(U254::mul_by_constant(q, Self::modulus_as_biguint()))[254..508].to_vec(); //might be needing one more bit, since plus modulo might be too much for 254 bits
-        let bound_check = circuit.extend(U254::greater_than(sub.clone(), x_high.clone()));
-        let subtract_if_too_much = circuit.extend(U254::self_or_zero_constant(
-            Self::modulus_as_biguint(),
-            bound_check[0].clone(),
-        ));
-        let new_sub = circuit.extend(U254::optimized_sub(sub, subtract_if_too_much, false));
-        let result = circuit.extend(U254::optimized_sub(x_high, new_sub, false));
-        circuit.add_wires(result);
-
         circuit
     }
 }
