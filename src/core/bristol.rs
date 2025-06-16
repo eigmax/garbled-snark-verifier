@@ -35,20 +35,20 @@ pub fn parser(filename: &str) -> (Circuit, Vec<Wires>, Vec<Wires>) {
             continue;
         }
         let mut words = line.split_whitespace();
-        let noi: usize = words.next().unwrap().parse().unwrap();
-        let noo: usize = words.next().unwrap().parse().unwrap();
+        let number_of_inputs: usize = words.next().unwrap().parse().unwrap();
+        let number_of_outputs: usize = words.next().unwrap().parse().unwrap();
         let mut input_wires: Vec<usize> = Vec::new();
-        for _ in 0..noi {
+        for _ in 0..number_of_inputs {
             input_wires.push(words.next().unwrap().parse().unwrap());
         }
         let mut output_wires: Vec<usize> = Vec::new();
-        for _ in 0..noo {
+        for _ in 0..number_of_outputs {
             output_wires.push(words.next().unwrap().parse().unwrap());
         }
         let gate_type = words.next().unwrap().to_lowercase();
         let gate = Gate::new(
             wires[input_wires[0]].clone(),
-            if noi == 1 {
+            if number_of_inputs == 1 {
                 wires[input_wires[0]].clone()
             } else {
                 wires[input_wires[1]].clone()
