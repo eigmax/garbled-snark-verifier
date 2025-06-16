@@ -2,15 +2,23 @@ use super::U254;
 use crate::bag::*;
 use num_bigint::BigUint;
 use rand::{Rng, rng};
-use std::str::FromStr;
+// Constant byte array representing 2^254
+const TWO_POW_254_BYTES_LE: [u8; 32] = [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x40,
+];
+
+#[inline(always)]
+pub fn biguint_two_pow_254() -> BigUint {
+    BigUint::from_bytes_le(&TWO_POW_254_BYTES_LE)
+}
 
 pub fn random_biguint() -> BigUint {
     BigUint::from_bytes_le(&rng().random::<[u8; 32]>())
 }
 
 pub fn random_u254() -> BigUint {
-    BigUint::from_bytes_le(&rand::rng().random::<[u8; 32]>())
-        % BigUint::from_str("2").unwrap().pow(254)
+    BigUint::from_bytes_le(&rand::rng().random::<[u8; 32]>()) % biguint_two_pow_254()
 }
 
 pub fn bits_from_biguint(u: BigUint) -> Vec<bool> {
