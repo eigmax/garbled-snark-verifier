@@ -454,18 +454,18 @@ impl GateCount {
         }
     }
 
-    // pub fn double_in_place_montgomery() -> Self {
-    //     Self {
-    //         // and: 9224370,
-    //         // or: 5611730,
-    //         // xor: 7459948,
-    //         // nand: 11352276,
-    //         // not: 7627100,
-    //         // xnor: 3771914,
-    //         // nimp: 0,
-    //         // nsor: 0,
-    //     }
-    // }
+    pub fn double_in_place_montgomery() -> Self {
+        Self {
+            and: 9581641,
+            or: 3833646,
+            xor: 7653666,
+            nand: 81534,
+            not: 68935,
+            xnor: 29791,
+            nimp: 15240,
+            nsor: 0,
+        }
+    }
 
     pub fn add_in_place() -> Self {
         Self {
@@ -480,18 +480,18 @@ impl GateCount {
         }
     }
 
-    // pub fn add_in_place_montgomery() -> Self {
-    //     Self {
-    //         and: 12615983,
-    //         or: 7543041,
-    //         xor: 10070137,
-    //         nand: 15127986,
-    //         not: 10164952,
-    //         xnor: 5027209,
-    //         nimp: 0,
-    //         nsor: 0,
-    //     }
-    // }
+    pub fn add_in_place_montgomery() -> Self {
+        Self {
+            and: 12447932,
+            or: 4977621,
+            xor: 9941593,
+            nand: 90678,
+            not: 80917,
+            xnor: 34507,
+            nimp: 19812,
+            nsor: 0,
+        }
+    }
 
     pub fn ell() -> Self {
         Self {
@@ -506,18 +506,18 @@ impl GateCount {
         }
     }
 
-    // pub fn ell_montgomery() -> Self {
-    //     Self {
-    //         and: 13963948,
-    //         or: 8354104,
-    //         xor: 11156899,
-    //         nand: 16741140,
-    //         not: 11250566,
-    //         xnor: 5564020,
-    //         nimp: 0,
-    //         nsor: 0,
-    //     }
-    // }
+    pub fn ell_montgomery() -> Self {
+        Self {
+            and: 13778661,
+            or: 5525564,
+            xor: 11015171,
+            nand: 161544,
+            not: 132271,
+            xnor: 59246,
+            nimp: 21844,
+            nsor: 0,
+        }
+    }
 
     pub fn ell_by_constant() -> Self {
         Self {
@@ -532,18 +532,18 @@ impl GateCount {
         }
     }
 
-    // pub fn ell_by_constant_montgomery() -> Self {
-    //     Self {
-    //         and: 11438002,
-    //         or: 7357571,
-    //         xor: 9665248,
-    //         nand: 15223236,
-    //         not: 10232611,
-    //         xnor: 5060584,
-    //         nimp: 0,
-    //         nsor: 0,
-    //     }
-    // }
+    pub fn ell_by_constant_montgomery() -> Self {
+        Self {
+            and: 13774093,
+            or: 5523028,
+            xor: 11010607,
+            nand: 158496,
+            not: 130231,
+            xnor: 58734,
+            nimp: 21844,
+            nsor: 0,
+        }
+    }
 }
 
 #[cfg(test)]
