@@ -18,9 +18,7 @@ pub fn random_fq() -> ark_bn254::Fq {
 
 pub fn bits_from_fq(u: ark_bn254::Fq) -> Vec<bool> {
     let mut bytes = BigUint::from(u).to_bytes_le();
-    for _ in bytes.len()..32 {
-        bytes.push(0_u8);
-    }
+    bytes.extend(vec![0_u8; 32 - bytes.len()]);
     let mut bits = Vec::new();
     for byte in bytes {
         for i in 0..8 {
@@ -235,9 +233,7 @@ pub fn random_fr() -> ark_bn254::Fr {
 
 pub fn bits_from_fr(u: ark_bn254::Fr) -> Vec<bool> {
     let mut bytes = BigUint::from(u).to_bytes_le();
-    for _ in bytes.len()..32 {
-        bytes.push(0_u8);
-    }
+    bytes.extend(vec![0_u8; 32 - bytes.len()]);
     let mut bits = Vec::new();
     for byte in bytes {
         for i in 0..8 {
@@ -376,9 +372,9 @@ fn extended_gcd(a: &BigInt, b: &BigInt) -> (BigInt, BigInt, BigInt) {
     while !b1.is_zero() {
         let q = &a1 / &b1;
 
-        (x, x1) = (x1.clone(), &x - &q * &x1);
-        (y, y1) = (y1.clone(), &y - &q * &y1);
-        (a1, b1) = (b1.clone(), &a1 - &q * &b1);
+        (x, x1) = (x1.clone(), &x - q.clone() * x1);
+        (y, y1) = (y1.clone(), &y - q.clone() * y1);
+        (a1, b1) = (b1.clone(), &a1 - q.clone() * b1);
     }
 
     (a1, x, y)
@@ -391,11 +387,11 @@ pub fn calculate_montgomery_constants(modulus: BigUint, r: BigUint) -> (BigUint,
     let (gcd, r_inv_signed, n_inv_signed) = extended_gcd(&r_signed, &modulus_signed);
     assert_eq!(gcd, BigInt::one(), "r and modulus must be coprime");
 
-    let r_inv = ((r_inv_signed % &modulus_signed + &modulus_signed) % &modulus_signed)
+    let r_inv = ((r_inv_signed % modulus_signed.clone() + modulus_signed.clone()) % modulus_signed.clone())
         .to_biguint()
         .unwrap();
 
-    let n_prime = ((n_inv_signed % &r_signed + &r_signed) % &r_signed)
+    let n_prime = ((n_inv_signed % r_signed.clone() + r_signed.clone()) % r_signed.clone())
         .to_biguint()
         .unwrap();
 

@@ -110,26 +110,26 @@ pub fn final_exponentiation(f: ark_bn254::Fq12) -> ark_bn254::Fq12 {
     let y0 = exp_by_neg_x(r);
     let y1 = y0.square();
     let y2 = y1.square();
-    let y3 = y2 * &y1;
+    let y3 = y2 * y1;
     let y4 = exp_by_neg_x(y3);
     let y5 = y4.square();
     let y6 = exp_by_neg_x(y5);
     let y7 = conjugate(y3);
     let y8 = conjugate(y6);
-    let y9 = y8 * &y4;
-    let y10 = y9 * &y7;
-    let y11 = y10 * &y1;
-    let y12 = y10 * &y4;
-    let y13 = y12 * &r;
+    let y9 = y8 * y4;
+    let y10 = y9 * y7;
+    let y11 = y10 * y1;
+    let y12 = y10 * y4;
+    let y13 = y12 * r;
     let y14 = y11.frobenius_map(1);
-    let y15 = y14 * &y13;
+    let y15 = y14 * y13;
     let y16 = y10.frobenius_map(2);
-    let y17 = y16 * &y15;
+    let y17 = y16 * y15;
     let r2 = conjugate(r);
-    let y18 = r2 * &y11;
+    let y18 = r2 * y11;
     let y19 = y18.frobenius_map(3);
     
-    y19 * &y17
+    y19 * y17
 }
 
 pub fn final_exponentiation_evaluate_fast(f: Wires) -> (Wires, GateCount) {

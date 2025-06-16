@@ -15,9 +15,7 @@ pub fn random_u254() -> BigUint {
 
 pub fn bits_from_biguint(u: BigUint) -> Vec<bool> {
     let mut bytes = u.to_bytes_le();
-    for _ in bytes.len()..32 {
-        bytes.push(0_u8);
-    }
+    bytes.extend(vec![0_u8; 32 - bytes.len()]);
     let mut bits = Vec::new();
     for byte in bytes {
         for i in 0..8 {
@@ -87,6 +85,8 @@ pub fn change_to_neg_pos_decomposition(bits: Vec<bool>) -> Vec<i8> {
 
 #[cfg(test)]
 pub mod tests {
+    use std::cmp::Ordering;
+
     use super::*;
 
     #[test]
@@ -113,10 +113,10 @@ pub mod tests {
             }
 
             for i in (0..len).rev() {
-                if d[i] > 0 {
-                    res += pw[i].clone();
-                } else if d[i] < 0 {
-                    res -= pw[i].clone();
+                match d[i].cmp(&0) {
+                    Ordering::Less => { res -= pw[i].clone(); },
+                    Ordering::Equal => (),
+                    Ordering::Greater => { res += pw[i].clone(); },
                 }
             }
 

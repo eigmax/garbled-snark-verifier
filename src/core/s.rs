@@ -18,8 +18,8 @@ impl S {
 
     pub fn neg(&self) -> Self {
         let mut s = self.0;
-        for i in 0..32 {
-            s[i] = 255 - self.0[i];
+        for (i, si) in s.iter_mut().enumerate() {
+            *si = 255 - self.0[i];
         }
         Self(s) + Self::one()
     }

@@ -18,7 +18,7 @@ impl Fq12 {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
 
-        let a0 = a[0 * Fq::N_BITS..Fq::N_BITS].to_vec();
+        let a0 = a[..Fq::N_BITS].to_vec();
         let a1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
         let a2 = a[2 * Fq::N_BITS..3 * Fq::N_BITS].to_vec();
         let a3 = a[3 * Fq::N_BITS..4 * Fq::N_BITS].to_vec();
@@ -43,7 +43,7 @@ impl Fq12 {
 
         let mut wire = results[0].clone();
 
-        for next in results[1..].to_vec() {
+        for next in results[1..].iter().cloned() {
             let new_wire = Rc::new(RefCell::new(Wire::new()));
             circuit.add(Gate::and(wire, next, new_wire.clone()));
             wire = new_wire;

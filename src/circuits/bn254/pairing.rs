@@ -19,26 +19,26 @@ pub fn double_in_place(
     r: &mut ark_bn254::G2Projective,
 ) -> (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2) {
     let half = ark_bn254::Fq::from(Fq::half_modulus());
-    let mut a = r.x * &r.y;
+    let mut a = r.x * r.y;
     a.mul_assign_by_fp(&half);
     let b = r.y.square();
     let c = r.z.square();
-    let e = ark_bn254::g2::Config::COEFF_B * &(c.double() + &c);
-    let f = e.double() + &e;
-    let mut g = b + &f;
+    let e = ark_bn254::g2::Config::COEFF_B * (c.double() + c);
+    let f = e.double() + e;
+    let mut g = b + f;
     g.mul_assign_by_fp(&half);
-    let h = (r.y + &r.z).square() - &(b + &c);
-    let i = e - &b;
+    let h = (r.y + r.z).square() - (b + c);
+    let i = e - b;
     let j = r.x.square();
     let e_square = e.square();
 
     let new_r = ark_bn254::G2Projective {
-        x: a * &(b - &f),
-        y: g.square() - &(e_square.double() + &e_square),
-        z: b * &h,
+        x: a * (b - f),
+        y: g.square() - (e_square.double() + e_square),
+        z: b * h,
     };
     *r = new_r;
-    (-h, j.double() + &j, i)
+    (-h, j.double() + j, i)
 }
 
 pub fn double_in_place2(
@@ -48,25 +48,25 @@ pub fn double_in_place2(
     (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2),
 ) {
     let half = ark_bn254::Fq::from(Fq::half_modulus());
-    let mut a = r.x * &r.y;
+    let mut a = r.x * r.y;
     a.mul_assign_by_fp(&half);
     let b = r.y.square();
     let c = r.z.square();
-    let e = ark_bn254::g2::Config::COEFF_B * &(c.double() + &c);
-    let f = e.double() + &e;
-    let mut g = b + &f;
+    let e = ark_bn254::g2::Config::COEFF_B * (c.double() + c);
+    let f = e.double() + e;
+    let mut g = b + f;
     g.mul_assign_by_fp(&half);
-    let h = (r.y + &r.z).square() - &(b + &c);
-    let i = e - &b;
+    let h = (r.y + r.z).square() - (b + c);
+    let i = e - b;
     let j = r.x.square();
     let e_square = e.square();
 
     let new_r = ark_bn254::G2Projective {
-        x: a * &(b - &f),
-        y: g.square() - &(e_square.double() + &e_square),
-        z: b * &h,
+        x: a * (b - f),
+        y: g.square() - (e_square.double() + e_square),
+        z: b * h,
     };
-    (new_r, (-h, j.double() + &j, i))
+    (new_r, (-h, j.double() + j, i))
 }
 
 pub fn double_in_place_circuit(r: Wires) -> Circuit {
@@ -131,20 +131,20 @@ pub fn add_in_place(
     r: &mut ark_bn254::G2Projective,
     q: &ark_bn254::G2Affine,
 ) -> (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2) {
-    let theta = r.y - &(q.y * &r.z);
-    let lambda = r.x - &(q.x * &r.z);
+    let theta = r.y - (q.y * r.z);
+    let lambda = r.x - (q.x * r.z);
     let c = theta.square();
     let d = lambda.square();
-    let e = lambda * &d;
-    let f = r.z * &c;
-    let g = r.x * &d;
-    let h = e + &f - &g.double();
-    let j = theta * &q.x - &(lambda * &q.y);
+    let e = lambda * d;
+    let f = r.z * c;
+    let g = r.x * d;
+    let h = e + f - g.double();
+    let j = theta * q.x - (lambda * q.y);
 
     let new_r = ark_bn254::G2Projective {
-        x: lambda * &h,
-        y: theta * &(g - &h) - &(e * &r.y),
-        z: r.z * &e,
+        x: lambda * h,
+        y: theta * (g - h) - (e * r.y),
+        z: r.z * e,
     };
     *r = new_r;
 
@@ -158,20 +158,20 @@ pub fn add_in_place2(
     ark_bn254::G2Projective,
     (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2),
 ) {
-    let theta = r.y - &(q.y * &r.z);
-    let lambda = r.x - &(q.x * &r.z);
+    let theta = r.y - (q.y * r.z);
+    let lambda = r.x - (q.x * r.z);
     let c = theta.square();
     let d = lambda.square();
-    let e = lambda * &d;
-    let f = r.z * &c;
-    let g = r.x * &d;
-    let h = e + &f - &g.double();
-    let j = theta * &q.x - &(lambda * &q.y);
+    let e = lambda * d;
+    let f = r.z * c;
+    let g = r.x * d;
+    let h = e + f - g.double();
+    let j = theta * q.x - (lambda * q.y);
 
     let new_r = ark_bn254::G2Projective {
-        x: lambda * &h,
-        y: theta * &(g - &h) - &(e * &r.y),
-        z: r.z * &e,
+        x: lambda * h,
+        y: theta * (g - h) - (e * r.y),
+        z: r.z * e,
     };
 
     (new_r, (lambda, -theta, j))
@@ -1044,7 +1044,7 @@ mod tests {
         let c1 = fq2_from_wires(circuit.0[Fq2::N_BITS..2 * Fq2::N_BITS].to_vec());
         let c2 = fq2_from_wires(circuit.0[2 * Fq2::N_BITS..3 * Fq2::N_BITS].to_vec());
         let new_r_x = fq2_from_wires(
-            circuit.0[3 * Fq2::N_BITS + 0 * Fq2::N_BITS..3 * Fq2::N_BITS + Fq2::N_BITS]
+            circuit.0[3 * Fq2::N_BITS..3 * Fq2::N_BITS + Fq2::N_BITS]
                 .to_vec(),
         );
         let new_r_y = fq2_from_wires(
