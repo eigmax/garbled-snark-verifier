@@ -34,6 +34,10 @@ impl Fq {
         a * ark_bn254::Fq::from(Self::montgomery_r_as_biguint())
     }
 
+    pub fn from_montgomery(a: ark_bn254::Fq) -> ark_bn254::Fq {
+        a / ark_bn254::Fq::from(Self::montgomery_r_as_biguint())
+    }
+
     pub fn random() -> ark_bn254::Fq {
         let mut prng = ChaCha20Rng::seed_from_u64(rng().random());
         ark_bn254::Fq::rand(&mut prng)

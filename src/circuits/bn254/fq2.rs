@@ -16,6 +16,10 @@ impl Fq2 {
         ark_bn254::Fq2::new(Fq::as_montgomery(a.c0), Fq::as_montgomery(a.c1))
     }
 
+    pub fn from_montgomery(a: ark_bn254::Fq2) -> ark_bn254::Fq2 {
+        ark_bn254::Fq2::new(Fq::from_montgomery(a.c0), Fq::from_montgomery(a.c1))
+    }
+
     pub fn random() -> ark_bn254::Fq2 {
         let mut prng = ChaCha20Rng::seed_from_u64(rng().random());
         ark_bn254::Fq2::rand(&mut prng)

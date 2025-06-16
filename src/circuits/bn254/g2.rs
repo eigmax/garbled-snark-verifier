@@ -17,6 +17,14 @@ impl G2Projective {
         }
     }
 
+    pub fn from_montgomery(p: ark_bn254::G2Projective) -> ark_bn254::G2Projective {
+        ark_bn254::G2Projective {
+            x: Fq2::from_montgomery(p.x),
+            y: Fq2::from_montgomery(p.y),
+            z: Fq2::from_montgomery(p.z),
+        }
+    }
+
     pub fn random() -> ark_bn254::G2Projective {
         let mut prng = ChaCha20Rng::seed_from_u64(rng().random());
         ark_bn254::G2Projective::rand(&mut prng)
@@ -91,6 +99,14 @@ impl G2Affine {
         ark_bn254::G2Affine {
             x: Fq2::as_montgomery(p.x),
             y: Fq2::as_montgomery(p.y),
+            infinity: false,
+        }
+    }
+
+    pub fn from_montgomery(p: ark_bn254::G2Affine) -> ark_bn254::G2Affine {
+        ark_bn254::G2Affine {
+            x: Fq2::from_montgomery(p.x),
+            y: Fq2::from_montgomery(p.y),
             infinity: false,
         }
     }
