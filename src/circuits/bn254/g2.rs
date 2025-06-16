@@ -88,6 +88,10 @@ impl G2Projective {
     pub fn from_wires_unchecked(wires: Wires) -> ark_bn254::G2Projective {
         Self::from_bits_unchecked(wires.iter().map(|wire| wire.borrow().get_value()).collect())
     }
+
+    pub fn from_montgomery_wires_unchecked(wires: Wires) -> ark_bn254::G2Projective {
+        Self::from_montgomery(Self::from_wires_unchecked(wires))
+    }
 }
 
 pub struct G2Affine;
@@ -160,6 +164,10 @@ impl G2Affine {
 
     pub fn from_wires_unchecked(wires: Wires) -> ark_bn254::G2Affine {
         Self::from_bits_unchecked(wires.iter().map(|wire| wire.borrow().get_value()).collect())
+    }
+
+    pub fn from_montgomery_wires_unchecked(wires: Wires) -> ark_bn254::G2Affine {
+        Self::from_montgomery(Self::from_wires_unchecked(wires))
     }
 }
 

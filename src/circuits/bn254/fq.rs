@@ -91,6 +91,10 @@ impl Fq {
     pub fn from_wires(wires: Wires) -> ark_bn254::Fq {
         Self::from_bits(wires.iter().map(|wire| wire.borrow().get_value()).collect())
     }
+
+    pub fn from_montgomery_wires(wires: Wires) -> ark_bn254::Fq {
+        Self::from_montgomery(Self::from_wires(wires))
+    }
 }
 
 #[cfg(test)]

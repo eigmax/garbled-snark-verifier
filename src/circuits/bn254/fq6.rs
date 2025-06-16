@@ -74,6 +74,10 @@ impl Fq6 {
         Self::from_bits(wires.iter().map(|wire| wire.borrow().get_value()).collect())
     }
 
+    pub fn from_montgomery_wires(wires: Wires) -> ark_bn254::Fq6 {
+        Self::from_montgomery(Self::from_wires(wires))
+    }
+
     pub fn add(a: Wires, b: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         assert_eq!(b.len(), Self::N_BITS);
