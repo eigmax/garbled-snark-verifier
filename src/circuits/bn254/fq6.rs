@@ -565,6 +565,42 @@ impl Fq6 {
         circuit
     }
 
+    // https://eprint.iacr.org/2006/471.pdf
+    pub fn square_v2(a: Wires) -> Circuit {
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+
+        let a_c0 = a[0..Fq2::N_BITS].to_vec();
+        let a_c1 = a[Fq2::N_BITS..2 * Fq2::N_BITS].to_vec();
+        let a_c2 = a[2 * Fq2::N_BITS..3 * Fq2::N_BITS].to_vec();
+
+        let s_0 = circuit.extend(Fq2::square(a_c0.clone()));
+        let wires_1 = circuit.extend(Fq2::add(a_c0.clone(), a_c2.clone()));
+        let wires_2 = circuit.extend(Fq2::add(wires_1.clone(), a_c1.clone()));
+        let wires_3 = circuit.extend(Fq2::sub(wires_1.clone(), a_c1.clone()));
+        let s_1 = circuit.extend(Fq2::square(wires_2));
+        let s_2 = circuit.extend(Fq2::square(wires_3));
+        let wires_4: Vec<Rc<RefCell<Wire>>> = circuit.extend(Fq2::mul(a_c1.clone(), a_c2.clone()));
+        let s_3: Vec<Rc<RefCell<Wire>>> = circuit.extend(Fq2::double(wires_4));
+        let s_4 = circuit.extend(Fq2::square(a_c2.clone()));
+        let wires_5 = circuit.extend(Fq2::add(s_1.clone(), s_2.clone()));
+        let t_1 = circuit.extend(Fq2::half(wires_5));
+
+        let wires_6 = circuit.extend(Fq2::mul_by_nonresidue(s_3.clone()));
+        let res_c0 = circuit.extend(Fq2::add(s_0.clone(), wires_6.clone()));
+        let wires_7 = circuit.extend(Fq2::mul_by_nonresidue(s_4.clone()));
+        let wires_8 = circuit.extend(Fq2::sub(s_1.clone(), s_3.clone()));
+        let wires_9 = circuit.extend(Fq2::sub(wires_8.clone(), t_1.clone()));
+        let res_c1 = circuit.extend(Fq2::add(wires_9, wires_7.clone()));
+        let wires_10 = circuit.extend(Fq2::sub(t_1, s_0));
+        let res_c2 = circuit.extend(Fq2::sub(wires_10, s_4));
+
+        circuit.add_wires(res_c0);
+        circuit.add_wires(res_c1);
+        circuit.add_wires(res_c2);
+        circuit
+    }
+
     pub fn inverse(r: Wires) -> Circuit {
         assert_eq!(r.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
@@ -827,6 +863,19 @@ mod tests {
     fn test_fq6_square() {
         let a = Fq6::random();
         let circuit = Fq6::square(Fq6::wires_set(a));
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = Fq6::from_wires(circuit.0);
+        assert_eq!(c, a * a);
+    }
+
+    #[test]
+    #[serial]
+    fn test_fq6_square_v2() {
+        let a = Fq6::random();
+        let circuit = Fq6::square_v2(Fq6::wires_set(a.clone()));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
