@@ -65,17 +65,15 @@ pub fn change_to_neg_pos_decomposition(bits: Vec<bool>) -> Vec<i8> {
     for i in 0..len {
         if !bits[i] {
             l = -1;
-        } else {
-            if i == len - 1 || !bits[i + 1] {
-                if l == -1 {
-                    res[i] = 1;
-                } else {
-                    res[i + 1] = 1;
-                    res[l as usize] = -1;
-                }
-            } else if l == -1 {
-                l = i as i32;
+        } else if i == len - 1 || !bits[i + 1] {
+            if l == -1 {
+                res[i] = 1;
+            } else {
+                res[i + 1] = 1;
+                res[l as usize] = -1;
             }
+        } else if l == -1 {
+            l = i as i32;
         }
     }
 
@@ -84,7 +82,7 @@ pub fn change_to_neg_pos_decomposition(bits: Vec<bool>) -> Vec<i8> {
         len -= 1;
     }
 
-    return res;
+    res
 }
 
 #[cfg(test)]

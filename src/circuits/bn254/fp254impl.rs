@@ -535,6 +535,6 @@ pub trait Fp254Impl {
         let result = circuit.extend(U254::optimized_sub(x_high, new_sub, false));
         circuit.add_wires(result);
 
-        return circuit;
+        circuit
     }
 }

@@ -299,7 +299,7 @@ impl Fq6 {
         let a_c1 = a[Fq2::N_BITS..2 * Fq2::N_BITS].to_vec();
         let a_c2 = a[2 * Fq2::N_BITS..3 * Fq2::N_BITS].to_vec();
 
-        let v0 = circuit.extend(Fq2::mul_by_constant(a_c0.clone(), b.c0.clone()));
+        let v0 = circuit.extend(Fq2::mul_by_constant(a_c0.clone(), b.c0));
 
         let wires_2: Vec<Rc<RefCell<Wire>>> = circuit.extend(Fq2::add(a_c0.clone(), a_c2.clone()));
         let wires_3: Vec<Rc<RefCell<Wire>>> =
@@ -316,17 +316,17 @@ impl Fq6 {
 
         let v1 = circuit.extend(Fq2::mul_by_constant(
             wires_3.clone(),
-            b.c0.clone() + b.c1.clone() + b.c2.clone(),
+            b.c0 + b.c1 + b.c2,
         ));
         let v2 = circuit.extend(Fq2::mul_by_constant(
             wires_4.clone(),
-            b.c0.clone() - b.c1.clone() + b.c2.clone(),
+            b.c0 - b.c1 + b.c2,
         ));
         let v3 = circuit.extend(Fq2::mul_by_constant(
             wires_9.clone(),
-            b.c0.clone() + b.c1.double().clone() + b.c2.double().double().clone(),
+            b.c0 + b.c1.double() + b.c2.double().double(),
         ));
-        let v4 = circuit.extend(Fq2::mul_by_constant(a_c2.clone(), b.c2.clone()));
+        let v4 = circuit.extend(Fq2::mul_by_constant(a_c2.clone(), b.c2));
 
         let v2_2 = circuit.extend(Fq2::double(v2.clone()));
 
@@ -467,14 +467,14 @@ impl Fq6 {
         let a_c2 = a[2 * Fq2::N_BITS..3 * Fq2::N_BITS].to_vec();
 
         let wires_1 = circuit.extend(Fq2::mul(a_c0.clone(), c0.clone()));
-        let wires_2 = circuit.extend(Fq2::mul_by_constant(a_c1.clone(), c1.clone()));
+        let wires_2 = circuit.extend(Fq2::mul_by_constant(a_c1.clone(), c1));
         let wires_3 = circuit.extend(Fq2::add(a_c1.clone(), a_c2.clone()));
-        let wires_4 = circuit.extend(Fq2::mul_by_constant(wires_3.clone(), c1.clone()));
+        let wires_4 = circuit.extend(Fq2::mul_by_constant(wires_3.clone(), c1));
         let wires_5 = circuit.extend(Fq2::sub(wires_4.clone(), wires_2.clone()));
         let wires_6 = circuit.extend(Fq2::mul_by_nonresidue(wires_5.clone()));
         let wires_7 = circuit.extend(Fq2::add(wires_6.clone(), wires_1.clone()));
         let wires_8 = circuit.extend(Fq2::add(a_c0.clone(), a_c1.clone()));
-        let wires_9 = circuit.extend(Fq2::add_constant(c0.clone(), c1.clone()));
+        let wires_9 = circuit.extend(Fq2::add_constant(c0.clone(), c1));
         let wires_10 = circuit.extend(Fq2::mul(wires_8.clone(), wires_9.clone()));
         let wires_11 = circuit.extend(Fq2::sub(wires_10.clone(), wires_1.clone()));
         let wires_12 = circuit.extend(Fq2::sub(wires_11.clone(), wires_2.clone()));
@@ -609,7 +609,7 @@ mod tests {
     fn test_fq6_add() {
         let a = random_fq6();
         let b = random_fq6();
-        let circuit = Fq6::add(wires_set_from_fq6(a.clone()), wires_set_from_fq6(b.clone()));
+        let circuit = Fq6::add(wires_set_from_fq6(a), wires_set_from_fq6(b));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -621,7 +621,7 @@ mod tests {
     #[test]
     fn test_fq6_neg() {
         let a = random_fq6();
-        let circuit = Fq6::neg(wires_set_from_fq6(a.clone()));
+        let circuit = Fq6::neg(wires_set_from_fq6(a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -634,7 +634,7 @@ mod tests {
     fn test_fq6_sub() {
         let a = random_fq6();
         let b = random_fq6();
-        let circuit = Fq6::sub(wires_set_from_fq6(a.clone()), wires_set_from_fq6(b.clone()));
+        let circuit = Fq6::sub(wires_set_from_fq6(a), wires_set_from_fq6(b));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -646,7 +646,7 @@ mod tests {
     #[test]
     fn test_fq6_double() {
         let a = random_fq6();
-        let circuit = Fq6::double(wires_set_from_fq6(a.clone()));
+        let circuit = Fq6::double(wires_set_from_fq6(a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -658,7 +658,7 @@ mod tests {
     #[test]
     fn test_fq6_div6() {
         let a = random_fq6();
-        let circuit = Fq6::div6(wires_set_from_fq6(a.clone()));
+        let circuit = Fq6::div6(wires_set_from_fq6(a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -672,7 +672,7 @@ mod tests {
     fn test_fq6_mul() {
         let a = random_fq6();
         let b = random_fq6();
-        let circuit = Fq6::mul(wires_set_from_fq6(a.clone()), wires_set_from_fq6(b.clone()));
+        let circuit = Fq6::mul(wires_set_from_fq6(a), wires_set_from_fq6(b));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -687,8 +687,8 @@ mod tests {
         let a = random_fq6();
         let b = random_fq6();
         let circuit = Fq6::mul_montgomery(
-            wires_set_from_fq6(Fq6::as_montgomery(a.clone())),
-            wires_set_from_fq6(Fq6::as_montgomery(b.clone())),
+            wires_set_from_fq6(Fq6::as_montgomery(a)),
+            wires_set_from_fq6(Fq6::as_montgomery(b)),
         );
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
@@ -702,7 +702,7 @@ mod tests {
     fn test_fq6_mul_by_constant() {
         let a = random_fq6();
         let b = random_fq6();
-        let circuit = Fq6::mul_by_constant(wires_set_from_fq6(a.clone()), b);
+        let circuit = Fq6::mul_by_constant(wires_set_from_fq6(a), b);
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -715,7 +715,7 @@ mod tests {
     fn test_fq6_mul_by_fq2() {
         let a = random_fq6();
         let b = random_fq2();
-        let circuit = Fq6::mul_by_fq2(wires_set_from_fq6(a.clone()), wires_set_from_fq2(b.clone()));
+        let circuit = Fq6::mul_by_fq2(wires_set_from_fq6(a), wires_set_from_fq2(b));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -731,7 +731,7 @@ mod tests {
     fn test_fq6_mul_by_constant_fq2() {
         let a = random_fq6();
         let b = random_fq2();
-        let circuit = Fq6::mul_by_constant_fq2(wires_set_from_fq6(a.clone()), b);
+        let circuit = Fq6::mul_by_constant_fq2(wires_set_from_fq6(a), b);
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -746,13 +746,13 @@ mod tests {
     #[test]
     fn test_fq6_mul_by_nonresidue() {
         let a = random_fq6();
-        let circuit = Fq6::mul_by_nonresidue(wires_set_from_fq6(a.clone()));
+        let circuit = Fq6::mul_by_nonresidue(wires_set_from_fq6(a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
         let c = fq6_from_wires(circuit.0);
-        let mut a_nonresiude = a.clone();
+        let mut a_nonresiude = a;
         ark_bn254::Fq12Config::mul_fp6_by_nonresidue_in_place(&mut a_nonresiude);
         assert_eq!(c, a_nonresiude);
     }
@@ -763,9 +763,9 @@ mod tests {
         let c0 = random_fq2();
         let c1 = random_fq2();
         let circuit = Fq6::mul_by_01(
-            wires_set_from_fq6(a.clone()),
-            wires_set_from_fq2(c0.clone()),
-            wires_set_from_fq2(c1.clone()),
+            wires_set_from_fq6(a),
+            wires_set_from_fq2(c0),
+            wires_set_from_fq2(c1),
         );
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
@@ -781,7 +781,7 @@ mod tests {
     #[serial]
     fn test_fq6_square() {
         let a = random_fq6();
-        let circuit = Fq6::square(wires_set_from_fq6(a.clone()));
+        let circuit = Fq6::square(wires_set_from_fq6(a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -794,7 +794,7 @@ mod tests {
     #[serial]
     fn test_fq6_inverse() {
         let a = random_fq6();
-        let circuit = Fq6::inverse(wires_set_from_fq6(a.clone()));
+        let circuit = Fq6::inverse(wires_set_from_fq6(a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -807,7 +807,7 @@ mod tests {
     fn test_fq6_frobenius() {
         let a = random_fq6();
 
-        let circuit = Fq6::frobenius(wires_set_from_fq6(a.clone()), 0);
+        let circuit = Fq6::frobenius(wires_set_from_fq6(a), 0);
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -815,7 +815,7 @@ mod tests {
         let c = fq6_from_wires(circuit.0);
         assert_eq!(c, a.frobenius_map(0));
 
-        let circuit = Fq6::frobenius(wires_set_from_fq6(a.clone()), 1);
+        let circuit = Fq6::frobenius(wires_set_from_fq6(a), 1);
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();

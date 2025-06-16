@@ -115,7 +115,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
             bit_wires.push(Rc::new(RefCell::new(Wire::new())));
             bit_wires[i].borrow_mut().set(bits[i]);
         }
-        return Self::self_or_zero(bit_wires, s);
+        Self::self_or_zero(bit_wires, s)
     }
 
     pub fn multiplexer(a: Vec<Wires>, s: Wires, w: usize) -> Circuit {
@@ -171,7 +171,7 @@ mod tests {
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        assert_eq!(true, circuit.0[0].borrow().get_value());
+        assert!(circuit.0[0].borrow().get_value());
 
         let a = random_u254();
         let circuit = U254::equal_constant(wires_set_from_u254(a.clone()), b.clone());
@@ -205,7 +205,7 @@ mod tests {
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        assert_eq!(false, circuit.0[0].borrow().get_value());
+        assert!(!circuit.0[0].borrow().get_value());
 
         let a = random_u254();
         let circuit = U254::greater_than(
@@ -216,7 +216,7 @@ mod tests {
         for mut gate in circuit.1 {
             gate.evaluate();
         }
-        assert_eq!(true, circuit.0[0].borrow().get_value());
+        assert!(circuit.0[0].borrow().get_value());
     }
 
     #[test]

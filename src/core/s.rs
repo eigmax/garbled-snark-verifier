@@ -17,7 +17,7 @@ impl S {
     }
 
     pub fn neg(&self) -> Self {
-        let mut s = self.0.clone();
+        let mut s = self.0;
         for i in 0..32 {
             s[i] = 255 - self.0[i];
         }
@@ -59,19 +59,19 @@ mod tests {
     fn test_s() {
         let a = S::random();
         let b = S::random();
-        let c = a.clone() + b.clone();
+        let c = a + b;
         let d = a.neg();
 
         let script = script! {
-            { U256::push_hex(&hex::encode(&a.0)) }
-            { U256::push_hex(&hex::encode(&b.0)) }
+            { U256::push_hex(&hex::encode(a.0)) }
+            { U256::push_hex(&hex::encode(b.0)) }
             { U256::add(0, 1) }
-            { U256::push_hex(&hex::encode(&c.0)) }
+            { U256::push_hex(&hex::encode(c.0)) }
             { U256::equalverify(0, 1) }
-            { U256::push_hex(&hex::encode(&a.0)) }
-            { U256::push_hex(&hex::encode(&d.0)) }
+            { U256::push_hex(&hex::encode(a.0)) }
+            { U256::push_hex(&hex::encode(d.0)) }
             { U256::add(0, 1) }
-            { U256::push_hex(&hex::encode(&[0_u8; 32])) }
+            { U256::push_hex(&hex::encode([0_u8; 32])) }
             { U256::equalverify(0, 1) }
             OP_TRUE
         };

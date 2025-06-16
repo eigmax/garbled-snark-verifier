@@ -16,7 +16,7 @@ pub fn cyclotomic_exp(f: ark_bn254::Fq12) -> ark_bn254::Fq12 {
     let mut res = ark_bn254::Fq12::ONE;
     let mut found_nonzero = false;
     for value in
-        BitIteratorBE::without_leading_zeros(ark_bn254::Config::X.as_ref()).map(|e| e as i8)
+        BitIteratorBE::without_leading_zeros(ark_bn254::Config::X).map(|e| e as i8)
     {
         if found_nonzero {
             res.square_in_place(); // cyclotomic_square_in_place
@@ -37,7 +37,7 @@ pub fn cyclotomic_exp_evaluate_fast(f: Wires) -> (Wires, GateCount) {
     let mut res = wires_set_from_fq12(ark_bn254::Fq12::ONE);
     let mut gate_count = GateCount::zero();
     let mut found_nonzero = false;
-    for value in BitIteratorBE::without_leading_zeros(ark_bn254::Config::X.as_ref())
+    for value in BitIteratorBE::without_leading_zeros(ark_bn254::Config::X)
         .map(|e| e as i8)
         .collect::<Vec<_>>()
     {
@@ -70,7 +70,7 @@ pub fn cyclotomic_exp_fastinv(f: ark_bn254::Fq12) -> ark_bn254::Fq12 {
     let self_inverse = f.cyclotomic_inverse().unwrap();
     let mut res = ark_bn254::Fq12::ONE;
     let mut found_nonzero = false;
-    for value in ark_ff::biginteger::arithmetic::find_naf(ark_bn254::Config::X.as_ref())
+    for value in ark_ff::biginteger::arithmetic::find_naf(ark_bn254::Config::X)
         .into_iter()
         .rev()
     {
@@ -128,8 +128,8 @@ pub fn final_exponentiation(f: ark_bn254::Fq12) -> ark_bn254::Fq12 {
     let r2 = conjugate(r);
     let y18 = r2 * &y11;
     let y19 = y18.frobenius_map(3);
-    let y20 = y19 * &y17;
-    y20
+    
+    y19 * &y17
 }
 
 pub fn final_exponentiation_evaluate_fast(f: Wires) -> (Wires, GateCount) {

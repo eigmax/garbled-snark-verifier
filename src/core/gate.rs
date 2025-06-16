@@ -126,7 +126,7 @@ impl Gate {
             }
             "nimp" => {
                 fn nimp(a: bool, b: bool) -> bool {
-                    (a == true) && (b == false)
+                    (a) && (!b)
                 }
                 nimp
             }
@@ -181,7 +181,7 @@ impl Gate {
         let b = self.wire_b.borrow().get_label();
         let index = bit_to_usize(self.wire_a.borrow().get_value())
             + 2 * bit_to_usize(self.wire_b.borrow().get_value());
-        let row = garble[index].clone();
+        let row = garble[index];
         let c = S::hash_together(a, b) + row.neg();
         let hc = c.hash();
         (hc == self.wire_c.borrow().select_hash(bit), c)
@@ -329,7 +329,7 @@ impl GateCount {
         println!("xnor: {:?}", self.xnor);
         println!("nimp: {:?}", self.nimp);
         println!("nsor: {:?}", self.nsor);
-        println!("");
+        println!();
         println!("total: {:?}", self.total_gate_count());
         println!("nonfree: {:?}", self.nonfree_gate_count());
     }
@@ -466,9 +466,9 @@ mod tests {
                 let b = gate.wire_b.borrow().select(bit_b);
                 let gate_script = gate.script(garbled.clone(), correct);
                 let script = script! {
-                    { U256::push_hex(&hex::encode(&a.0)) }
+                    { U256::push_hex(&hex::encode(a.0)) }
                     { if bit_a {1} else {0} }
-                    { U256::push_hex(&hex::encode(&b.0)) }
+                    { U256::push_hex(&hex::encode(b.0)) }
                     { if bit_b {1} else {0} }
                     { gate_script }
                 };

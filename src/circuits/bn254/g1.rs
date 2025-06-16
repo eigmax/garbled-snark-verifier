@@ -171,7 +171,7 @@ impl G1Projective {
 
         for _ in 0..n {
             bases.push(p);
-            p = p + base;
+            p += base;
         }
 
         let bases_wires = bases
@@ -195,7 +195,7 @@ impl G1Projective {
             index += W;
             let mut new_bases = Vec::new();
             for b in bases {
-                let mut new_b = b.clone();
+                let mut new_b = b;
                 for _ in 0..w {
                     new_b = new_b + new_b;
                 }
@@ -227,7 +227,7 @@ impl G1Projective {
 
         for _ in 0..n {
             bases.push(p);
-            p = p + base;
+            p += base;
         }
 
         let mut bases_wires = bases
@@ -249,7 +249,7 @@ impl G1Projective {
             index += W;
             let mut new_bases = Vec::new();
             for b in bases {
-                let mut new_b = b.clone();
+                let mut new_b = b;
                 for _ in 0..w {
                     new_b = new_b + new_b;
                 }
@@ -312,7 +312,7 @@ mod tests {
         let b = random_g1p();
         let c = ark_bn254::G1Projective::ZERO;
         let circuit =
-            G1Projective::add(wires_set_from_g1p(a.clone()), wires_set_from_g1p(b.clone()));
+            G1Projective::add(wires_set_from_g1p(a), wires_set_from_g1p(b));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -321,7 +321,7 @@ mod tests {
         assert_eq!(d, a + b);
 
         let circuit =
-            G1Projective::add(wires_set_from_g1p(a.clone()), wires_set_from_g1p(c.clone()));
+            G1Projective::add(wires_set_from_g1p(a), wires_set_from_g1p(c));
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -329,7 +329,7 @@ mod tests {
         assert_eq!(d, a);
 
         let circuit =
-            G1Projective::add(wires_set_from_g1p(c.clone()), wires_set_from_g1p(b.clone()));
+            G1Projective::add(wires_set_from_g1p(c), wires_set_from_g1p(b));
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -337,7 +337,7 @@ mod tests {
         assert_eq!(d, b);
 
         let circuit =
-            G1Projective::add(wires_set_from_g1p(c.clone()), wires_set_from_g1p(c.clone()));
+            G1Projective::add(wires_set_from_g1p(c), wires_set_from_g1p(c));
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -350,8 +350,8 @@ mod tests {
         let a = random_g1p();
         let b = random_g1p();
         let (c_wires, gate_count) = G1Projective::add_evaluate(
-            wires_set_from_g1p(a.clone()),
-            wires_set_from_g1p(b.clone()),
+            wires_set_from_g1p(a),
+            wires_set_from_g1p(b),
         );
         gate_count.print();
         let c = g1p_from_wires(c_wires);
@@ -361,7 +361,7 @@ mod tests {
     #[test]
     fn test_g1p_double() {
         let a = random_g1p();
-        let circuit = G1Projective::double(wires_set_from_g1p(a.clone()));
+        let circuit = G1Projective::double(wires_set_from_g1p(a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -370,7 +370,7 @@ mod tests {
         assert_eq!(c, a + a);
 
         let b = ark_bn254::G1Projective::ZERO;
-        let circuit = G1Projective::double(wires_set_from_g1p(b.clone()));
+        let circuit = G1Projective::double(wires_set_from_g1p(b));
         for mut gate in circuit.1 {
             gate.evaluate();
         }
@@ -406,7 +406,7 @@ mod tests {
         }
 
         let result = g1p_from_wires(circuit.0);
-        let expected = a[u].clone();
+        let expected = a[u];
 
         assert_eq!(result, expected);
     }
@@ -433,7 +433,7 @@ mod tests {
         let (result_wires, gate_count) = G1Projective::multiplexer_evaluate(a_wires, s.clone(), w);
         gate_count.print();
         let result = g1p_from_wires(result_wires);
-        let expected = a[u].clone();
+        let expected = a[u];
 
         assert_eq!(result, expected);
     }
@@ -444,7 +444,7 @@ mod tests {
         let base = random_g1p();
         let s = random_fr();
         let circuit =
-            G1Projective::scalar_mul_by_constant_base::<10>(wires_set_from_fr(s.clone()), base);
+            G1Projective::scalar_mul_by_constant_base::<10>(wires_set_from_fr(s), base);
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -459,7 +459,7 @@ mod tests {
         let base = random_g1p();
         let s = random_fr();
         let (result_wires, gate_count) = G1Projective::scalar_mul_by_constant_base_evaluate::<10>(
-            wires_set_from_fr(s.clone()),
+            wires_set_from_fr(s),
             base,
         );
         gate_count.print();
@@ -475,7 +475,7 @@ mod tests {
         let (result_wires, gate_count) = G1Projective::msm_with_constant_bases_evaluate::<10>(
             scalars
                 .iter()
-                .map(|s| wires_set_from_fr(s.clone()))
+                .map(|s| wires_set_from_fr(*s))
                 .collect(),
             bases.clone(),
         );

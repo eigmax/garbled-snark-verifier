@@ -120,9 +120,9 @@ mod tests {
             );
 
             let script = script! {
-                { U256::push_hex(&hex::encode(&a.0)) }
+                { U256::push_hex(&hex::encode(a.0)) }
                 { if bit_a {1} else {0} }
-                { U256::push_hex(&hex::encode(&b.0)) }
+                { U256::push_hex(&hex::encode(b.0)) }
                 { if bit_b {1} else {0} }
                 { gate_script }
             };
@@ -185,9 +185,9 @@ mod tests {
             let gate_script = gate.script(garble, garble_check);
 
             let script = script! {
-                { U256::push_hex(&hex::encode(&a.0)) }
+                { U256::push_hex(&hex::encode(a.0)) }
                 { if bit_a {1} else {0} }
-                { U256::push_hex(&hex::encode(&b.0)) }
+                { U256::push_hex(&hex::encode(b.0)) }
                 { if bit_b {1} else {0} }
                 { gate_script }
             };

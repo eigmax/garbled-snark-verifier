@@ -28,7 +28,7 @@ pub fn groth16_verifier(
     .inverse()
     .unwrap();
     let f = ark_bn254::Bn254::final_exponentiation(qap).unwrap().0;
-    return f == alpha_beta;
+    f == alpha_beta
 }
 
 pub fn groth16_verifier_evaluate(
@@ -42,8 +42,8 @@ pub fn groth16_verifier_evaluate(
     let (msm_temp, gc) = (
         wires_set_from_g1p(
             ark_bn254::G1Projective::msm(
-                &vec![vk.gamma_abc_g1[1]],
-                &vec![fr_from_wires(public.clone())],
+                &[vk.gamma_abc_g1[1]],
+                &[fr_from_wires(public.clone())],
             )
             .unwrap(),
         ),

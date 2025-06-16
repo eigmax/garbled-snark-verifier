@@ -260,12 +260,12 @@ pub fn mul_by_char_circuit(r: Wires) -> Circuit {
     let mut s_x = circuit.extend(Fq2::frobenius(r_x, 1));
     s_x = circuit.extend(Fq2::mul_by_constant(
         s_x,
-        ark_bn254::Config::TWIST_MUL_BY_Q_X.clone(),
+        ark_bn254::Config::TWIST_MUL_BY_Q_X,
     ));
     let mut s_y = circuit.extend(Fq2::frobenius(r_y, 1));
     s_y = circuit.extend(Fq2::mul_by_constant(
         s_y,
-        ark_bn254::Config::TWIST_MUL_BY_Q_Y.clone(),
+        ark_bn254::Config::TWIST_MUL_BY_Q_Y,
     ));
     circuit.add_wires(s_x);
     circuit.add_wires(s_y);
@@ -451,7 +451,7 @@ pub fn ell2(
     coeffs: (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2),
     p: ark_bn254::G1Projective,
 ) -> ark_bn254::Fq12 {
-    let mut new_f = f.clone();
+    let mut new_f = f;
     let mut c0 = coeffs.0;
     let mut c1 = coeffs.1;
     let c2 = coeffs.2;
@@ -647,7 +647,7 @@ pub fn multi_miller_loop(
     for i in 0..qells[0].len() {
         let mut x = Vec::new();
         for qell in qells.clone() {
-            x.push(qell[i].clone());
+            x.push(qell[i]);
         }
         u.push(x);
     }
@@ -1044,11 +1044,11 @@ mod tests {
         let c1 = fq2_from_wires(circuit.0[Fq2::N_BITS..2 * Fq2::N_BITS].to_vec());
         let c2 = fq2_from_wires(circuit.0[2 * Fq2::N_BITS..3 * Fq2::N_BITS].to_vec());
         let new_r_x = fq2_from_wires(
-            circuit.0[3 * Fq2::N_BITS + 0 * Fq2::N_BITS..3 * Fq2::N_BITS + 1 * Fq2::N_BITS]
+            circuit.0[3 * Fq2::N_BITS + 0 * Fq2::N_BITS..3 * Fq2::N_BITS + Fq2::N_BITS]
                 .to_vec(),
         );
         let new_r_y = fq2_from_wires(
-            circuit.0[3 * Fq2::N_BITS + 1 * Fq2::N_BITS..3 * Fq2::N_BITS + 2 * Fq2::N_BITS]
+            circuit.0[3 * Fq2::N_BITS + Fq2::N_BITS..3 * Fq2::N_BITS + 2 * Fq2::N_BITS]
                 .to_vec(),
         );
         let new_r_z = fq2_from_wires(

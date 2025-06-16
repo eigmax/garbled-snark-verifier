@@ -46,22 +46,20 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
                 circuit.add(Gate::not(a[i].clone(), wire.clone()));
                 circuit.add_wire(wire);
                 carry = a[i].clone();
+            } else if b_bits[i] {
+                let wire_1 = Rc::new(RefCell::new(Wire::new()));
+                let wire_2 = Rc::new(RefCell::new(Wire::new()));
+                circuit.add(Gate::xnor(a[i].clone(), carry.clone(), wire_1.clone()));
+                circuit.add(Gate::or(a[i].clone(), carry.clone(), wire_2.clone()));
+                circuit.add_wire(wire_1);
+                carry = wire_2;
             } else {
-                if b_bits[i] {
-                    let wire_1 = Rc::new(RefCell::new(Wire::new()));
-                    let wire_2 = Rc::new(RefCell::new(Wire::new()));
-                    circuit.add(Gate::xnor(a[i].clone(), carry.clone(), wire_1.clone()));
-                    circuit.add(Gate::or(a[i].clone(), carry.clone(), wire_2.clone()));
-                    circuit.add_wire(wire_1);
-                    carry = wire_2;
-                } else {
-                    let wire_1 = Rc::new(RefCell::new(Wire::new()));
-                    let wire_2 = Rc::new(RefCell::new(Wire::new()));
-                    circuit.add(Gate::xor(a[i].clone(), carry.clone(), wire_1.clone()));
-                    circuit.add(Gate::and(a[i].clone(), carry.clone(), wire_2.clone()));
-                    circuit.add_wire(wire_1);
-                    carry = wire_2;
-                }
+                let wire_1 = Rc::new(RefCell::new(Wire::new()));
+                let wire_2 = Rc::new(RefCell::new(Wire::new()));
+                circuit.add(Gate::xor(a[i].clone(), carry.clone(), wire_1.clone()));
+                circuit.add(Gate::and(a[i].clone(), carry.clone(), wire_2.clone()));
+                circuit.add_wire(wire_1);
+                carry = wire_2;
             }
         }
         circuit.add_wire(carry);
@@ -104,22 +102,20 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
                 circuit.add(Gate::not(a[i].clone(), wire.clone()));
                 circuit.add_wire(wire);
                 carry = a[i].clone();
+            } else if b_bits[i] {
+                let wire_1 = Rc::new(RefCell::new(Wire::new()));
+                let wire_2 = Rc::new(RefCell::new(Wire::new()));
+                circuit.add(Gate::xnor(a[i].clone(), carry.clone(), wire_1.clone()));
+                circuit.add(Gate::or(a[i].clone(), carry.clone(), wire_2.clone()));
+                circuit.add_wire(wire_1);
+                carry = wire_2;
             } else {
-                if b_bits[i] {
-                    let wire_1 = Rc::new(RefCell::new(Wire::new()));
-                    let wire_2 = Rc::new(RefCell::new(Wire::new()));
-                    circuit.add(Gate::xnor(a[i].clone(), carry.clone(), wire_1.clone()));
-                    circuit.add(Gate::or(a[i].clone(), carry.clone(), wire_2.clone()));
-                    circuit.add_wire(wire_1);
-                    carry = wire_2;
-                } else {
-                    let wire_1 = Rc::new(RefCell::new(Wire::new()));
-                    let wire_2 = Rc::new(RefCell::new(Wire::new()));
-                    circuit.add(Gate::xor(a[i].clone(), carry.clone(), wire_1.clone()));
-                    circuit.add(Gate::and(a[i].clone(), carry.clone(), wire_2.clone()));
-                    circuit.add_wire(wire_1);
-                    carry = wire_2;
-                }
+                let wire_1 = Rc::new(RefCell::new(Wire::new()));
+                let wire_2 = Rc::new(RefCell::new(Wire::new()));
+                circuit.add(Gate::xor(a[i].clone(), carry.clone(), wire_1.clone()));
+                circuit.add(Gate::and(a[i].clone(), carry.clone(), wire_2.clone()));
+                circuit.add_wire(wire_1);
+                carry = wire_2;
             }
         }
         circuit
@@ -291,7 +287,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
             circuit.add_wire(bound_check_wire);
         }
 
-        return circuit;
+        circuit
     }
 }
 
@@ -428,9 +424,9 @@ mod tests {
                 gate.evaluate();
             }
             if a < b {
-                assert_eq!(bound_check.borrow().get_value(), false);
+                assert!(!bound_check.borrow().get_value());
             } else {
-                assert_eq!(bound_check.borrow().get_value(), true);
+                assert!(bound_check.borrow().get_value());
                 let result = biguint_from_bits(
                     output_wires
                         .iter()

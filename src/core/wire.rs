@@ -12,6 +12,12 @@ pub struct Wire {
     pub label: Option<S>,
 }
 
+impl Default for Wire {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Wire {
     pub fn new() -> Self {
         let label0 = S::random();
@@ -30,17 +36,17 @@ impl Wire {
 
     pub fn select(&self, selector: bool) -> S {
         if selector {
-            self.label1.clone()
+            self.label1
         } else {
-            self.label0.clone()
+            self.label0
         }
     }
 
     pub fn select_hash(&self, selector: bool) -> S {
         if selector {
-            self.hash1.clone()
+            self.hash1
         } else {
-            self.hash0.clone()
+            self.hash0
         }
     }
 
@@ -51,7 +57,7 @@ impl Wire {
 
     pub fn get_label(&self) -> S {
         assert!(self.value.is_some());
-        self.label.clone().unwrap()
+        self.label.unwrap()
     }
 
     pub fn set(&mut self, bit: bool) {

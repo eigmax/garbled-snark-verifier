@@ -437,7 +437,7 @@ pub mod tests {
     fn test_random_fq() {
         let u = random_fq();
         println!("u: {:?}", u);
-        let b = bits_from_fq(u.clone());
+        let b = bits_from_fq(u);
         let v = fq_from_bits(b);
         println!("v: {:?}", v);
         assert_eq!(u, v);
@@ -447,7 +447,7 @@ pub mod tests {
     fn test_random_fq2() {
         let u = random_fq2();
         println!("u: {:?}", u);
-        let b = bits_from_fq2(u.clone());
+        let b = bits_from_fq2(u);
         let v = fq2_from_bits(b);
         println!("v: {:?}", v);
         assert_eq!(u, v);
@@ -457,7 +457,7 @@ pub mod tests {
     fn test_random_fq6() {
         let u = random_fq6();
         println!("u: {:?}", u);
-        let b = bits_from_fq6(u.clone());
+        let b = bits_from_fq6(u);
         let v = fq6_from_bits(b);
         println!("v: {:?}", v);
         assert_eq!(u, v);
@@ -467,7 +467,7 @@ pub mod tests {
     fn test_random_fq12() {
         let u = random_fq12();
         println!("u: {:?}", u);
-        let b = bits_from_fq12(u.clone());
+        let b = bits_from_fq12(u);
         let v = fq12_from_bits(b);
         println!("v: {:?}", v);
         assert_eq!(u, v);
@@ -477,7 +477,7 @@ pub mod tests {
     fn test_random_fr() {
         let u = random_fr();
         println!("u: {:?}", u);
-        let b = bits_from_fr(u.clone());
+        let b = bits_from_fr(u);
         let v = fr_from_bits(b);
         println!("v: {:?}", v);
         assert_eq!(u, v);
@@ -487,7 +487,7 @@ pub mod tests {
     fn test_random_g1p() {
         let u = random_g1p();
         println!("u: {:?}", u);
-        let b = bits_from_g1p(u.clone());
+        let b = bits_from_g1p(u);
         let v = g1p_from_bits(b);
         println!("v: {:?}", v);
         assert_eq!(u, v);
@@ -497,7 +497,7 @@ pub mod tests {
     fn test_random_g2p() {
         let u = random_g2p();
         println!("u: {:?}", u);
-        let b = bits_from_g2p(u.clone());
+        let b = bits_from_g2p(u);
         let v = g2p_from_bits(b);
         println!("v: {:?}", v);
         assert_eq!(u, v);

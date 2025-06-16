@@ -27,7 +27,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
                 circuit.0[j] = new_bits[j - i].clone();
             }
         }
-        return circuit;
+        circuit
     }
 
     ///Assuming constant is smaller than 2^N_BITS, and returns 2 * N_BITS result for now (can be optimized)
@@ -81,7 +81,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
             }
         }
         */
-        return circuit;
+        circuit
     }
 }
 
