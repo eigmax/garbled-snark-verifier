@@ -1043,13 +1043,10 @@ mod tests {
         let c0 = fq2_from_wires(circuit.0[0..Fq2::N_BITS].to_vec());
         let c1 = fq2_from_wires(circuit.0[Fq2::N_BITS..2 * Fq2::N_BITS].to_vec());
         let c2 = fq2_from_wires(circuit.0[2 * Fq2::N_BITS..3 * Fq2::N_BITS].to_vec());
-        let new_r_x = fq2_from_wires(
-            circuit.0[3 * Fq2::N_BITS..3 * Fq2::N_BITS + Fq2::N_BITS]
-                .to_vec(),
-        );
+        let new_r_x =
+            fq2_from_wires(circuit.0[3 * Fq2::N_BITS..3 * Fq2::N_BITS + Fq2::N_BITS].to_vec());
         let new_r_y = fq2_from_wires(
-            circuit.0[3 * Fq2::N_BITS + Fq2::N_BITS..3 * Fq2::N_BITS + 2 * Fq2::N_BITS]
-                .to_vec(),
+            circuit.0[3 * Fq2::N_BITS + Fq2::N_BITS..3 * Fq2::N_BITS + 2 * Fq2::N_BITS].to_vec(),
         );
         let new_r_z = fq2_from_wires(
             circuit.0[3 * Fq2::N_BITS + 2 * Fq2::N_BITS..3 * Fq2::N_BITS + 3 * Fq2::N_BITS]

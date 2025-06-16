@@ -258,11 +258,7 @@ impl Fq12 {
         let a_c0 = a[0..Fq6::N_BITS].to_vec();
         let a_c1 = a[Fq6::N_BITS..2 * Fq6::N_BITS].to_vec();
 
-        let wires_1 = circuit.extend(Fq6::mul_by_01_constant1(
-            a_c1.clone(),
-            c3.clone(),
-            c4,
-        ));
+        let wires_1 = circuit.extend(Fq6::mul_by_01_constant1(a_c1.clone(), c3.clone(), c4));
         let wires_2 = circuit.extend(Fq6::mul_by_nonresidue(wires_1.clone()));
         let wires_3 = circuit.extend(Fq6::mul_by_fq2(a_c0.clone(), c0.clone()));
         let new_c0 = circuit.extend(Fq6::add(wires_2.clone(), wires_3.clone()));
@@ -414,10 +410,7 @@ mod tests {
     fn test_fq12_add() {
         let a = random_fq12();
         let b = random_fq12();
-        let circuit = Fq12::add(
-            wires_set_from_fq12(a),
-            wires_set_from_fq12(b),
-        );
+        let circuit = Fq12::add(wires_set_from_fq12(a), wires_set_from_fq12(b));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -442,10 +435,7 @@ mod tests {
     fn test_fq12_sub() {
         let a = random_fq12();
         let b = random_fq12();
-        let circuit = Fq12::sub(
-            wires_set_from_fq12(a),
-            wires_set_from_fq12(b),
-        );
+        let circuit = Fq12::sub(wires_set_from_fq12(a), wires_set_from_fq12(b));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -471,10 +461,7 @@ mod tests {
     fn test_fq12_mul() {
         let a = random_fq12();
         let b = random_fq12();
-        let circuit = Fq12::mul(
-            wires_set_from_fq12(a),
-            wires_set_from_fq12(b),
-        );
+        let circuit = Fq12::mul(wires_set_from_fq12(a), wires_set_from_fq12(b));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();

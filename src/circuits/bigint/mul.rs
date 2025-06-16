@@ -51,7 +51,8 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
                     addition_wires.push(circuit.0[j].clone());
                 }
                 let new_bits = circuit.extend(Self::add(a_wires.clone(), addition_wires));
-                circuit.0[i..(i + N_BITS + 1)].clone_from_slice(&new_bits[..((i + N_BITS - i) + 1)]);
+                circuit.0[i..(i + N_BITS + 1)]
+                    .clone_from_slice(&new_bits[..((i + N_BITS - i) + 1)]);
             }
         }
 

@@ -387,9 +387,10 @@ pub fn calculate_montgomery_constants(modulus: BigUint, r: BigUint) -> (BigUint,
     let (gcd, r_inv_signed, n_inv_signed) = extended_gcd(&r_signed, &modulus_signed);
     assert_eq!(gcd, BigInt::one(), "r and modulus must be coprime");
 
-    let r_inv = ((r_inv_signed % modulus_signed.clone() + modulus_signed.clone()) % modulus_signed.clone())
-        .to_biguint()
-        .unwrap();
+    let r_inv = ((r_inv_signed % modulus_signed.clone() + modulus_signed.clone())
+        % modulus_signed.clone())
+    .to_biguint()
+    .unwrap();
 
     let n_prime = ((n_inv_signed % r_signed.clone() + r_signed.clone()) % r_signed.clone())
         .to_biguint()

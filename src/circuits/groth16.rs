@@ -41,11 +41,8 @@ pub fn groth16_verifier_evaluate(
     let mut gate_count = GateCount::zero();
     let (msm_temp, gc) = (
         wires_set_from_g1p(
-            ark_bn254::G1Projective::msm(
-                &[vk.gamma_abc_g1[1]],
-                &[fr_from_wires(public.clone())],
-            )
-            .unwrap(),
+            ark_bn254::G1Projective::msm(&[vk.gamma_abc_g1[1]], &[fr_from_wires(public.clone())])
+                .unwrap(),
         ),
         GateCount::msm(),
     );

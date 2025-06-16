@@ -35,19 +35,11 @@ impl Wire {
     }
 
     pub fn select(&self, selector: bool) -> S {
-        if selector {
-            self.label1
-        } else {
-            self.label0
-        }
+        if selector { self.label1 } else { self.label0 }
     }
 
     pub fn select_hash(&self, selector: bool) -> S {
-        if selector {
-            self.hash1
-        } else {
-            self.hash0
-        }
+        if selector { self.hash1 } else { self.hash0 }
     }
 
     pub fn get_value(&self) -> bool {

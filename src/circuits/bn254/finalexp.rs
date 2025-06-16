@@ -15,9 +15,7 @@ pub fn conjugate(f: ark_bn254::Fq12) -> ark_bn254::Fq12 {
 pub fn cyclotomic_exp(f: ark_bn254::Fq12) -> ark_bn254::Fq12 {
     let mut res = ark_bn254::Fq12::ONE;
     let mut found_nonzero = false;
-    for value in
-        BitIteratorBE::without_leading_zeros(ark_bn254::Config::X).map(|e| e as i8)
-    {
+    for value in BitIteratorBE::without_leading_zeros(ark_bn254::Config::X).map(|e| e as i8) {
         if found_nonzero {
             res.square_in_place(); // cyclotomic_square_in_place
         }
@@ -128,7 +126,7 @@ pub fn final_exponentiation(f: ark_bn254::Fq12) -> ark_bn254::Fq12 {
     let r2 = conjugate(r);
     let y18 = r2 * y11;
     let y19 = y18.frobenius_map(3);
-    
+
     y19 * y17
 }
 

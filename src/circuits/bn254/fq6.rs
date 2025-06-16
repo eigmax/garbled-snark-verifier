@@ -314,14 +314,8 @@ impl Fq6 {
         let wires_9: Vec<Rc<RefCell<Wire>>> =
             circuit.extend(Fq2::add(wires_8.clone(), wires_7.clone()));
 
-        let v1 = circuit.extend(Fq2::mul_by_constant(
-            wires_3.clone(),
-            b.c0 + b.c1 + b.c2,
-        ));
-        let v2 = circuit.extend(Fq2::mul_by_constant(
-            wires_4.clone(),
-            b.c0 - b.c1 + b.c2,
-        ));
+        let v1 = circuit.extend(Fq2::mul_by_constant(wires_3.clone(), b.c0 + b.c1 + b.c2));
+        let v2 = circuit.extend(Fq2::mul_by_constant(wires_4.clone(), b.c0 - b.c1 + b.c2));
         let v3 = circuit.extend(Fq2::mul_by_constant(
             wires_9.clone(),
             b.c0 + b.c1.double() + b.c2.double().double(),

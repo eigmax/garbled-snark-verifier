@@ -114,9 +114,13 @@ pub mod tests {
 
             for i in (0..len).rev() {
                 match d[i].cmp(&0) {
-                    Ordering::Less => { res -= pw[i].clone(); },
+                    Ordering::Less => {
+                        res -= pw[i].clone();
+                    }
                     Ordering::Equal => (),
-                    Ordering::Greater => { res += pw[i].clone(); },
+                    Ordering::Greater => {
+                        res += pw[i].clone();
+                    }
                 }
             }
 
