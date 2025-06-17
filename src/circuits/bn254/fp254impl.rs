@@ -509,9 +509,10 @@ pub trait Fp254Impl {
         let mut circuit = Circuit::empty();
 
         let b = circuit.extend(Fq::inverse(a.clone()));
-        let result = circuit.extend(Fq::mul_by_constant(
+        let result = circuit.extend(Fq::mul_by_constant_montgomery(
             b,
-            ark_bn254::Fq::from(Fq::montgomery_r_as_biguint()).square(),
+            ark_bn254::Fq::from(Fq::montgomery_r_as_biguint()).square()
+                * ark_bn254::Fq::from(Fq::montgomery_r_as_biguint()),
         ));
 
         circuit.add_wires(result);
