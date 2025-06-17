@@ -10,7 +10,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
 
         let mut circuit = Circuit::empty();
         for _ in 0..(N_BITS * 2) {
-            let wire = Rc::new(RefCell::new(Wire::new()));
+            let wire = new_wirex();
             wire.borrow_mut().set(false);
             circuit.add_wire(wire)
         } //this part can be optimized later 
@@ -39,7 +39,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         let mut circuit = Circuit::empty();
 
         for _ in 0..(N_BITS * 2) {
-            let wire = Rc::new(RefCell::new(Wire::new()));
+            let wire = new_wirex();
             wire.borrow_mut().set(false);
             circuit.add_wire(wire)
         } //this part can be optimized later 
@@ -85,8 +85,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
 #[cfg(test)]
 mod tests {
     use crate::circuits::bigint::{
-        U254,
-        utils::{biguint_from_bits, random_u254, wires_set_from_u254},
+        utils::{biguint_from_bits, random_biguint_n_bits}, U254
     };
 
     //tests are currently only for 254 bits
@@ -94,11 +93,11 @@ mod tests {
     #[test]
     fn test_mul() {
         for _ in 0..10 {
-            let a = random_u254();
-            let b = random_u254();
+            let a = random_biguint_n_bits(254);
+            let b = random_biguint_n_bits(254);
             let circuit = U254::mul(
-                wires_set_from_u254(a.clone()),
-                wires_set_from_u254(b.clone()),
+                U254::wires_set_from_number(a.clone()),
+                U254::wires_set_from_number(b.clone()),
             );
             let c = a * b;
             circuit.gate_counts().print();
@@ -121,9 +120,9 @@ mod tests {
     #[test]
     fn test_mul_by_constant() {
         for _ in 0..10 {
-            let a = random_u254();
-            let b = random_u254();
-            let circuit = U254::mul_by_constant(wires_set_from_u254(a.clone()), b.clone());
+            let a = random_biguint_n_bits(254);
+            let b = random_biguint_n_bits(254);
+            let circuit = U254::mul_by_constant(U254::wires_set_from_number(a.clone()), b.clone());
             let c = a * b;
             circuit.gate_counts().print();
 

@@ -68,16 +68,14 @@ impl G1Projective {
     }
 
     pub fn wires() -> Wires {
-        (0..Self::N_BITS)
-            .map(|_| Rc::new(RefCell::new(Wire::new())))
-            .collect()
+        (0..Self::N_BITS).map(|_| new_wirex()).collect()
     }
 
     pub fn wires_set(u: ark_bn254::G1Projective) -> Wires {
         Self::to_bits(u)[0..Self::N_BITS]
             .iter()
             .map(|bit| {
-                let wire = Rc::new(RefCell::new(Wire::new()));
+                let wire = new_wirex();
                 wire.borrow_mut().set(*bit);
                 wire
             })
@@ -739,7 +737,7 @@ mod tests {
         let w = 10;
         let n = 2_usize.pow(w as u32);
         let a: Vec<ark_bn254::G1Projective> = (0..n).map(|_| G1Projective::random()).collect();
-        let s: Wires = (0..w).map(|_| Rc::new(RefCell::new(Wire::new()))).collect();
+        let s: Wires = (0..w).map(|_| new_wirex()).collect();
 
         let mut a_wires = Vec::new();
         for e in a.clone() {
@@ -771,7 +769,7 @@ mod tests {
         let w = 10;
         let n = 2_usize.pow(w as u32);
         let a: Vec<ark_bn254::G1Projective> = (0..n).map(|_| G1Projective::random()).collect();
-        let s: Wires = (0..w).map(|_| Rc::new(RefCell::new(Wire::new()))).collect();
+        let s: Wires = (0..w).map(|_| new_wirex()).collect();
 
         let mut a_wires = Vec::new();
         for e in a.clone() {

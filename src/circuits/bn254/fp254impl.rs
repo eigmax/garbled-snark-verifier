@@ -86,14 +86,14 @@ pub trait Fp254Impl {
         let c = Self::not_modulus_as_biguint();
         let mut wires_2 = circuit.extend(U254::add_constant(wires_1.clone(), c));
         wires_2.pop();
-        let not_u = Rc::new(RefCell::new(Wire::new()));
+        let not_u = new_wirex();
         circuit.add(Gate::not(u.clone(), not_u.clone()));
         let v = circuit.extend(U254::less_than_constant(
             wires_1.clone(),
             Self::modulus_as_biguint(),
         ))[0]
             .clone();
-        let s = Rc::new(RefCell::new(Wire::new()));
+        let s = new_wirex();
         circuit.add(Gate::and(not_u.clone(), v.clone(), s.clone()));
         let wires_3 = circuit.extend(U254::select(wires_1, wires_2, s));
         circuit.add_wires(wires_3);
@@ -114,14 +114,14 @@ pub trait Fp254Impl {
         let c = Self::not_modulus_as_biguint();
         let mut wires_2 = circuit.extend(U254::add_constant(wires_1.clone(), c));
         wires_2.pop();
-        let not_u = Rc::new(RefCell::new(Wire::new()));
+        let not_u = new_wirex();
         circuit.add(Gate::not(u.clone(), not_u.clone()));
         let v = circuit.extend(U254::less_than_constant(
             wires_1.clone(),
             Self::modulus_as_biguint(),
         ))[0]
             .clone();
-        let s = Rc::new(RefCell::new(Wire::new()));
+        let s = new_wirex();
         circuit.add(Gate::and(not_u.clone(), v.clone(), s.clone()));
         let wires_3 = circuit.extend(U254::select(wires_1, wires_2, s));
         circuit.add_wires(wires_3);
@@ -160,9 +160,9 @@ pub trait Fp254Impl {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
 
-        let shift_wire = Rc::new(RefCell::new(Wire::new()));
+        let shift_wire = new_wirex();
         let x = a[0].clone();
-        let not_x = Rc::new(RefCell::new(Wire::new()));
+        let not_x = new_wirex();
         circuit.add(Gate::not(x.clone(), not_x.clone()));
         circuit.add(Gate::and(x.clone(), not_x.clone(), shift_wire.clone()));
         let mut aa = a.clone();
@@ -172,14 +172,14 @@ pub trait Fp254Impl {
         let c = Self::not_modulus_as_biguint();
         let mut wires_2 = circuit.extend(U254::add_constant(shifted_wires.clone(), c));
         wires_2.pop();
-        let not_u = Rc::new(RefCell::new(Wire::new()));
+        let not_u = new_wirex();
         circuit.add(Gate::not(u.clone(), not_u.clone()));
         let v = circuit.extend(U254::less_than_constant(
             shifted_wires.clone(),
             Self::modulus_as_biguint(),
         ))[0]
             .clone();
-        let s = Rc::new(RefCell::new(Wire::new()));
+        let s = new_wirex();
         circuit.add(Gate::and(not_u.clone(), v.clone(), s.clone()));
         let result = circuit.extend(U254::select(shifted_wires, wires_2, s));
         circuit.add_wires(result);
@@ -343,25 +343,25 @@ pub trait Fp254Impl {
         for _ in 0..2 * Self::N_BITS {
             let x1x = u[0].clone();
             let x2x = v[0].clone();
-            let x1 = Rc::new(RefCell::new(Wire::new()));
-            let x2 = Rc::new(RefCell::new(Wire::new()));
+            let x1 = new_wirex();
+            let x2 = new_wirex();
             circuit.add(Gate::not(x1x.clone(), x1.clone()));
             circuit.add(Gate::not(x2x.clone(), x2.clone()));
             let x3 = circuit.extend(U254::greater_than(u.clone(), v.clone()))[0].clone();
 
             let p1 = x1.clone();
-            let not_x1 = Rc::new(RefCell::new(Wire::new()));
+            let not_x1 = new_wirex();
             circuit.add(Gate::not(x1.clone(), not_x1.clone()));
-            let p2 = Rc::new(RefCell::new(Wire::new()));
+            let p2 = new_wirex();
             circuit.add(Gate::and(not_x1.clone(), x2.clone(), p2.clone()));
-            let p3 = Rc::new(RefCell::new(Wire::new()));
-            let not_x2 = Rc::new(RefCell::new(Wire::new()));
+            let p3 = new_wirex();
+            let not_x2 = new_wirex();
             circuit.add(Gate::not(x2, not_x2.clone()));
-            let wires_2 = Rc::new(RefCell::new(Wire::new()));
+            let wires_2 = new_wirex();
             circuit.add(Gate::and(not_x1.clone(), not_x2.clone(), wires_2.clone()));
             circuit.add(Gate::and(wires_2.clone(), x3.clone(), p3.clone()));
-            let p4 = Rc::new(RefCell::new(Wire::new()));
-            let not_x3 = Rc::new(RefCell::new(Wire::new()));
+            let p4 = new_wirex();
+            let not_x3 = new_wirex();
             circuit.add(Gate::not(x3.clone(), not_x3.clone()));
             circuit.add(Gate::and(wires_2, not_x3, p4.clone()));
 
@@ -513,8 +513,8 @@ pub trait Fp254Impl {
 
         let half = circuit.extend(Self::half(a.clone()));
         let mut result = Fq::wires();
-        let mut r1 = Rc::new(RefCell::new(Wire::new()));
-        let mut r2 = Rc::new(RefCell::new(Wire::new()));
+        let mut r1 = new_wirex();
+        let mut r2 = new_wirex();
         r1.borrow_mut().set(false);
         r2.borrow_mut().set(false);
         for i in 0..U254::N_BITS {
@@ -522,14 +522,14 @@ pub trait Fp254Impl {
             let j = U254::N_BITS - 1 - i;
 
             // result wire
-            let r2_and_hj = Rc::new(RefCell::new(Wire::new()));
+            let r2_and_hj = new_wirex();
             circuit.add(Gate::and(r2.clone(), half[j].clone(), r2_and_hj.clone()));
-            let result_wire = Rc::new(RefCell::new(Wire::new()));
+            let result_wire = new_wirex();
             circuit.add(Gate::or(r1.clone(), r2_and_hj.clone(), result_wire.clone()));
             result[j] = result_wire.clone();
             // update r1 r2 values
-            let not_hj = Rc::new(RefCell::new(Wire::new()));
-            let not_r2 = Rc::new(RefCell::new(Wire::new()));
+            let not_hj = new_wirex();
+            let not_r2 = new_wirex();
             circuit.add(Gate::not(half[j].clone(), not_hj.clone()));
             circuit.add(Gate::not(r2.clone(), not_r2.clone()));
             r1 = circuit.extend(selector(not_r2.clone(), r2.clone(), result_wire.clone()))[0]
@@ -542,9 +542,9 @@ pub trait Fp254Impl {
                 .clone();
 
             // special case if 1 0 0 then 0 1 instead of 1 1 so we need to not r1 if 1 0 0 is the case
-            let not_r1 = Rc::new(RefCell::new(Wire::new()));
+            let not_r1 = new_wirex();
             circuit.add(Gate::not(r1.clone(), not_r1.clone()));
-            let edge_case = Rc::new(RefCell::new(Wire::new()));
+            let edge_case = new_wirex();
             circuit.add(Gate::and(result_wire.clone(), not_hj, edge_case.clone()));
             r1 = circuit.extend(selector(not_r1.clone(), r1.clone(), edge_case))[0].clone();
         }
