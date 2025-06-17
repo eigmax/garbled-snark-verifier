@@ -143,7 +143,8 @@ mod tests {
 
     use super::*;
     use crate::circuits::bigint::{
-        utils::{biguint_from_wires, random_biguint_n_bits}, U254
+        U254,
+        utils::{biguint_from_wires, random_biguint_n_bits},
     };
 
     #[test]

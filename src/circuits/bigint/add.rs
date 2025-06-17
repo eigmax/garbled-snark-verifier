@@ -310,7 +310,10 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
 #[cfg(test)]
 mod tests {
     use crate::circuits::bigint::{
-        utils::{biguint_from_bits, biguint_from_wires, biguint_two_pow_254, random_biguint_n_bits}, U254
+        U254,
+        utils::{
+            biguint_from_bits, biguint_from_wires, biguint_two_pow_254, random_biguint_n_bits,
+        },
     };
     use num_bigint::BigUint;
     use std::str::FromStr;
@@ -319,7 +322,10 @@ mod tests {
     fn test_add() {
         let a = random_biguint_n_bits(254);
         let b = random_biguint_n_bits(254);
-        let circuit = U254::add(U254::wires_set_from_number(a.clone()), U254::wires_set_from_number(b.clone()));
+        let circuit = U254::add(
+            U254::wires_set_from_number(a.clone()),
+            U254::wires_set_from_number(b.clone()),
+        );
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -390,7 +396,7 @@ mod tests {
             gate.evaluate();
         }
         let c = biguint_from_wires(circuit.0);
-        assert_eq!(c, (a.clone() + a.clone()) % biguint_two_pow_254());    
+        assert_eq!(c, (a.clone() + a.clone()) % biguint_two_pow_254());
     }
 
     #[test]

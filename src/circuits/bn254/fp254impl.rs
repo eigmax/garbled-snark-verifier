@@ -8,7 +8,7 @@ use crate::{
 };
 use ark_ff::{AdditiveGroup, Field};
 use num_bigint::BigUint;
-use std::{str::FromStr};
+use std::str::FromStr;
 
 pub trait Fp254Impl {
     const MODULUS: &'static str;
@@ -235,7 +235,7 @@ pub trait Fp254Impl {
         let q = circuit.extend(U254::mul_by_constant_modulo_power_two(
             x_low,
             Self::montgomery_m_inverse_as_biguint(),
-            254
+            254,
         ));
         let sub =
             circuit.extend(U254::mul_by_constant(q, Self::modulus_as_biguint()))[254..508].to_vec();
@@ -248,7 +248,7 @@ pub trait Fp254Impl {
         let result = circuit.extend(U254::optimized_sub(x_high, new_sub, false));
         circuit.add_wires(result);
 
-        return circuit
+        return circuit;
     }
 
     fn mul_montgomery(a: Wires, b: Wires) -> Circuit {
@@ -256,7 +256,7 @@ pub trait Fp254Impl {
         let reduction_circuit = Self::montgomery_reduce(mul_circuit.0);
         let mut result_circuit = Circuit::new(reduction_circuit.0, mul_circuit.1);
         result_circuit.1.extend(reduction_circuit.1);
-        return result_circuit
+        return result_circuit;
     }
 
     fn mul_by_constant(a: Wires, b: ark_bn254::Fq) -> Circuit {
@@ -311,7 +311,7 @@ pub trait Fp254Impl {
         let reduction_circuit = Self::montgomery_reduce(mul_circuit.0);
         let mut result_circuit = Circuit::new(reduction_circuit.0, mul_circuit.1);
         result_circuit.1.extend(reduction_circuit.1);
-        return result_circuit
+        return result_circuit;
     }
 
     fn square(a: Wires) -> Circuit {

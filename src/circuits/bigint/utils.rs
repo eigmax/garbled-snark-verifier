@@ -4,8 +4,8 @@ use rand::{Rng, rng};
 use std::str::FromStr;
 // Constant byte array representing 2^254
 const TWO_POW_254_BYTES_LE: [u8; 32] = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x40,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0x40,
 ];
 
 #[inline(always)]

@@ -78,7 +78,11 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         circuit
     }
 
-       pub fn mul_by_constant_modulo_power_two(a_wires: Vec<Rc<RefCell<Wire>>>, c: BigUint, power: usize) -> Circuit {
+    pub fn mul_by_constant_modulo_power_two(
+        a_wires: Vec<Rc<RefCell<Wire>>>,
+        c: BigUint,
+        power: usize,
+    ) -> Circuit {
         assert_eq!(a_wires.len(), N_BITS);
         assert!(power < 2 * N_BITS);
         let mut c_bits = bits_from_biguint(c);
@@ -102,13 +106,16 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
                 for j in i..(i + number_of_bits) {
                     addition_wires.push(circuit.0[j].clone());
                 }
-                let new_bits = circuit.extend(Self::add_generic(a_wires[0..number_of_bits].to_vec(), addition_wires, number_of_bits));
+                let new_bits = circuit.extend(Self::add_generic(
+                    a_wires[0..number_of_bits].to_vec(),
+                    addition_wires,
+                    number_of_bits,
+                ));
                 if i + number_of_bits < power {
-                    circuit.0[i..(i + number_of_bits + 1)]
-                    .clone_from_slice(&new_bits);
+                    circuit.0[i..(i + number_of_bits + 1)].clone_from_slice(&new_bits);
                 } else {
-                     circuit.0[i..(i + number_of_bits)]
-                    .clone_from_slice(&new_bits[..number_of_bits]);
+                    circuit.0[i..(i + number_of_bits)]
+                        .clone_from_slice(&new_bits[..number_of_bits]);
                 }
             }
         }
@@ -123,7 +130,8 @@ mod tests {
     use num_bigint::BigUint;
 
     use crate::circuits::bigint::{
-        utils::{biguint_from_bits, random_biguint_n_bits}, U254
+        U254,
+        utils::{biguint_from_bits, random_biguint_n_bits},
     };
 
     //tests are currently only for 254 bits
@@ -181,11 +189,16 @@ mod tests {
 
     #[test]
     fn test_mul_by_constant_modulo_power_two() {
-        for power in [127, 254] { //two randomish values
+        for power in [127, 254] {
+            //two randomish values
             let a = random_biguint_n_bits(254);
             let b = random_biguint_n_bits(254);
-            let circuit = U254::mul_by_constant_modulo_power_two(U254::wires_set_from_number(a.clone()), b.clone(), power);
-            let c = a * b % BigUint::from_str("2").unwrap().pow(power as u32); 
+            let circuit = U254::mul_by_constant_modulo_power_two(
+                U254::wires_set_from_number(a.clone()),
+                b.clone(),
+                power,
+            );
+            let c = a * b % BigUint::from_str("2").unwrap().pow(power as u32);
             circuit.gate_counts().print();
 
             for mut gate in circuit.1 {
