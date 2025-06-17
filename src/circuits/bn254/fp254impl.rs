@@ -8,7 +8,7 @@ use crate::{
 };
 use ark_ff::{AdditiveGroup, Field};
 use num_bigint::BigUint;
-use std::str::FromStr;
+use std::{str::FromStr};
 
 pub trait Fp254Impl {
     const MODULUS: &'static str;
@@ -227,19 +227,18 @@ pub trait Fp254Impl {
         circuit
     }
 
-    fn mul_montgomery(a: Wires, b: Wires) -> Circuit {
+    fn montgomery_reduce(x: Wires) -> Circuit {
         let mut circuit = Circuit::empty();
-        let x = circuit.extend(U254::mul(a, b));
 
         let x_low = x[..254].to_vec();
         let x_high = x[254..].to_vec();
-        let q = circuit.extend(U254::mul_by_constant(
+        let q = circuit.extend(U254::mul_by_constant_modulo_power_two(
             x_low,
             Self::montgomery_m_inverse_as_biguint(),
-        ))[0..254]
-            .to_vec();
+            254
+        ));
         let sub =
-            circuit.extend(U254::mul_by_constant(q, Self::modulus_as_biguint()))[254..508].to_vec(); //might be needing one more bit, since plus modulo might be too much for 254 bits
+            circuit.extend(U254::mul_by_constant(q, Self::modulus_as_biguint()))[254..508].to_vec();
         let bound_check = circuit.extend(U254::greater_than(sub.clone(), x_high.clone()));
         let subtract_if_too_much = circuit.extend(U254::self_or_zero_constant(
             Self::modulus_as_biguint(),
@@ -249,7 +248,15 @@ pub trait Fp254Impl {
         let result = circuit.extend(U254::optimized_sub(x_high, new_sub, false));
         circuit.add_wires(result);
 
-        circuit
+        return circuit
+    }
+
+    fn mul_montgomery(a: Wires, b: Wires) -> Circuit {
+        let mul_circuit = U254::mul(a, b);
+        let reduction_circuit = Self::montgomery_reduce(mul_circuit.0);
+        let mut result_circuit = Circuit::new(reduction_circuit.0, mul_circuit.1);
+        result_circuit.1.extend(reduction_circuit.1);
+        return result_circuit
     }
 
     fn mul_by_constant(a: Wires, b: ark_bn254::Fq) -> Circuit {
@@ -300,7 +307,11 @@ pub trait Fp254Impl {
             return circuit;
         }
 
-        Self::mul_montgomery(a, Fq::wires_set(b))
+        let mul_circuit = U254::mul_by_constant(a, b.into());
+        let reduction_circuit = Self::montgomery_reduce(mul_circuit.0);
+        let mut result_circuit = Circuit::new(reduction_circuit.0, mul_circuit.1);
+        result_circuit.1.extend(reduction_circuit.1);
+        return result_circuit
     }
 
     fn square(a: Wires) -> Circuit {

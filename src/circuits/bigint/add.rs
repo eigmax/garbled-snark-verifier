@@ -25,6 +25,22 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         circuit
     }
 
+    pub fn add_generic(a: Wires, b: Wires, len: usize) -> Circuit {
+        assert_eq!(a.len(), len);
+        assert_eq!(b.len(), len);
+        let mut circuit = Circuit::empty();
+        let wires = circuit.extend(half_adder(a[0].clone(), b[0].clone()));
+        circuit.add_wire(wires[0].clone());
+        let mut carry = wires[1].clone();
+        for i in 1..len {
+            let wires = circuit.extend(full_adder(a[i].clone(), b[i].clone(), carry));
+            circuit.add_wire(wires[0].clone());
+            carry = wires[1].clone();
+        }
+        circuit.add_wire(carry);
+        circuit
+    }
+
     pub fn add_constant(a: Wires, b: BigUint) -> Circuit {
         assert_eq!(a.len(), N_BITS);
         assert_ne!(b, BigUint::ZERO);
