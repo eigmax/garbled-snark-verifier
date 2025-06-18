@@ -36,7 +36,7 @@ pub fn cyclotomic_exp_evaluate_fast(f: Wires) -> (Wires, GateCount) {
         if found_nonzero {
             let (wires1, gc) = (
                 Fq12::wires_set(Fq12::from_wires(res.clone()).square()),
-                GateCount::fq12_square(),
+                GateCount::fq12_cyclotomic_square(),
             ); //Fq12::square_evaluate(res.clone());
             res = wires1;
             gate_count += gc;
@@ -69,7 +69,7 @@ pub fn cyclotomic_exp_evaluate_montgomery_fast(f: Wires) -> (Wires, GateCount) {
         if found_nonzero {
             let (wires1, gc) = (
                 Fq12::wires_set_montgomery(Fq12::from_montgomery_wires(res.clone()).square()),
-                GateCount::fq12_square_montgomery(),
+                GateCount::fq12_cyclotomic_square_montgomery(),
             ); //Fq12::square_evaluate_montgomery(res.clone());
             res = wires1;
             gate_count += gc;
@@ -427,7 +427,6 @@ mod tests {
     use rand_chacha::ChaCha20Rng;
 
     #[test]
-    #[ignore]
     fn test_cyclotomic_exp() {
         let p = Fq::modulus_as_biguint();
         let u = (p.pow(6) - BigUint::from_str("1").unwrap()) * (p.pow(2) + BigUint::from_str("1").unwrap());
