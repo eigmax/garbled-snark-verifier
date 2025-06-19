@@ -36,7 +36,7 @@ pub fn cyclotomic_exp_evaluate_fast(f: Wires) -> (Wires, GateCount) {
         if found_nonzero {
             let (wires1, gc) = (
                 Fq12::wires_set(Fq12::from_wires(res.clone()).square()),
-                GateCount::fq12_square(),
+                GateCount::fq12_cyclotomic_square(),
             ); //Fq12::square_evaluate(res.clone());
             res = wires1;
             gate_count += gc;
@@ -69,7 +69,7 @@ pub fn cyclotomic_exp_evaluate_montgomery_fast(f: Wires) -> (Wires, GateCount) {
         if found_nonzero {
             let (wires1, gc) = (
                 Fq12::wires_set_montgomery(Fq12::from_montgomery_wires(res.clone()).square()),
-                GateCount::fq12_square_montgomery(),
+                GateCount::fq12_cyclotomic_square_montgomery(),
             ); //Fq12::square_evaluate_montgomery(res.clone());
             res = wires1;
             gate_count += gc;
@@ -408,42 +408,48 @@ pub fn final_exponentiation_evaluate_montgomery_fast(f: Wires) -> (Wires, GateCo
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use crate::circuits::bn254::{
         finalexp::{
             cyclotomic_exp, cyclotomic_exp_evaluate_fast, cyclotomic_exp_evaluate_montgomery_fast,
             cyclotomic_exp_fastinv, final_exponentiation, final_exponentiation_evaluate_fast,
             final_exponentiation_evaluate_montgomery_fast,
-        },
-        fq12::Fq12,
+        }, fp254impl::Fp254Impl, fq::Fq, fq12::Fq12
     };
     use ark_ec::{
         bn::BnConfig,
         pairing::{MillerLoopOutput, Pairing},
     };
-    use ark_ff::{CyclotomicMultSubgroup, UniformRand};
+    use ark_ff::{CyclotomicMultSubgroup, Field, UniformRand};
     use ark_std::rand::SeedableRng;
+    use num_bigint::BigUint;
     use rand_chacha::ChaCha20Rng;
 
     #[test]
-    #[ignore]
     fn test_cyclotomic_exp() {
+        let p = Fq::modulus_as_biguint();
+        let u = (p.pow(6) - BigUint::from_str("1").unwrap()) * (p.pow(2) + BigUint::from_str("1").unwrap());
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let f = ark_bn254::Fq12::rand(&mut prng);
+        let cyclotomic_f = f.pow(u.to_u64_digits());
 
-        let c = f.cyclotomic_exp(ark_bn254::Config::X);
-        let d = cyclotomic_exp(f);
-        let e = cyclotomic_exp_fastinv(f);
+        let c = cyclotomic_f.cyclotomic_exp(ark_bn254::Config::X);
+        let d = cyclotomic_exp(cyclotomic_f);
+        let e = cyclotomic_exp_fastinv(cyclotomic_f);
         assert_eq!(c, d);
         assert_eq!(c, e);
     }
 
     #[test]
     fn test_cyclotomic_exp_evaluate_fast() {
+        let p = Fq::modulus_as_biguint();
+        let u = (p.pow(6) - BigUint::from_str("1").unwrap()) * (p.pow(2) + BigUint::from_str("1").unwrap());
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let f = ark_bn254::Fq12::rand(&mut prng);
-
-        let c = cyclotomic_exp(f); // f.cyclotomic_exp(ark_bn254::Config::X);
-        let (d, gate_count) = cyclotomic_exp_evaluate_fast(Fq12::wires_set(f));
+        let cyclotomic_f = f.pow(u.to_u64_digits());
+        let c = cyclotomic_f.cyclotomic_exp(ark_bn254::Config::X);
+        let (d, gate_count) = cyclotomic_exp_evaluate_fast(Fq12::wires_set(cyclotomic_f));
         gate_count.print();
         assert_eq!(c, Fq12::from_wires(d));
     }

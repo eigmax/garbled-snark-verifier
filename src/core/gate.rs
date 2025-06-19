@@ -389,6 +389,32 @@ impl GateCount {
         }
     }
 
+    pub fn fq12_cyclotomic_square() -> Self {
+        Self {
+            and:  5903509,
+            or:   3540097,
+            xor:  4728316,
+            nand: 7090410,
+            not:  4767360,
+            xnor: 2357575,
+            nimp: 0,
+            nsor: 0,
+        }
+    }
+
+    pub fn fq12_cyclotomic_square_montgomery() -> Self {
+        Self {
+            and:  5825947,
+            or:   2356057,
+            xor:  4668988,
+            nand: 150114,
+            not:  113190,
+            xnor: 53251,
+            nimp: 9144,
+            nsor: 0,
+        }
+    }
+
     pub fn fq12_mul() -> Self {
         Self {
             and: 14793358,
