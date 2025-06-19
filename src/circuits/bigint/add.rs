@@ -293,6 +293,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
 
 #[cfg(test)]
 mod tests {
+    use crate::circuits::bigint::utils::biguint_two_pow_254;
     use crate::circuits::bigint::{
         U254,
         utils::{biguint_from_bits, biguint_from_wires, random_u254, wires_set_from_u254},
@@ -378,7 +379,7 @@ mod tests {
             gate.evaluate();
         }
         let c = biguint_from_wires(circuit.0);
-        assert_eq!(c, a.clone() + a.clone());
+        assert_eq!(c, (a.clone() + a.clone()) % biguint_two_pow_254());
     }
 
     #[test]
