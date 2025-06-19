@@ -352,9 +352,9 @@ impl GateCount {
 
     pub fn msm_montgomery() -> Self {
         Self {
-            and: 127084800,
-            or: 50626400,
-            xor: 101367025,
+            and: 114290400,
+            or: 44229200,
+            xor: 88572625,
             nand: 58898790,
             not: 19856230,
             xnor: 89650,
@@ -378,9 +378,9 @@ impl GateCount {
 
     pub fn fq12_square_montgomery() -> Self {
         Self {
-            and: 14495289,
-            or: 5838916,
-            xor: 11600021,
+            and: 13055919,
+            or: 5119231,
+            xor: 10160651,
             nand: 300228,
             not: 226279,
             xnor: 100364,
@@ -391,11 +391,11 @@ impl GateCount {
 
     pub fn fq12_cyclotomic_square() -> Self {
         Self {
-            and:  5903509,
-            or:   3540097,
-            xor:  4728316,
+            and: 5903509,
+            or: 3540097,
+            xor: 4728316,
             nand: 7090410,
-            not:  4767360,
+            not: 4767360,
             xnor: 2357575,
             nimp: 0,
             nsor: 0,
@@ -404,11 +404,11 @@ impl GateCount {
 
     pub fn fq12_cyclotomic_square_montgomery() -> Self {
         Self {
-            and:  5825947,
-            or:   2356057,
-            xor:  4668988,
+            and: 5250199,
+            or: 2068183,
+            xor: 4093240,
             nand: 150114,
-            not:  113190,
+            not: 113190,
             xnor: 53251,
             nimp: 9144,
             nsor: 0,
@@ -430,9 +430,9 @@ impl GateCount {
 
     pub fn fq12_mul_montgomery() -> Self {
         Self {
-            and: 14599453,
-            or: 5915224,
-            xor: 11697853,
+            and: 13160083,
+            or: 5195539,
+            xor: 10258483,
             nand: 486156,
             not: 349863,
             xnor: 151360,
@@ -456,13 +456,13 @@ impl GateCount {
 
     pub fn fq12_inverse_montgomery() -> Self {
         Self {
-            and: 41198102,
-            or: 15900260,
-            xor: 31855345,
-            nand: 5285232,
-            not: 3203262,
-            xnor: 571990,
-            nimp: 50800,
+            and: 37993186,
+            or: 14249800,
+            xor: 28651314,
+            nand: 4994148,
+            not: 3008065,
+            xnor: 475344,
+            nimp: 51308,
             nsor: 0,
         }
     }
@@ -482,9 +482,9 @@ impl GateCount {
 
     pub fn double_in_place_montgomery() -> Self {
         Self {
-            and: 9581641,
-            or: 3833646,
-            xor: 7653666,
+            and: 8224699,
+            or: 3252150,
+            xor: 6490272,
             nand: 81534,
             not: 68935,
             xnor: 29791,
@@ -508,9 +508,9 @@ impl GateCount {
 
     pub fn add_in_place_montgomery() -> Self {
         Self {
-            and: 12447932,
-            or: 4977621,
-            xor: 9941593,
+            and: 11200478,
+            or: 4353894,
+            xor: 8694139,
             nand: 90678,
             not: 80917,
             xnor: 34507,
@@ -534,9 +534,9 @@ impl GateCount {
 
     pub fn ell_montgomery() -> Self {
         Self {
-            and: 13778661,
-            or: 5525564,
-            xor: 11015171,
+            and: 12403263,
+            or: 4837865,
+            xor: 9639773,
             nand: 161544,
             not: 132271,
             xnor: 59246,
@@ -560,9 +560,9 @@ impl GateCount {
 
     pub fn ell_by_constant_montgomery() -> Self {
         Self {
-            and: 13774093,
-            or: 5523028,
-            xor: 11010607,
+            and: 10310865,
+            or: 4308583,
+            xor: 8579635,
             nand: 158496,
             not: 130231,
             xnor: 58734,

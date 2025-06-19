@@ -415,7 +415,10 @@ mod tests {
             cyclotomic_exp, cyclotomic_exp_evaluate_fast, cyclotomic_exp_evaluate_montgomery_fast,
             cyclotomic_exp_fastinv, final_exponentiation, final_exponentiation_evaluate_fast,
             final_exponentiation_evaluate_montgomery_fast,
-        }, fp254impl::Fp254Impl, fq::Fq, fq12::Fq12
+        },
+        fp254impl::Fp254Impl,
+        fq::Fq,
+        fq12::Fq12,
     };
     use ark_ec::{
         bn::BnConfig,
@@ -429,7 +432,8 @@ mod tests {
     #[test]
     fn test_cyclotomic_exp() {
         let p = Fq::modulus_as_biguint();
-        let u = (p.pow(6) - BigUint::from_str("1").unwrap()) * (p.pow(2) + BigUint::from_str("1").unwrap());
+        let u = (p.pow(6) - BigUint::from_str("1").unwrap())
+            * (p.pow(2) + BigUint::from_str("1").unwrap());
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let f = ark_bn254::Fq12::rand(&mut prng);
         let cyclotomic_f = f.pow(u.to_u64_digits());
@@ -444,7 +448,8 @@ mod tests {
     #[test]
     fn test_cyclotomic_exp_evaluate_fast() {
         let p = Fq::modulus_as_biguint();
-        let u = (p.pow(6) - BigUint::from_str("1").unwrap()) * (p.pow(2) + BigUint::from_str("1").unwrap());
+        let u = (p.pow(6) - BigUint::from_str("1").unwrap())
+            * (p.pow(2) + BigUint::from_str("1").unwrap());
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let f = ark_bn254::Fq12::rand(&mut prng);
         let cyclotomic_f = f.pow(u.to_u64_digits());

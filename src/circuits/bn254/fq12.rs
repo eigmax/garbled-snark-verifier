@@ -532,7 +532,6 @@ impl Fq12 {
         let t_0 = circuit.extend(Fq2::sub(wires_1, wires_2));
         let t_1 = circuit.extend(Fq2::double(xy));
 
-
         let xy = circuit.extend(Fq2::mul(c3.clone(), c2.clone()));
         let x_plus_y = circuit.extend(Fq2::add(c3.clone(), c2.clone()));
         let y_beta = circuit.extend(Fq2::mul_by_nonresidue(c2.clone()));
@@ -610,7 +609,6 @@ impl Fq12 {
         let wires_2 = circuit.extend(Fq2::add(xy.clone(), xy_beta));
         let t_0 = circuit.extend(Fq2::sub(wires_1, wires_2));
         let t_1 = circuit.extend(Fq2::double(xy));
-
 
         let xy = circuit.extend(Fq2::mul_montgomery(c3.clone(), c2.clone()));
         let x_plus_y = circuit.extend(Fq2::add(c3.clone(), c2.clone()));
@@ -1063,7 +1061,8 @@ mod tests {
     #[serial]
     fn test_fq12_cyclotomic_square() {
         let p = Fq::modulus_as_biguint();
-        let u = (p.pow(6) - BigUint::from_str("1").unwrap()) * (p.pow(2) + BigUint::from_str("1").unwrap());
+        let u = (p.pow(6) - BigUint::from_str("1").unwrap())
+            * (p.pow(2) + BigUint::from_str("1").unwrap());
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let f = ark_bn254::Fq12::rand(&mut prng);
         let mut cyclotomic_f = f.pow(u.to_u64_digits());
@@ -1081,7 +1080,8 @@ mod tests {
     #[serial]
     fn test_fq12_cyclotomic_square_montgomery() {
         let p = Fq::modulus_as_biguint();
-        let u = (p.pow(6) - BigUint::from_str("1").unwrap()) * (p.pow(2) + BigUint::from_str("1").unwrap());
+        let u = (p.pow(6) - BigUint::from_str("1").unwrap())
+            * (p.pow(2) + BigUint::from_str("1").unwrap());
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let f = ark_bn254::Fq12::rand(&mut prng);
         let mut cyclotomic_f = f.pow(u.to_u64_digits());

@@ -309,7 +309,6 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::circuits::bigint::utils::biguint_two_pow_254;
     use crate::circuits::bigint::{
         U254,
         utils::{
