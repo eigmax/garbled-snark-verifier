@@ -67,16 +67,14 @@ impl Fr {
     }
 
     pub fn wires() -> Wires {
-        (0..Self::N_BITS)
-            .map(|_| Rc::new(RefCell::new(Wire::new())))
-            .collect()
+        (0..Self::N_BITS).map(|_| new_wirex()).collect()
     }
 
     pub fn wires_set(u: ark_bn254::Fr) -> Wires {
         Self::to_bits(u)[0..Self::N_BITS]
             .iter()
             .map(|bit| {
-                let wire = Rc::new(RefCell::new(Wire::new()));
+                let wire = new_wirex();
                 wire.borrow_mut().set(*bit);
                 wire
             })

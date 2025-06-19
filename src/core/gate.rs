@@ -578,9 +578,9 @@ mod tests {
 
     #[test]
     fn test_gate() {
-        let wire_1 = Rc::new(RefCell::new(Wire::new()));
-        let wire_2 = Rc::new(RefCell::new(Wire::new()));
-        let wire_3 = Rc::new(RefCell::new(Wire::new()));
+        let wire_1 = new_wirex();
+        let wire_2 = new_wirex();
+        let wire_3 = new_wirex();
         let gate = Gate::and(wire_1, wire_2, wire_3);
 
         let correct_garbled = gate.garbled();

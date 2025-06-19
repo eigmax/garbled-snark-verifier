@@ -1,19 +1,19 @@
 use crate::bag::*;
 
 pub fn half_adder(a: Wirex, b: Wirex) -> Circuit {
-    let result = Rc::new(RefCell::new(Wire::new()));
-    let carry = Rc::new(RefCell::new(Wire::new()));
+    let result = new_wirex();
+    let carry = new_wirex();
     let gate_result = Gate::xor(a.clone(), b.clone(), result.clone());
     let gate_carry = Gate::and(a.clone(), b.clone(), carry.clone());
     Circuit::new(vec![result, carry], vec![gate_result, gate_carry])
 }
 
 pub fn full_adder(a: Wirex, b: Wirex, c: Wirex) -> Circuit {
-    let d = Rc::new(RefCell::new(Wire::new()));
-    let e = Rc::new(RefCell::new(Wire::new()));
-    let f = Rc::new(RefCell::new(Wire::new()));
-    let result = Rc::new(RefCell::new(Wire::new()));
-    let carry = Rc::new(RefCell::new(Wire::new()));
+    let d = new_wirex();
+    let e = new_wirex();
+    let f = new_wirex();
+    let result = new_wirex();
+    let carry = new_wirex();
     let gate_1 = Gate::xor(a.clone(), b.clone(), d.clone());
     let gate_2 = Gate::and(a.clone(), b.clone(), e.clone());
     let gate_3 = Gate::xor(d.clone(), c.clone(), result.clone());
@@ -26,9 +26,9 @@ pub fn full_adder(a: Wirex, b: Wirex, c: Wirex) -> Circuit {
 }
 
 pub fn half_subtracter(a: Wirex, b: Wirex) -> Circuit {
-    let result = Rc::new(RefCell::new(Wire::new()));
-    let borrow = Rc::new(RefCell::new(Wire::new()));
-    let not_a = Rc::new(RefCell::new(Wire::new()));
+    let result = new_wirex();
+    let borrow = new_wirex();
+    let not_a = new_wirex();
     let gate_not_a = Gate::not(a.clone(), not_a.clone());
     let gate_result = Gate::xor(a.clone(), b.clone(), result.clone());
     let gate_borrow = Gate::and(not_a.clone(), b.clone(), borrow.clone());
@@ -39,13 +39,13 @@ pub fn half_subtracter(a: Wirex, b: Wirex) -> Circuit {
 }
 
 pub fn full_subtracter(a: Wirex, b: Wirex, c: Wirex) -> Circuit {
-    let d = Rc::new(RefCell::new(Wire::new()));
-    let e = Rc::new(RefCell::new(Wire::new()));
-    let f = Rc::new(RefCell::new(Wire::new()));
-    let g = Rc::new(RefCell::new(Wire::new()));
-    let h = Rc::new(RefCell::new(Wire::new()));
-    let result = Rc::new(RefCell::new(Wire::new()));
-    let borrow = Rc::new(RefCell::new(Wire::new()));
+    let d = new_wirex();
+    let e = new_wirex();
+    let f = new_wirex();
+    let g = new_wirex();
+    let h = new_wirex();
+    let result = new_wirex();
+    let borrow = new_wirex();
 
     let gate_1 = Gate::xor(a.clone(), b.clone(), d.clone());
     let gate_2 = Gate::xor(c.clone(), d.clone(), result.clone());
@@ -62,10 +62,10 @@ pub fn full_subtracter(a: Wirex, b: Wirex, c: Wirex) -> Circuit {
 }
 
 pub fn selector(a: Wirex, b: Wirex, c: Wirex) -> Circuit {
-    let d = Rc::new(RefCell::new(Wire::new()));
-    let e = Rc::new(RefCell::new(Wire::new()));
-    let f = Rc::new(RefCell::new(Wire::new()));
-    let g = Rc::new(RefCell::new(Wire::new()));
+    let d = new_wirex();
+    let e = new_wirex();
+    let f = new_wirex();
+    let g = new_wirex();
     let gate_1 = Gate::not(c.clone(), e.clone());
     let gate_2 = Gate::nand(a.clone(), c.clone(), d.clone());
     let gate_3 = Gate::nand(e.clone(), b.clone(), f.clone());
@@ -120,10 +120,10 @@ mod tests {
         ];
 
         for ((a, b), (c, d)) in result {
-            let a_wire = Rc::new(RefCell::new(Wire::new()));
+            let a_wire = new_wirex();
             a_wire.borrow_mut().set(a);
 
-            let b_wire = Rc::new(RefCell::new(Wire::new()));
+            let b_wire = new_wirex();
             b_wire.borrow_mut().set(b);
 
             let circuit = half_adder(a_wire, b_wire);
@@ -153,13 +153,13 @@ mod tests {
         ];
 
         for ((a, b, c), (d, e)) in result {
-            let a_wire = Rc::new(RefCell::new(Wire::new()));
+            let a_wire = new_wirex();
             a_wire.borrow_mut().set(a);
 
-            let b_wire = Rc::new(RefCell::new(Wire::new()));
+            let b_wire = new_wirex();
             b_wire.borrow_mut().set(b);
 
-            let c_wire = Rc::new(RefCell::new(Wire::new()));
+            let c_wire = new_wirex();
             c_wire.borrow_mut().set(c);
 
             let circuit = full_adder(a_wire, b_wire, c_wire);
@@ -185,10 +185,10 @@ mod tests {
         ];
 
         for ((a, b), (c, d)) in result {
-            let a_wire = Rc::new(RefCell::new(Wire::new()));
+            let a_wire = new_wirex();
             a_wire.borrow_mut().set(a);
 
-            let b_wire = Rc::new(RefCell::new(Wire::new()));
+            let b_wire = new_wirex();
             b_wire.borrow_mut().set(b);
 
             let circuit = half_subtracter(a_wire, b_wire);
@@ -218,13 +218,13 @@ mod tests {
         ];
 
         for ((a, b, c), (d, e)) in result {
-            let a_wire = Rc::new(RefCell::new(Wire::new()));
+            let a_wire = new_wirex();
             a_wire.borrow_mut().set(a);
 
-            let b_wire = Rc::new(RefCell::new(Wire::new()));
+            let b_wire = new_wirex();
             b_wire.borrow_mut().set(b);
 
-            let c_wire = Rc::new(RefCell::new(Wire::new()));
+            let c_wire = new_wirex();
             c_wire.borrow_mut().set(c);
 
             let circuit = full_subtracter(a_wire, b_wire, c_wire);
@@ -254,13 +254,13 @@ mod tests {
         ];
 
         for ((a, b, c), d) in result {
-            let a_wire = Rc::new(RefCell::new(Wire::new()));
+            let a_wire = new_wirex();
             a_wire.borrow_mut().set(a);
 
-            let b_wire = Rc::new(RefCell::new(Wire::new()));
+            let b_wire = new_wirex();
             b_wire.borrow_mut().set(b);
 
-            let c_wire = Rc::new(RefCell::new(Wire::new()));
+            let c_wire = new_wirex();
             c_wire.borrow_mut().set(c);
 
             let circuit = selector(a_wire, b_wire, c_wire);
@@ -279,8 +279,8 @@ mod tests {
     fn test_multiplexer() {
         let w = 5;
         let n = 2_usize.pow(w as u32);
-        let a: Wires = (0..n).map(|_| Rc::new(RefCell::new(Wire::new()))).collect();
-        let s: Wires = (0..w).map(|_| Rc::new(RefCell::new(Wire::new()))).collect();
+        let a: Wires = (0..n).map(|_| new_wirex()).collect();
+        let s: Wires = (0..w).map(|_| new_wirex()).collect();
 
         for wire in a.clone() {
             wire.borrow_mut().set(rng().random());
