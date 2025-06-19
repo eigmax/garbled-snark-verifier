@@ -119,13 +119,111 @@ pub fn cyclotomic_exp_fastinv(f: ark_bn254::Fq12) -> ark_bn254::Fq12 {
     res
 }
 
+pub fn cyclotomic_exp_fast_inverse_evaluate_fast(f: Wires) -> (Wires, GateCount) {
+    let mut res = Fq12::wires_set(ark_bn254::Fq12::ONE);
+    let mut gate_count = GateCount::zero();
+    let (f_inverse, gc) = (
+        Fq12::wires_set(Fq12::from_wires(f.clone()).inverse().unwrap()),
+        GateCount::fq12_inverse(),
+    ); //Fq12::inverse(res.clone());
+    gate_count += gc;
+    let mut found_nonzero = false;
+    for value in ark_ff::biginteger::arithmetic::find_naf(ark_bn254::Config::X)
+        .into_iter()
+        .rev()
+    {
+        if found_nonzero {
+            let (wires1, gc) = (
+                Fq12::wires_set(Fq12::from_wires(res.clone()).square()),
+                GateCount::fq12_cyclotomic_square(),
+            ); //Fq12::square_evaluate(res.clone());
+            res = wires1;
+            gate_count += gc;
+        }
+
+        if value != 0 {
+            found_nonzero = true;
+
+            if value > 0 {
+                let (wires2, gc) = (
+                    Fq12::wires_set(Fq12::from_wires(res.clone()) * Fq12::from_wires(f.clone())),
+                    GateCount::fq12_mul(),
+                ); // Fq12::mul_evaluate(res.clone(), f.clone());
+                res = wires2;
+                gate_count += gc;
+            } else {
+                let (wires2, gc) = (
+                    Fq12::wires_set(
+                        Fq12::from_wires(res.clone()) * Fq12::from_wires(f_inverse.clone()),
+                    ),
+                    GateCount::fq12_mul(),
+                ); // Fq12::mul_evaluate(res.clone(), f_inverse.clone());
+                res = wires2;
+                gate_count += gc;
+            }
+        }
+    }
+    (res, gate_count)
+}
+
+pub fn cyclotomic_exp_fast_inverse_evaluate_montgomery_fast(f: Wires) -> (Wires, GateCount) {
+    let mut res = Fq12::wires_set_montgomery(ark_bn254::Fq12::ONE);
+    let mut gate_count = GateCount::zero();
+    let (f_inverse, gc) = (
+        Fq12::wires_set_montgomery(Fq12::from_montgomery_wires(f.clone()).inverse().unwrap()),
+        GateCount::fq12_inverse_montgomery(),
+    ); //Fq12::inverse(res.clone());
+    gate_count += gc;
+    let mut found_nonzero = false;
+    for value in ark_ff::biginteger::arithmetic::find_naf(ark_bn254::Config::X)
+        .into_iter()
+        .rev()
+    {
+        if found_nonzero {
+            let (wires1, gc) = (
+                Fq12::wires_set_montgomery(Fq12::from_montgomery_wires(res.clone()).square()),
+                GateCount::fq12_cyclotomic_square_montgomery(),
+            ); //Fq12::square_evaluate_montgomery(res.clone());
+            res = wires1;
+            gate_count += gc;
+        }
+
+        if value != 0 {
+            found_nonzero = true;
+
+            if value > 0 {
+                let (wires2, gc) = (
+                    Fq12::wires_set_montgomery(
+                        Fq12::from_montgomery_wires(res.clone())
+                            * Fq12::from_montgomery_wires(f.clone()),
+                    ),
+                    GateCount::fq12_mul_montgomery(),
+                ); // Fq12::mul_evaluate_montgomery(res.clone(), f.clone());
+                res = wires2;
+                gate_count += gc;
+            } else {
+                let (wires2, gc) = (
+                    Fq12::wires_set_montgomery(
+                        Fq12::from_montgomery_wires(res.clone())
+                            * Fq12::from_montgomery_wires(f_inverse.clone()),
+                    ),
+                    GateCount::fq12_mul_montgomery(),
+                ); // Fq12::mul_evaluate_montgomery(res.clone(), f_inverse.clone());
+                res = wires2;
+                gate_count += gc;
+            }
+        }
+    }
+    (res, gate_count)
+}
+
 pub fn exp_by_neg_x(f: ark_bn254::Fq12) -> ark_bn254::Fq12 {
     conjugate(cyclotomic_exp(f))
 }
 
 pub fn exp_by_neg_x_evaluate(f: Wires) -> (Wires, GateCount) {
     let mut gate_count = GateCount::zero();
-    let (f2, gc) = cyclotomic_exp_evaluate_fast(f);
+    let (f2, gc) = cyclotomic_exp_fast_inverse_evaluate_fast(f);
     gate_count += gc;
     let (f3, gc) = Fq12::conjugate_evaluate(f2);
     gate_count += gc;
@@ -134,7 +232,7 @@ pub fn exp_by_neg_x_evaluate(f: Wires) -> (Wires, GateCount) {
 
 pub fn exp_by_neg_x_evaluate_montgomery(f: Wires) -> (Wires, GateCount) {
     let mut gate_count = GateCount::zero();
-    let (f2, gc) = cyclotomic_exp_evaluate_montgomery_fast(f);
+    let (f2, gc) = cyclotomic_exp_fast_inverse_evaluate_montgomery_fast(f);
     gate_count += gc;
     let (f3, gc) = Fq12::conjugate_evaluate(f2);
     gate_count += gc;
@@ -275,6 +373,7 @@ pub fn final_exponentiation_evaluate_fast(f: Wires) -> (Wires, GateCount) {
     gate_count += gc;
     (y20, gate_count)
 }
+
 pub fn final_exponentiation_evaluate_montgomery_fast(f: Wires) -> (Wires, GateCount) {
     let mut gate_count = GateCount::zero();
     let (f_inv, gc) = (
@@ -413,7 +512,9 @@ mod tests {
     use crate::circuits::bn254::{
         finalexp::{
             cyclotomic_exp, cyclotomic_exp_evaluate_fast, cyclotomic_exp_evaluate_montgomery_fast,
-            cyclotomic_exp_fastinv, final_exponentiation, final_exponentiation_evaluate_fast,
+            cyclotomic_exp_fast_inverse_evaluate_fast,
+            cyclotomic_exp_fast_inverse_evaluate_montgomery_fast, cyclotomic_exp_fastinv,
+            final_exponentiation, final_exponentiation_evaluate_fast,
             final_exponentiation_evaluate_montgomery_fast,
         },
         fp254impl::Fp254Impl,
@@ -467,6 +568,37 @@ mod tests {
         let c = cyclotomic_exp(f); // f.cyclotomic_exp(ark_bn254::Config::X);
         let (d, gate_count) =
             cyclotomic_exp_evaluate_montgomery_fast(Fq12::wires_set_montgomery(f));
+        gate_count.print();
+        assert_eq!(c, Fq12::from_montgomery_wires(d));
+    }
+
+    #[test]
+    fn test_cyclotomic_exp_fast_inverse_evaluate_fast() {
+        let p = Fq::modulus_as_biguint();
+        let u = (p.pow(6) - BigUint::from_str("1").unwrap())
+            * (p.pow(2) + BigUint::from_str("1").unwrap());
+        let mut prng = ChaCha20Rng::seed_from_u64(0);
+        let f = ark_bn254::Fq12::rand(&mut prng);
+        let cyclotomic_f = f.pow(u.to_u64_digits());
+        let c = cyclotomic_f.cyclotomic_exp(ark_bn254::Config::X);
+        let (d, gate_count) =
+            cyclotomic_exp_fast_inverse_evaluate_fast(Fq12::wires_set(cyclotomic_f));
+        gate_count.print();
+        assert_eq!(c, Fq12::from_wires(d));
+    }
+
+    #[test]
+    fn test_cyclotomic_exp_fast_inverse_evaluate_montgomery_fast() {
+        let p = Fq::modulus_as_biguint();
+        let u = (p.pow(6) - BigUint::from_str("1").unwrap())
+            * (p.pow(2) + BigUint::from_str("1").unwrap());
+        let mut prng = ChaCha20Rng::seed_from_u64(0);
+        let f = ark_bn254::Fq12::rand(&mut prng);
+        let cyclotomic_f = f.pow(u.to_u64_digits());
+        let c = cyclotomic_f.cyclotomic_exp(ark_bn254::Config::X);
+        let (d, gate_count) = cyclotomic_exp_fast_inverse_evaluate_montgomery_fast(
+            Fq12::wires_set_montgomery(cyclotomic_f),
+        );
         gate_count.print();
         assert_eq!(c, Fq12::from_montgomery_wires(d));
     }
