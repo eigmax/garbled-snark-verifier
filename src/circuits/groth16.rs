@@ -4,12 +4,14 @@ use crate::circuits::bn254::finalexp::{
 };
 use crate::circuits::bn254::fq12::Fq12;
 use crate::circuits::bn254::fr::Fr;
-use crate::circuits::bn254::g1::G1Projective;
+use crate::circuits::bn254::g1::{
+    G1Projective, projective_to_affine_evaluate, projective_to_affine_evaluate_montgomery,
+};
 use crate::circuits::bn254::pairing::{
     multi_miller_loop_groth16_evaluate_fast, multi_miller_loop_groth16_evaluate_montgomery_fast,
 };
 use ark_ec::pairing::Pairing;
-use ark_ec::{AffineRepr, CurveGroup, VariableBaseMSM};
+use ark_ec::{AffineRepr, VariableBaseMSM};
 use ark_ff::Field;
 
 pub fn groth16_verifier(
@@ -58,8 +60,11 @@ pub fn groth16_verifier_evaluate(
     );
     gate_count += gc;
 
+    let (msm_affine, gc) = projective_to_affine_evaluate(msm);
+    gate_count += gc;
+
     let (f, gc) = multi_miller_loop_groth16_evaluate_fast(
-        msm,
+        msm_affine,
         proof_c,
         proof_a,
         -vk.gamma_g2,
@@ -107,15 +112,11 @@ pub fn groth16_verifier_evaluate_montgomery(
     );
     gate_count += gc;
 
-    // somehow multi_miller_loop doesnt work with points whose z coordinate is not 1, for now, we modify it
-    let modified_msm = G1Projective::wires_set_montgomery(
-        G1Projective::from_montgomery_wires_unchecked(msm)
-            .into_affine()
-            .into_group(),
-    );
+    let (msm_affine, gc) = projective_to_affine_evaluate_montgomery(msm);
+    gate_count += gc;
 
     let (f, gc) = multi_miller_loop_groth16_evaluate_montgomery_fast(
-        modified_msm,
+        msm_affine,
         proof_c,
         proof_a,
         -vk.gamma_g2,
@@ -143,6 +144,7 @@ pub fn groth16_verifier_evaluate_montgomery(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::circuits::bn254::g1::G1Affine;
     use crate::circuits::bn254::g2::G2Affine;
     use ark_crypto_primitives::snark::{CircuitSpecificSetupSNARK, SNARK};
     use ark_ff::{PrimeField, UniformRand};
@@ -226,9 +228,9 @@ mod tests {
         println!("proof is correct in rust");
 
         let public = Fr::wires_set(c);
-        let proof_a = G1Projective::wires_set(proof.a.into_group());
+        let proof_a = G1Affine::wires_set(proof.a);
         let proof_b = G2Affine::wires_set(proof.b);
-        let proof_c = G1Projective::wires_set(proof.c.into_group());
+        let proof_c = G1Affine::wires_set(proof.c);
 
         let (result, gate_count) = groth16_verifier_evaluate(public, proof_a, proof_b, proof_c, vk);
         gate_count.print();
@@ -255,9 +257,9 @@ mod tests {
         println!("proof is correct in rust");
 
         let public = Fr::wires_set(c);
-        let proof_a = G1Projective::wires_set_montgomery(proof.a.into_group());
+        let proof_a = G1Affine::wires_set_montgomery(proof.a);
         let proof_b = G2Affine::wires_set_montgomery(proof.b);
-        let proof_c = G1Projective::wires_set_montgomery(proof.c.into_group());
+        let proof_c = G1Affine::wires_set_montgomery(proof.c);
 
         let (result, gate_count) =
             groth16_verifier_evaluate_montgomery(public, proof_a, proof_b, proof_c, vk);

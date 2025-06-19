@@ -567,11 +567,161 @@ impl G1Projective {
     }
 }
 
+pub struct G1Affine;
+
+impl G1Affine {
+    pub const N_BITS: usize = 2 * Fq::N_BITS;
+
+    pub fn as_montgomery(p: ark_bn254::G1Affine) -> ark_bn254::G1Affine {
+        ark_bn254::G1Affine {
+            x: Fq::as_montgomery(p.x),
+            y: Fq::as_montgomery(p.y),
+            infinity: false,
+        }
+    }
+
+    pub fn from_montgomery(p: ark_bn254::G1Affine) -> ark_bn254::G1Affine {
+        ark_bn254::G1Affine {
+            x: Fq::from_montgomery(p.x),
+            y: Fq::from_montgomery(p.y),
+            infinity: false,
+        }
+    }
+
+    pub fn random() -> ark_bn254::G1Affine {
+        let mut prng = ChaCha20Rng::seed_from_u64(rng().random());
+        ark_bn254::G1Affine::rand(&mut prng)
+    }
+
+    pub fn to_bits(u: ark_bn254::G1Affine) -> Vec<bool> {
+        let mut bits = Vec::new();
+        bits.extend(Fq::to_bits(u.x));
+        bits.extend(Fq::to_bits(u.y));
+        bits
+    }
+
+    pub fn from_bits(bits: Vec<bool>) -> ark_bn254::G1Affine {
+        let bits1 = &bits[0..Fq::N_BITS].to_vec();
+        let bits2 = &bits[Fq::N_BITS..Fq::N_BITS * 2].to_vec();
+        ark_bn254::G1Affine::new(Fq::from_bits(bits1.clone()), Fq::from_bits(bits2.clone()))
+    }
+
+    pub fn from_bits_unchecked(bits: Vec<bool>) -> ark_bn254::G1Affine {
+        let bits1 = &bits[0..Fq::N_BITS].to_vec();
+        let bits2 = &bits[Fq::N_BITS..Fq::N_BITS * 2].to_vec();
+        ark_bn254::G1Affine {
+            x: Fq::from_bits(bits1.clone()),
+            y: Fq::from_bits(bits2.clone()),
+            infinity: false,
+        }
+    }
+
+    pub fn wires() -> Wires {
+        (0..Self::N_BITS).map(|_| new_wirex()).collect()
+    }
+
+    pub fn wires_set(u: ark_bn254::G1Affine) -> Wires {
+        Self::to_bits(u)[0..Self::N_BITS]
+            .iter()
+            .map(|bit| {
+                let wire = new_wirex();
+                wire.borrow_mut().set(*bit);
+                wire
+            })
+            .collect()
+    }
+
+    pub fn wires_set_montgomery(u: ark_bn254::G1Affine) -> Wires {
+        Self::wires_set(Self::as_montgomery(u))
+    }
+
+    pub fn from_wires(wires: Wires) -> ark_bn254::G1Affine {
+        Self::from_bits(wires.iter().map(|wire| wire.borrow().get_value()).collect())
+    }
+
+    pub fn from_wires_unchecked(wires: Wires) -> ark_bn254::G1Affine {
+        Self::from_bits_unchecked(wires.iter().map(|wire| wire.borrow().get_value()).collect())
+    }
+
+    pub fn from_montgomery_wires_unchecked(wires: Wires) -> ark_bn254::G1Affine {
+        Self::from_montgomery(Self::from_wires_unchecked(wires))
+    }
+}
+
+pub fn projective_to_affine(p: Wires) -> Circuit {
+    assert_eq!(p.len(), G1Projective::N_BITS);
+    let mut circuit = Circuit::empty();
+
+    let x = p[0..Fq::N_BITS].to_vec();
+    let y = p[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
+    let z = p[2 * Fq::N_BITS..3 * Fq::N_BITS].to_vec();
+
+    let z_inverse = circuit.extend(Fq::inverse(z));
+    let z_inverse_square = circuit.extend(Fq::square(z_inverse.clone()));
+    let z_inverse_cube = circuit.extend(Fq::mul(z_inverse, z_inverse_square.clone()));
+    let new_x = circuit.extend(Fq::mul(x, z_inverse_square.clone()));
+    let new_y = circuit.extend(Fq::mul(y, z_inverse_cube.clone()));
+
+    circuit.add_wires(new_x);
+    circuit.add_wires(new_y);
+
+    circuit
+}
+
+pub fn projective_to_affine_evaluate(p: Wires) -> (Wires, GateCount) {
+    let circuit = projective_to_affine(p);
+    let n = circuit.gate_counts();
+    for mut gate in circuit.1 {
+        gate.evaluate();
+    }
+    (circuit.0, n)
+}
+
+pub fn projective_to_affine_montgomery(p: Wires) -> Circuit {
+    assert_eq!(p.len(), G1Projective::N_BITS);
+    let mut circuit = Circuit::empty();
+
+    let x = p[0..Fq::N_BITS].to_vec();
+    let y = p[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
+    let z = p[2 * Fq::N_BITS..3 * Fq::N_BITS].to_vec();
+
+    let z_inverse = circuit.extend(Fq::inverse_montgomery(z));
+    let z_inverse_square = circuit.extend(Fq::square_montgomery(z_inverse.clone()));
+    let z_inverse_cube = circuit.extend(Fq::mul_montgomery(z_inverse, z_inverse_square.clone()));
+    let new_x = circuit.extend(Fq::mul_montgomery(x, z_inverse_square.clone()));
+    let new_y = circuit.extend(Fq::mul_montgomery(y, z_inverse_cube.clone()));
+
+    circuit.add_wires(new_x);
+    circuit.add_wires(new_y);
+
+    circuit
+}
+
+pub fn projective_to_affine_evaluate_montgomery(p: Wires) -> (Wires, GateCount) {
+    let circuit = projective_to_affine_montgomery(p);
+    let n = circuit.gate_counts();
+    for mut gate in circuit.1 {
+        gate.evaluate();
+    }
+    (circuit.0, n)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use ark_ec::{CurveGroup, scalar_mul::variable_base::VariableBaseMSM};
+    use ark_ff::Field;
     use rand::{Rng, rng};
+
+    #[test]
+    fn test_g1a_random() {
+        let u = G1Affine::random();
+        println!("u: {:?}", u);
+        let b = G1Affine::to_bits(u);
+        let v = G1Affine::from_bits(b);
+        println!("v: {:?}", v);
+        assert_eq!(u, v);
+    }
 
     #[test]
     fn test_g1p_random() {
@@ -581,6 +731,35 @@ mod tests {
         let v = G1Projective::from_bits(b);
         println!("v: {:?}", v);
         assert_eq!(u, v);
+    }
+
+    #[test]
+    fn test_g1_projective_to_affine() {
+        let p_projective = G1Projective::random().double();
+        assert_ne!(p_projective.z, ark_bn254::Fq::ONE);
+        let p_affine = p_projective.into_affine();
+        let circuit = projective_to_affine(G1Projective::wires_set(p_projective));
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let p_affine2 = G1Affine::from_wires(circuit.0);
+        assert_eq!(p_affine, p_affine2);
+    }
+
+    #[test]
+    fn test_g1_projective_to_affine_montgomery() {
+        let p_projective = G1Projective::random().double();
+        assert_ne!(p_projective.z, ark_bn254::Fq::ONE);
+        let p_affine = p_projective.into_affine();
+        let circuit =
+            projective_to_affine_montgomery(G1Projective::wires_set_montgomery(p_projective));
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let p_affine2 = G1Affine::from_montgomery_wires_unchecked(circuit.0);
+        assert_eq!(p_affine, p_affine2);
     }
 
     #[test]

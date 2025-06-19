@@ -5,7 +5,7 @@ use crate::{
         fq::Fq,
         fq2::Fq2,
         fq12::Fq12,
-        g1::G1Projective,
+        g1::G1Affine,
         g2::{G2Affine, G2Projective},
     },
 };
@@ -722,7 +722,7 @@ pub fn ell_coeffs_evaluate_montgomery_fast(q: Wires) -> (Vec<(Wires, Wires, Wire
 pub fn ell(
     f: &mut ark_bn254::Fq12,
     coeffs: (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2),
-    p: ark_bn254::G1Projective,
+    p: ark_bn254::G1Affine,
 ) {
     let mut c0 = coeffs.0;
     let mut c1 = coeffs.1;
@@ -736,7 +736,7 @@ pub fn ell(
 pub fn ell2(
     f: ark_bn254::Fq12,
     coeffs: (ark_bn254::Fq2, ark_bn254::Fq2, ark_bn254::Fq2),
-    p: ark_bn254::G1Projective,
+    p: ark_bn254::G1Affine,
 ) -> ark_bn254::Fq12 {
     let mut new_f = f;
     let mut c0 = coeffs.0;
@@ -873,7 +873,7 @@ pub fn ell_by_constant_evaluate_montgomery(
     (circuit.0, n)
 }
 
-pub fn miller_loop(p: ark_bn254::G1Projective, q: ark_bn254::G2Affine) -> ark_bn254::Fq12 {
+pub fn miller_loop(p: ark_bn254::G1Affine, q: ark_bn254::G2Affine) -> ark_bn254::Fq12 {
     let qell = ell_coeffs(q);
     let mut q_ell = qell.iter();
 
@@ -924,7 +924,7 @@ pub fn miller_loop_evaluate_fast(p: Wires, q: Wires) -> (Wires, GateCount) {
                     Fq2::from_wires(qell_next.1),
                     Fq2::from_wires(qell_next.2),
                 ),
-                G1Projective::from_wires(p.clone()),
+                G1Affine::from_wires(p.clone()),
             )),
             GateCount::ell(),
         ); // ell_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
@@ -942,7 +942,7 @@ pub fn miller_loop_evaluate_fast(p: Wires, q: Wires) -> (Wires, GateCount) {
                         Fq2::from_wires(qell_next.1),
                         Fq2::from_wires(qell_next.2),
                     ),
-                    G1Projective::from_wires(p.clone()),
+                    G1Affine::from_wires(p.clone()),
                 )),
                 GateCount::ell(),
             ); // ell_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
@@ -960,7 +960,7 @@ pub fn miller_loop_evaluate_fast(p: Wires, q: Wires) -> (Wires, GateCount) {
                 Fq2::from_wires(qell_next.1),
                 Fq2::from_wires(qell_next.2),
             ),
-            G1Projective::from_wires(p.clone()),
+            G1Affine::from_wires(p.clone()),
         )),
         GateCount::ell(),
     ); // ell_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
@@ -975,7 +975,7 @@ pub fn miller_loop_evaluate_fast(p: Wires, q: Wires) -> (Wires, GateCount) {
                 Fq2::from_wires(qell_next.1),
                 Fq2::from_wires(qell_next.2),
             ),
-            G1Projective::from_wires(p.clone()),
+            G1Affine::from_wires(p.clone()),
         )),
         GateCount::ell(),
     ); // ell_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
@@ -1012,7 +1012,7 @@ pub fn miller_loop_evaluate_montgomery_fast(p: Wires, q: Wires) -> (Wires, GateC
                     Fq2::from_montgomery_wires(qell_next.1),
                     Fq2::from_montgomery_wires(qell_next.2),
                 ),
-                G1Projective::from_montgomery_wires_unchecked(p.clone()),
+                G1Affine::from_montgomery_wires_unchecked(p.clone()),
             )),
             GateCount::ell_montgomery(),
         ); // ell_evaluate_montgomery(f, q_ell.next().unwrap().clone(), p.clone());
@@ -1030,7 +1030,7 @@ pub fn miller_loop_evaluate_montgomery_fast(p: Wires, q: Wires) -> (Wires, GateC
                         Fq2::from_montgomery_wires(qell_next.1),
                         Fq2::from_montgomery_wires(qell_next.2),
                     ),
-                    G1Projective::from_montgomery_wires_unchecked(p.clone()),
+                    G1Affine::from_montgomery_wires_unchecked(p.clone()),
                 )),
                 GateCount::ell_montgomery(),
             ); // ell_evaluate_montgomery(f, q_ell.next().unwrap().clone(), p.clone());
@@ -1048,7 +1048,7 @@ pub fn miller_loop_evaluate_montgomery_fast(p: Wires, q: Wires) -> (Wires, GateC
                 Fq2::from_montgomery_wires(qell_next.1),
                 Fq2::from_montgomery_wires(qell_next.2),
             ),
-            G1Projective::from_montgomery_wires_unchecked(p.clone()),
+            G1Affine::from_montgomery_wires_unchecked(p.clone()),
         )),
         GateCount::ell_montgomery(),
     ); // ell_evaluate_montgomery(f, q_ell.next().unwrap().clone(), p.clone());
@@ -1063,7 +1063,7 @@ pub fn miller_loop_evaluate_montgomery_fast(p: Wires, q: Wires) -> (Wires, GateC
                 Fq2::from_montgomery_wires(qell_next.1),
                 Fq2::from_montgomery_wires(qell_next.2),
             ),
-            G1Projective::from_montgomery_wires_unchecked(p.clone()),
+            G1Affine::from_montgomery_wires_unchecked(p.clone()),
         )),
         GateCount::ell_montgomery(),
     ); // ell_evaluate_montgomery(f, q_ell.next().unwrap().clone(), p.clone());
@@ -1074,7 +1074,7 @@ pub fn miller_loop_evaluate_montgomery_fast(p: Wires, q: Wires) -> (Wires, GateC
 }
 
 pub fn multi_miller_loop(
-    ps: Vec<ark_bn254::G1Projective>,
+    ps: Vec<ark_bn254::G1Affine>,
     qs: Vec<ark_bn254::G2Affine>,
 ) -> ark_bn254::Fq12 {
     let mut qells = Vec::new();
@@ -1164,7 +1164,7 @@ pub fn multi_miller_loop_evaluate_fast(ps: Vec<Wires>, qs: Vec<Wires>) -> (Wires
                         Fq2::from_wires(qell_next.1),
                         Fq2::from_wires(qell_next.2),
                     ),
-                    G1Projective::from_wires(p.clone()),
+                    G1Affine::from_wires(p.clone()),
                 )),
                 GateCount::ell(),
             ); // ell_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
@@ -1184,7 +1184,7 @@ pub fn multi_miller_loop_evaluate_fast(ps: Vec<Wires>, qs: Vec<Wires>) -> (Wires
                             Fq2::from_wires(qell_next.1),
                             Fq2::from_wires(qell_next.2),
                         ),
-                        G1Projective::from_wires(p.clone()),
+                        G1Affine::from_wires(p.clone()),
                     )),
                     GateCount::ell(),
                 ); // ell_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
@@ -1204,7 +1204,7 @@ pub fn multi_miller_loop_evaluate_fast(ps: Vec<Wires>, qs: Vec<Wires>) -> (Wires
                     Fq2::from_wires(qell_next.1),
                     Fq2::from_wires(qell_next.2),
                 ),
-                G1Projective::from_wires(p.clone()),
+                G1Affine::from_wires(p.clone()),
             )),
             GateCount::ell(),
         ); // ell_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
@@ -1221,7 +1221,7 @@ pub fn multi_miller_loop_evaluate_fast(ps: Vec<Wires>, qs: Vec<Wires>) -> (Wires
                     Fq2::from_wires(qell_next.1),
                     Fq2::from_wires(qell_next.2),
                 ),
-                G1Projective::from_wires(p.clone()),
+                G1Affine::from_wires(p.clone()),
             )),
             GateCount::ell(),
         ); // ell_evaluate(f, q_ell.next().unwrap().clone(), p.clone());
@@ -1274,7 +1274,7 @@ pub fn multi_miller_loop_evaluate_montgomery_fast(
                         Fq2::from_montgomery_wires(qell_next.1),
                         Fq2::from_montgomery_wires(qell_next.2),
                     ),
-                    G1Projective::from_montgomery_wires_unchecked(p.clone()),
+                    G1Affine::from_montgomery_wires_unchecked(p.clone()),
                 )),
                 GateCount::ell_montgomery(),
             ); // ell_evaluate_montgomery(f, q_ell.next().unwrap().clone(), p.clone());
@@ -1294,7 +1294,7 @@ pub fn multi_miller_loop_evaluate_montgomery_fast(
                             Fq2::from_montgomery_wires(qell_next.1),
                             Fq2::from_montgomery_wires(qell_next.2),
                         ),
-                        G1Projective::from_montgomery_wires_unchecked(p.clone()),
+                        G1Affine::from_montgomery_wires_unchecked(p.clone()),
                     )),
                     GateCount::ell_montgomery(),
                 ); // ell_evaluate_montgomery(f, q_ell.next().unwrap().clone(), p.clone());
@@ -1314,7 +1314,7 @@ pub fn multi_miller_loop_evaluate_montgomery_fast(
                     Fq2::from_montgomery_wires(qell_next.1),
                     Fq2::from_montgomery_wires(qell_next.2),
                 ),
-                G1Projective::from_montgomery_wires_unchecked(p.clone()),
+                G1Affine::from_montgomery_wires_unchecked(p.clone()),
             )),
             GateCount::ell_montgomery(),
         ); // ell_evaluate_montgomery(f, q_ell.next().unwrap().clone(), p.clone());
@@ -1331,7 +1331,7 @@ pub fn multi_miller_loop_evaluate_montgomery_fast(
                     Fq2::from_montgomery_wires(qell_next.1),
                     Fq2::from_montgomery_wires(qell_next.2),
                 ),
-                G1Projective::from_montgomery_wires_unchecked(p.clone()),
+                G1Affine::from_montgomery_wires_unchecked(p.clone()),
             )),
             GateCount::ell_montgomery(),
         ); // ell_evaluate_montgomery(f, q_ell.next().unwrap().clone(), p.clone());
@@ -1375,7 +1375,7 @@ pub fn multi_miller_loop_groth16_evaluate_fast(
             Fq12::wires_set(ell2(
                 Fq12::from_wires(f),
                 *q1ell_next,
-                G1Projective::from_wires(p1.clone()),
+                G1Affine::from_wires(p1.clone()),
             )),
             GateCount::ell_by_constant(),
         ); // ell_by_constant_evaluate(f, q1_ell.next().unwrap().clone(), p.clone());
@@ -1387,7 +1387,7 @@ pub fn multi_miller_loop_groth16_evaluate_fast(
             Fq12::wires_set(ell2(
                 Fq12::from_wires(f),
                 *q2ell_next,
-                G1Projective::from_wires(p2.clone()),
+                G1Affine::from_wires(p2.clone()),
             )),
             GateCount::ell_by_constant(),
         ); // ell_by_constant_evaluate(f, q2_ell.next().unwrap().clone(), p.clone());
@@ -1403,7 +1403,7 @@ pub fn multi_miller_loop_groth16_evaluate_fast(
                     Fq2::from_wires(q3ell_next.1),
                     Fq2::from_wires(q3ell_next.2),
                 ),
-                G1Projective::from_wires(p3.clone()),
+                G1Affine::from_wires(p3.clone()),
             )),
             GateCount::ell(),
         ); // ell_evaluate(f, q3_ell.next().unwrap().clone(), p.clone());
@@ -1417,7 +1417,7 @@ pub fn multi_miller_loop_groth16_evaluate_fast(
                 Fq12::wires_set(ell2(
                     Fq12::from_wires(f),
                     *q1ell_next,
-                    G1Projective::from_wires(p1.clone()),
+                    G1Affine::from_wires(p1.clone()),
                 )),
                 GateCount::ell_by_constant(),
             ); // ell_by_constant_evaluate(f, q1_ell.next().unwrap().clone(), p.clone());
@@ -1429,7 +1429,7 @@ pub fn multi_miller_loop_groth16_evaluate_fast(
                 Fq12::wires_set(ell2(
                     Fq12::from_wires(f),
                     *q2ell_next,
-                    G1Projective::from_wires(p2.clone()),
+                    G1Affine::from_wires(p2.clone()),
                 )),
                 GateCount::ell_by_constant(),
             ); // ell_by_constant_evaluate(f, q2_ell.next().unwrap().clone(), p.clone());
@@ -1445,7 +1445,7 @@ pub fn multi_miller_loop_groth16_evaluate_fast(
                         Fq2::from_wires(q3ell_next.1),
                         Fq2::from_wires(q3ell_next.2),
                     ),
-                    G1Projective::from_wires(p3.clone()),
+                    G1Affine::from_wires(p3.clone()),
                 )),
                 GateCount::ell(),
             ); // ell_evaluate(f, q3_ell.next().unwrap().clone(), p.clone());
@@ -1459,7 +1459,7 @@ pub fn multi_miller_loop_groth16_evaluate_fast(
         Fq12::wires_set(ell2(
             Fq12::from_wires(f),
             *q1ell_next,
-            G1Projective::from_wires(p1.clone()),
+            G1Affine::from_wires(p1.clone()),
         )),
         GateCount::ell_by_constant(),
     ); // ell_by_constant_evaluate(f, q1_ell.next().unwrap().clone(), p.clone());
@@ -1471,7 +1471,7 @@ pub fn multi_miller_loop_groth16_evaluate_fast(
         Fq12::wires_set(ell2(
             Fq12::from_wires(f),
             *q2ell_next,
-            G1Projective::from_wires(p2.clone()),
+            G1Affine::from_wires(p2.clone()),
         )),
         GateCount::ell_by_constant(),
     ); // ell_by_constant_evaluate(f, q2_ell.next().unwrap().clone(), p.clone());
@@ -1487,7 +1487,7 @@ pub fn multi_miller_loop_groth16_evaluate_fast(
                 Fq2::from_wires(q3ell_next.1),
                 Fq2::from_wires(q3ell_next.2),
             ),
-            G1Projective::from_wires(p3.clone()),
+            G1Affine::from_wires(p3.clone()),
         )),
         GateCount::ell(),
     ); // ell_evaluate(f, q3_ell.next().unwrap().clone(), p.clone());
@@ -1499,7 +1499,7 @@ pub fn multi_miller_loop_groth16_evaluate_fast(
         Fq12::wires_set(ell2(
             Fq12::from_wires(f),
             *q1ell_next,
-            G1Projective::from_wires(p1.clone()),
+            G1Affine::from_wires(p1.clone()),
         )),
         GateCount::ell_by_constant(),
     ); // ell_by_constant_evaluate(f, q1_ell.next().unwrap().clone(), p.clone());
@@ -1511,7 +1511,7 @@ pub fn multi_miller_loop_groth16_evaluate_fast(
         Fq12::wires_set(ell2(
             Fq12::from_wires(f),
             *q2ell_next,
-            G1Projective::from_wires(p2.clone()),
+            G1Affine::from_wires(p2.clone()),
         )),
         GateCount::ell_by_constant(),
     ); // ell_by_constant_evaluate(f, q2_ell.next().unwrap().clone(), p.clone());
@@ -1527,7 +1527,7 @@ pub fn multi_miller_loop_groth16_evaluate_fast(
                 Fq2::from_wires(q3ell_next.1),
                 Fq2::from_wires(q3ell_next.2),
             ),
-            G1Projective::from_wires(p3.clone()),
+            G1Affine::from_wires(p3.clone()),
         )),
         GateCount::ell(),
     ); // ell_evaluate(f, q3_ell.next().unwrap().clone(), p.clone());
@@ -1571,7 +1571,7 @@ pub fn multi_miller_loop_groth16_evaluate_montgomery_fast(
             Fq12::wires_set_montgomery(ell2(
                 Fq12::from_montgomery_wires(f),
                 *q1ell_next,
-                G1Projective::from_montgomery_wires_unchecked(p1.clone()),
+                G1Affine::from_montgomery_wires_unchecked(p1.clone()),
             )),
             GateCount::ell_by_constant_montgomery(),
         ); // ell_by_constant_evaluate_montgomery(f, q1_ell.next().unwrap().clone(), p.clone());
@@ -1583,7 +1583,7 @@ pub fn multi_miller_loop_groth16_evaluate_montgomery_fast(
             Fq12::wires_set_montgomery(ell2(
                 Fq12::from_montgomery_wires(f),
                 *q2ell_next,
-                G1Projective::from_montgomery_wires_unchecked(p2.clone()),
+                G1Affine::from_montgomery_wires_unchecked(p2.clone()),
             )),
             GateCount::ell_by_constant_montgomery(),
         ); // ell_by_constant_evaluate_montgomery(f, q2_ell.next().unwrap().clone(), p.clone());
@@ -1599,7 +1599,7 @@ pub fn multi_miller_loop_groth16_evaluate_montgomery_fast(
                     Fq2::from_montgomery_wires(q3ell_next.1),
                     Fq2::from_montgomery_wires(q3ell_next.2),
                 ),
-                G1Projective::from_montgomery_wires_unchecked(p3.clone()),
+                G1Affine::from_montgomery_wires_unchecked(p3.clone()),
             )),
             GateCount::ell_montgomery(),
         ); // ell_evaluate_montgomery(f, q3_ell.next().unwrap().clone(), p.clone());
@@ -1613,7 +1613,7 @@ pub fn multi_miller_loop_groth16_evaluate_montgomery_fast(
                 Fq12::wires_set_montgomery(ell2(
                     Fq12::from_montgomery_wires(f),
                     *q1ell_next,
-                    G1Projective::from_montgomery_wires_unchecked(p1.clone()),
+                    G1Affine::from_montgomery_wires_unchecked(p1.clone()),
                 )),
                 GateCount::ell_by_constant_montgomery(),
             ); // ell_by_constant_evaluate_montgomery(f, q1_ell.next().unwrap().clone(), p.clone());
@@ -1625,7 +1625,7 @@ pub fn multi_miller_loop_groth16_evaluate_montgomery_fast(
                 Fq12::wires_set_montgomery(ell2(
                     Fq12::from_montgomery_wires(f),
                     *q2ell_next,
-                    G1Projective::from_montgomery_wires_unchecked(p2.clone()),
+                    G1Affine::from_montgomery_wires_unchecked(p2.clone()),
                 )),
                 GateCount::ell_by_constant_montgomery(),
             ); // ell_by_constant_evaluate_montgomery(f, q2_ell.next().unwrap().clone(), p.clone());
@@ -1641,7 +1641,7 @@ pub fn multi_miller_loop_groth16_evaluate_montgomery_fast(
                         Fq2::from_montgomery_wires(q3ell_next.1),
                         Fq2::from_montgomery_wires(q3ell_next.2),
                     ),
-                    G1Projective::from_montgomery_wires_unchecked(p3.clone()),
+                    G1Affine::from_montgomery_wires_unchecked(p3.clone()),
                 )),
                 GateCount::ell_montgomery(),
             ); // ell_evaluate_montgomery(f, q3_ell.next().unwrap().clone(), p.clone());
@@ -1655,7 +1655,7 @@ pub fn multi_miller_loop_groth16_evaluate_montgomery_fast(
         Fq12::wires_set_montgomery(ell2(
             Fq12::from_montgomery_wires(f),
             *q1ell_next,
-            G1Projective::from_montgomery_wires_unchecked(p1.clone()),
+            G1Affine::from_montgomery_wires_unchecked(p1.clone()),
         )),
         GateCount::ell_by_constant_montgomery(),
     ); // ell_by_constant_evaluate_montgomery(f, q1_ell.next().unwrap().clone(), p.clone());
@@ -1667,7 +1667,7 @@ pub fn multi_miller_loop_groth16_evaluate_montgomery_fast(
         Fq12::wires_set_montgomery(ell2(
             Fq12::from_montgomery_wires(f),
             *q2ell_next,
-            G1Projective::from_montgomery_wires_unchecked(p2.clone()),
+            G1Affine::from_montgomery_wires_unchecked(p2.clone()),
         )),
         GateCount::ell_by_constant_montgomery(),
     ); // ell_by_constant_evaluate_montgomery(f, q2_ell.next().unwrap().clone(), p.clone());
@@ -1683,7 +1683,7 @@ pub fn multi_miller_loop_groth16_evaluate_montgomery_fast(
                 Fq2::from_montgomery_wires(q3ell_next.1),
                 Fq2::from_montgomery_wires(q3ell_next.2),
             ),
-            G1Projective::from_montgomery_wires_unchecked(p3.clone()),
+            G1Affine::from_montgomery_wires_unchecked(p3.clone()),
         )),
         GateCount::ell_montgomery(),
     ); // ell_evaluate_montgomery(f, q3_ell.next().unwrap().clone(), p.clone());
@@ -1695,7 +1695,7 @@ pub fn multi_miller_loop_groth16_evaluate_montgomery_fast(
         Fq12::wires_set_montgomery(ell2(
             Fq12::from_montgomery_wires(f),
             *q1ell_next,
-            G1Projective::from_montgomery_wires_unchecked(p1.clone()),
+            G1Affine::from_montgomery_wires_unchecked(p1.clone()),
         )),
         GateCount::ell_by_constant_montgomery(),
     ); // ell_by_constant_evaluate_montgomery(f, q1_ell.next().unwrap().clone(), p.clone());
@@ -1707,7 +1707,7 @@ pub fn multi_miller_loop_groth16_evaluate_montgomery_fast(
         Fq12::wires_set_montgomery(ell2(
             Fq12::from_montgomery_wires(f),
             *q2ell_next,
-            G1Projective::from_montgomery_wires_unchecked(p2.clone()),
+            G1Affine::from_montgomery_wires_unchecked(p2.clone()),
         )),
         GateCount::ell_by_constant_montgomery(),
     ); // ell_by_constant_evaluate_montgomery(f, q2_ell.next().unwrap().clone(), p.clone());
@@ -1723,7 +1723,7 @@ pub fn multi_miller_loop_groth16_evaluate_montgomery_fast(
                 Fq2::from_montgomery_wires(q3ell_next.1),
                 Fq2::from_montgomery_wires(q3ell_next.2),
             ),
-            G1Projective::from_montgomery_wires_unchecked(p3.clone()),
+            G1Affine::from_montgomery_wires_unchecked(p3.clone()),
         )),
         GateCount::ell_montgomery(),
     ); // ell_evaluate_montgomery(f, q3_ell.next().unwrap().clone(), p.clone());
@@ -1944,7 +1944,7 @@ mod tests {
             ark_bn254::Fq2::rand(&mut prng),
             ark_bn254::Fq2::rand(&mut prng),
         );
-        let p = ark_bn254::G1Projective::rand(&mut prng);
+        let p = ark_bn254::G1Affine::rand(&mut prng);
 
         let circuit = ell_circuit(
             Fq12::wires_set(f),
@@ -1953,7 +1953,7 @@ mod tests {
                 Fq2::wires_set(coeffs.1),
                 Fq2::wires_set(coeffs.2),
             ),
-            G1Projective::wires_set(p),
+            G1Affine::wires_set(p),
         );
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
@@ -1974,7 +1974,7 @@ mod tests {
             ark_bn254::Fq2::rand(&mut prng),
             ark_bn254::Fq2::rand(&mut prng),
         );
-        let p = ark_bn254::G1Projective::rand(&mut prng);
+        let p = ark_bn254::G1Affine::rand(&mut prng);
 
         let circuit = ell_circuit_montgomery(
             Fq12::wires_set_montgomery(f),
@@ -1983,7 +1983,7 @@ mod tests {
                 Fq2::wires_set_montgomery(coeffs.1),
                 Fq2::wires_set_montgomery(coeffs.2),
             ),
-            G1Projective::wires_set_montgomery(p),
+            G1Affine::wires_set_montgomery(p),
         );
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
@@ -2004,10 +2004,9 @@ mod tests {
             ark_bn254::Fq2::rand(&mut prng),
             ark_bn254::Fq2::rand(&mut prng),
         );
-        let p = ark_bn254::G1Projective::rand(&mut prng);
+        let p = ark_bn254::G1Affine::rand(&mut prng);
 
-        let circuit =
-            ell_by_constant_circuit(Fq12::wires_set(f), coeffs, G1Projective::wires_set(p));
+        let circuit = ell_by_constant_circuit(Fq12::wires_set(f), coeffs, G1Affine::wires_set(p));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -2027,7 +2026,7 @@ mod tests {
             ark_bn254::Fq2::rand(&mut prng),
             ark_bn254::Fq2::rand(&mut prng),
         );
-        let p = ark_bn254::G1Projective::rand(&mut prng);
+        let p = ark_bn254::G1Affine::rand(&mut prng);
 
         let circuit = ell_by_constant_circuit_montgomery(
             Fq12::wires_set_montgomery(f),
@@ -2036,7 +2035,7 @@ mod tests {
                 Fq2::as_montgomery(coeffs.1),
                 Fq2::as_montgomery(coeffs.2),
             ),
-            G1Projective::wires_set_montgomery(p),
+            G1Affine::wires_set_montgomery(p),
         );
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
@@ -2050,7 +2049,7 @@ mod tests {
     #[test]
     fn test_miller_loop() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
-        let p = ark_bn254::G1Projective::rand(&mut prng);
+        let p = ark_bn254::G1Affine::rand(&mut prng);
         let q = ark_bn254::G2Affine::rand(&mut prng);
 
         let c = ark_bn254::Bn254::multi_miller_loop([p], [q]).0;
@@ -2061,12 +2060,12 @@ mod tests {
     #[test]
     fn test_miller_loop_evaluate_fast() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
-        let p = ark_bn254::G1Projective::rand(&mut prng);
+        let p = ark_bn254::G1Affine::rand(&mut prng);
         let q = ark_bn254::G2Affine::rand(&mut prng);
 
         let expected_f = miller_loop(p, q);
         let (f, gate_count) =
-            miller_loop_evaluate_fast(G1Projective::wires_set(p), G2Affine::wires_set(q));
+            miller_loop_evaluate_fast(G1Affine::wires_set(p), G2Affine::wires_set(q));
         gate_count.print();
 
         assert_eq!(Fq12::from_wires(f), expected_f);
@@ -2075,12 +2074,12 @@ mod tests {
     #[test]
     fn test_miller_loop_evaluate_montgomery_fast() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
-        let p = ark_bn254::G1Projective::rand(&mut prng);
+        let p = ark_bn254::G1Affine::rand(&mut prng);
         let q = ark_bn254::G2Affine::rand(&mut prng);
 
         let expected_f = miller_loop(p, q);
         let (f, gate_count) = miller_loop_evaluate_montgomery_fast(
-            G1Projective::wires_set_montgomery(p),
+            G1Affine::wires_set_montgomery(p),
             G2Affine::wires_set_montgomery(q),
         );
         gate_count.print();
@@ -2093,7 +2092,7 @@ mod tests {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let n = 3;
         let ps = (0..n)
-            .map(|_| ark_bn254::G1Projective::rand(&mut prng))
+            .map(|_| ark_bn254::G1Affine::rand(&mut prng))
             .collect::<Vec<_>>();
         let qs = (0..n)
             .map(|_| ark_bn254::G2Affine::rand(&mut prng))
@@ -2109,7 +2108,7 @@ mod tests {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let n = 3;
         let ps = (0..n)
-            .map(|_| ark_bn254::G1Projective::rand(&mut prng))
+            .map(|_| ark_bn254::G1Affine::rand(&mut prng))
             .collect::<Vec<_>>();
         let qs = (0..n)
             .map(|_| ark_bn254::G2Affine::rand(&mut prng))
@@ -2117,7 +2116,7 @@ mod tests {
 
         let expected_f = multi_miller_loop(ps.clone(), qs.clone());
         let (f, gate_count) = multi_miller_loop_evaluate_fast(
-            ps.iter().map(|p| G1Projective::wires_set(*p)).collect(),
+            ps.iter().map(|p| G1Affine::wires_set(*p)).collect(),
             qs.iter().map(|q| G2Affine::wires_set(*q)).collect(),
         );
         gate_count.print();
@@ -2130,7 +2129,7 @@ mod tests {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         let n = 3;
         let ps = (0..n)
-            .map(|_| ark_bn254::G1Projective::rand(&mut prng))
+            .map(|_| ark_bn254::G1Affine::rand(&mut prng))
             .collect::<Vec<_>>();
         let qs = (0..n)
             .map(|_| ark_bn254::G2Affine::rand(&mut prng))
@@ -2139,7 +2138,7 @@ mod tests {
         let expected_f = multi_miller_loop(ps.clone(), qs.clone());
         let (f, gate_count) = multi_miller_loop_evaluate_montgomery_fast(
             ps.iter()
-                .map(|p| G1Projective::wires_set_montgomery(*p))
+                .map(|p| G1Affine::wires_set_montgomery(*p))
                 .collect(),
             qs.iter()
                 .map(|q| G2Affine::wires_set_montgomery(*q))
@@ -2153,18 +2152,18 @@ mod tests {
     #[test]
     fn test_multi_miller_loop_groth16_evaluate_fast() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
-        let p1 = ark_bn254::G1Projective::rand(&mut prng);
-        let p2 = ark_bn254::G1Projective::rand(&mut prng);
-        let p3 = ark_bn254::G1Projective::rand(&mut prng);
+        let p1 = ark_bn254::G1Affine::rand(&mut prng);
+        let p2 = ark_bn254::G1Affine::rand(&mut prng);
+        let p3 = ark_bn254::G1Affine::rand(&mut prng);
         let q1 = ark_bn254::G2Affine::rand(&mut prng);
         let q2 = ark_bn254::G2Affine::rand(&mut prng);
         let q3 = ark_bn254::G2Affine::rand(&mut prng);
 
         let expected_f = multi_miller_loop(vec![p1, p2, p3], vec![q1, q2, q3]);
         let (f, gate_count) = multi_miller_loop_groth16_evaluate_fast(
-            G1Projective::wires_set(p1),
-            G1Projective::wires_set(p2),
-            G1Projective::wires_set(p3),
+            G1Affine::wires_set(p1),
+            G1Affine::wires_set(p2),
+            G1Affine::wires_set(p3),
             q1,
             q2,
             G2Affine::wires_set(q3),
@@ -2177,18 +2176,18 @@ mod tests {
     #[test]
     fn test_multi_miller_loop_groth16_evaluate_montgomery_fast() {
         let mut prng = ChaCha20Rng::seed_from_u64(0);
-        let p1 = ark_bn254::G1Projective::rand(&mut prng);
-        let p2 = ark_bn254::G1Projective::rand(&mut prng);
-        let p3 = ark_bn254::G1Projective::rand(&mut prng);
+        let p1 = ark_bn254::G1Affine::rand(&mut prng);
+        let p2 = ark_bn254::G1Affine::rand(&mut prng);
+        let p3 = ark_bn254::G1Affine::rand(&mut prng);
         let q1 = ark_bn254::G2Affine::rand(&mut prng);
         let q2 = ark_bn254::G2Affine::rand(&mut prng);
         let q3 = ark_bn254::G2Affine::rand(&mut prng);
 
         let expected_f = multi_miller_loop(vec![p1, p2, p3], vec![q1, q2, q3]);
         let (f, gate_count) = multi_miller_loop_groth16_evaluate_montgomery_fast(
-            G1Projective::wires_set_montgomery(p1),
-            G1Projective::wires_set_montgomery(p2),
-            G1Projective::wires_set_montgomery(p3),
+            G1Affine::wires_set_montgomery(p1),
+            G1Affine::wires_set_montgomery(p2),
+            G1Affine::wires_set_montgomery(p3),
             q1,
             q2,
             G2Affine::wires_set_montgomery(q3),
