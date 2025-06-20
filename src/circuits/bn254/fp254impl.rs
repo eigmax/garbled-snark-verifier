@@ -380,7 +380,7 @@ pub trait Fp254Impl {
             let u1 = circuit.extend(U254::half(u.clone()));
             let v1 = v.clone();
             let r1 = r.clone();
-            let s1 = circuit.extend(U254::double(s.clone()));
+            let s1 = circuit.extend(U254::double_without_overflow(s.clone()));
             let k1 = circuit.extend(U254::add_constant_without_carry(
                 k.clone(),
                 BigUint::from_str("1").unwrap(),
@@ -389,7 +389,7 @@ pub trait Fp254Impl {
             // part2
             let u2 = u.clone();
             let v2 = circuit.extend(U254::half(v.clone()));
-            let r2 = circuit.extend(U254::double(r.clone()));
+            let r2 = circuit.extend(U254::double_without_overflow(r.clone()));
             let s2 = s.clone();
             let k2 = circuit.extend(U254::add_constant_without_carry(
                 k.clone(),
@@ -400,7 +400,7 @@ pub trait Fp254Impl {
             let u3 = circuit.extend(U254::sub_without_borrow(u1.clone(), v2.clone()));
             let v3 = v.clone();
             let r3 = circuit.extend(U254::add_without_carry(r.clone(), s.clone()));
-            let s3 = circuit.extend(U254::double(s.clone()));
+            let s3 = circuit.extend(U254::double_without_overflow(s.clone()));
             let k3 = circuit.extend(U254::add_constant_without_carry(
                 k.clone(),
                 BigUint::from_str("1").unwrap(),
@@ -409,7 +409,7 @@ pub trait Fp254Impl {
             // part4
             let u4 = u.clone();
             let v4 = circuit.extend(U254::sub_without_borrow(v2.clone(), u1.clone()));
-            let r4 = circuit.extend(U254::double(r.clone()));
+            let r4 = circuit.extend(U254::double_without_overflow(r.clone()));
             let s4 = circuit.extend(U254::add_without_carry(r.clone(), s.clone()));
             let k4 = circuit.extend(U254::add_constant_without_carry(
                 k.clone(),

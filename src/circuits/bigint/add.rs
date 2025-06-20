@@ -176,6 +176,18 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         circuit.add(Gate::not(a[0].clone(), not_a.clone()));
         circuit.add(Gate::and(a[0].clone(), not_a.clone(), zero_wire.clone()));
         circuit.add_wire(zero_wire);
+        circuit.add_wires(a[0..N_BITS].to_vec());
+        circuit
+    }
+
+    pub fn double_without_overflow(a: Wires) -> Circuit {
+        assert_eq!(a.len(), N_BITS);
+        let mut circuit = Circuit::empty();
+        let not_a = new_wirex();
+        let zero_wire = new_wirex();
+        circuit.add(Gate::not(a[0].clone(), not_a.clone()));
+        circuit.add(Gate::and(a[0].clone(), not_a.clone(), zero_wire.clone()));
+        circuit.add_wire(zero_wire);
         circuit.add_wires(a[0..N_BITS - 1].to_vec());
         circuit
     }
@@ -360,12 +372,7 @@ mod tests {
             gate.evaluate();
         }
         let c = biguint_from_wires(circuit.0);
-        let d = c.clone()
-            + BigUint::from_str("2")
-                .unwrap()
-                .pow(U254::N_BITS.try_into().unwrap());
-        let e = a + b;
-        assert!(e == c || e == d);
+        assert_eq!(c, (a + b)  % biguint_two_pow_254());
     }
 
     #[test]
@@ -388,6 +395,25 @@ mod tests {
     }
 
     #[test]
+    fn test_sub_without_borrow() {
+        let mut a = random_biguint_n_bits(254);
+        let mut b = random_biguint_n_bits(254);
+        if a < b {
+            (a, b) = (b, a);
+        }
+        let circuit = U254::sub_without_borrow(
+            U254::wires_set_from_number(a.clone()),
+            U254::wires_set_from_number(b.clone()),
+        );
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = biguint_from_wires(circuit.0);
+        assert_eq!(c, (a - b) % biguint_two_pow_254());
+    }
+
+    #[test]
     fn test_double() {
         let a = random_biguint_n_bits(254);
         let circuit = U254::double(U254::wires_set_from_number(a.clone()));
@@ -396,7 +422,19 @@ mod tests {
             gate.evaluate();
         }
         let c = biguint_from_wires(circuit.0);
-        assert_eq!(c, (a.clone() + a.clone()) % biguint_two_pow_254());
+        assert_eq!(c, a.clone() + a);
+    }
+
+    #[test]
+    fn test_double_without_overflow() {
+        let a = random_biguint_n_bits(254);
+        let circuit = U254::double_without_overflow(U254::wires_set_from_number(a.clone()));
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = biguint_from_wires(circuit.0);
+        assert_eq!(c, (a.clone() + a) % biguint_two_pow_254());
     }
 
     #[test]
