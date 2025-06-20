@@ -1,16 +1,25 @@
-use super::U254;
 use crate::bag::*;
 use num_bigint::BigUint;
 use rand::{Rng, rng};
 use std::str::FromStr;
+// Constant byte array representing 2^254
+const TWO_POW_254_BYTES_LE: [u8; 32] = [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0x40,
+];
+
+#[inline(always)]
+pub fn biguint_two_pow_254() -> BigUint {
+    BigUint::from_bytes_le(&TWO_POW_254_BYTES_LE)
+}
 
 pub fn random_biguint() -> BigUint {
     BigUint::from_bytes_le(&rng().random::<[u8; 32]>())
 }
 
-pub fn random_u254() -> BigUint {
+pub fn random_biguint_n_bits(n_bits: usize) -> BigUint {
     BigUint::from_bytes_le(&rand::rng().random::<[u8; 32]>())
-        % BigUint::from_str("2").unwrap().pow(254)
+        % BigUint::from_str("2").unwrap().pow(n_bits as u32)
 }
 
 pub fn bits_from_biguint(u: BigUint) -> Vec<bool> {
@@ -35,21 +44,8 @@ pub fn biguint_from_bits(bits: Vec<bool>) -> BigUint {
     u
 }
 
-pub fn wires_for_u254() -> Wires {
-    (0..U254::N_BITS)
-        .map(|_| Rc::new(RefCell::new(Wire::new())))
-        .collect()
-}
-
-pub fn wires_set_from_u254(u: BigUint) -> Wires {
-    bits_from_biguint(u)[0..U254::N_BITS]
-        .iter()
-        .map(|bit| {
-            let wire = Rc::new(RefCell::new(Wire::new()));
-            wire.borrow_mut().set(*bit);
-            wire
-        })
-        .collect()
+pub fn n_wires(n: usize) -> Wires {
+    (0..n).map(|_| new_wirex()).collect()
 }
 
 pub fn biguint_from_wires(wires: Wires) -> BigUint {

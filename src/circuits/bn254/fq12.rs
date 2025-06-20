@@ -40,16 +40,14 @@ impl Fq12 {
     }
 
     pub fn wires() -> Wires {
-        (0..Self::N_BITS)
-            .map(|_| Rc::new(RefCell::new(Wire::new())))
-            .collect()
+        (0..Self::N_BITS).map(|_| new_wirex()).collect()
     }
 
     pub fn wires_set(u: ark_bn254::Fq12) -> Wires {
         Self::to_bits(u)[0..Self::N_BITS]
             .iter()
             .map(|bit| {
-                let wire = Rc::new(RefCell::new(Wire::new()));
+                let wire = new_wirex();
                 wire.borrow_mut().set(*bit);
                 wire
             })
@@ -98,7 +96,7 @@ impl Fq12 {
         let mut wire = results[0].clone();
 
         for next in results[1..].iter().cloned() {
-            let new_wire = Rc::new(RefCell::new(Wire::new()));
+            let new_wire = new_wirex();
             circuit.add(Gate::and(wire, next, new_wire.clone()));
             wire = new_wire;
         }
@@ -469,36 +467,42 @@ impl Fq12 {
     pub fn square(a: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
+
         let a_c0 = a[0..Fq6::N_BITS].to_vec();
         let a_c1 = a[Fq6::N_BITS..2 * Fq6::N_BITS].to_vec();
-        let wires_1 = circuit.extend(Fq6::add(a_c0.clone(), a_c1.clone()));
-        let wires_2 = circuit.extend(Fq6::square(a_c0.clone()));
-        let wires_3 = circuit.extend(Fq6::square(a_c1.clone()));
-        let wires_4 = circuit.extend(Fq6::add(wires_2.clone(), wires_3.clone()));
-        let wires_5 = circuit.extend(Fq6::mul_by_nonresidue(wires_3.clone()));
-        let wires_6 = circuit.extend(Fq6::add(wires_5.clone(), wires_2.clone()));
-        let wires_7 = circuit.extend(Fq6::mul(wires_1.clone(), wires_1.clone()));
-        let wires_8 = circuit.extend(Fq6::sub(wires_7.clone(), wires_4.clone()));
-        circuit.add_wires(wires_6);
-        circuit.add_wires(wires_8);
+
+        let v0 = circuit.extend(Fq6::add(a_c0.clone(), a_c1.clone()));
+        let a_c1_beta = circuit.extend(Fq6::mul_by_nonresidue(a_c1.clone()));
+        let v3 = circuit.extend(Fq6::add(a_c0.clone(), a_c1_beta.clone()));
+        let v2 = circuit.extend(Fq6::mul(a_c0.clone(), a_c1.clone()));
+        let v0 = circuit.extend(Fq6::mul(v0, v3));
+        let v2_beta = circuit.extend(Fq6::mul_by_nonresidue(v2.clone()));
+        let v2_beta_plus_v2 = circuit.extend(Fq6::add(v2_beta, v2.clone()));
+        let c0 = circuit.extend(Fq6::sub(v0, v2_beta_plus_v2));
+        let c1 = circuit.extend(Fq6::double(v2));
+        circuit.add_wires(c0);
+        circuit.add_wires(c1);
         circuit
     }
 
     pub fn square_montgomery(a: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
+
         let a_c0 = a[0..Fq6::N_BITS].to_vec();
         let a_c1 = a[Fq6::N_BITS..2 * Fq6::N_BITS].to_vec();
-        let wires_1 = circuit.extend(Fq6::add(a_c0.clone(), a_c1.clone()));
-        let wires_2 = circuit.extend(Fq6::square_montgomery(a_c0.clone()));
-        let wires_3 = circuit.extend(Fq6::square_montgomery(a_c1.clone()));
-        let wires_4 = circuit.extend(Fq6::add(wires_2.clone(), wires_3.clone()));
-        let wires_5 = circuit.extend(Fq6::mul_by_nonresidue(wires_3.clone()));
-        let wires_6 = circuit.extend(Fq6::add(wires_5.clone(), wires_2.clone()));
-        let wires_7 = circuit.extend(Fq6::mul_montgomery(wires_1.clone(), wires_1.clone()));
-        let wires_8 = circuit.extend(Fq6::sub(wires_7.clone(), wires_4.clone()));
-        circuit.add_wires(wires_6);
-        circuit.add_wires(wires_8);
+
+        let v0 = circuit.extend(Fq6::add(a_c0.clone(), a_c1.clone()));
+        let a_c1_beta = circuit.extend(Fq6::mul_by_nonresidue(a_c1.clone()));
+        let v3 = circuit.extend(Fq6::add(a_c0.clone(), a_c1_beta.clone()));
+        let v2 = circuit.extend(Fq6::mul_montgomery(a_c0.clone(), a_c1.clone()));
+        let v0 = circuit.extend(Fq6::mul_montgomery(v0, v3));
+        let v2_beta = circuit.extend(Fq6::mul_by_nonresidue(v2.clone()));
+        let v2_beta_plus_v2 = circuit.extend(Fq6::add(v2_beta, v2.clone()));
+        let c0 = circuit.extend(Fq6::sub(v0, v2_beta_plus_v2));
+        let c1 = circuit.extend(Fq6::double(v2));
+        circuit.add_wires(c0);
+        circuit.add_wires(c1);
         circuit
     }
 
@@ -509,6 +513,162 @@ impl Fq12 {
             gate.evaluate();
         }
         (circuit.0, n)
+    }
+
+    pub fn cyclotomic_square(a: Wires) -> Circuit {
+        // https://eprint.iacr.org/2009/565.pdf
+        // based on the implementation in arkworks-rs, fq12_2over3over2.rs
+
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+        let c0 = a[0..Fq2::N_BITS].to_vec();
+        let c1 = a[Fq2::N_BITS..2 * Fq2::N_BITS].to_vec();
+        let c2 = a[2 * Fq2::N_BITS..3 * Fq2::N_BITS].to_vec();
+        let c3 = a[3 * Fq2::N_BITS..4 * Fq2::N_BITS].to_vec();
+        let c4 = a[4 * Fq2::N_BITS..5 * Fq2::N_BITS].to_vec();
+        let c5 = a[5 * Fq2::N_BITS..6 * Fq2::N_BITS].to_vec();
+
+        let xy = circuit.extend(Fq2::mul(c0.clone(), c4.clone()));
+        let x_plus_y = circuit.extend(Fq2::add(c0.clone(), c4.clone()));
+        let y_beta = circuit.extend(Fq2::mul_by_nonresidue(c4.clone()));
+        let x_plus_y_beta = circuit.extend(Fq2::add(c0.clone(), y_beta));
+        let wires_1 = circuit.extend(Fq2::mul(x_plus_y, x_plus_y_beta));
+        let xy_beta = circuit.extend(Fq2::mul_by_nonresidue(xy.clone()));
+        let wires_2 = circuit.extend(Fq2::add(xy.clone(), xy_beta));
+        let t_0 = circuit.extend(Fq2::sub(wires_1, wires_2));
+        let t_1 = circuit.extend(Fq2::double(xy));
+
+        let xy = circuit.extend(Fq2::mul(c3.clone(), c2.clone()));
+        let x_plus_y = circuit.extend(Fq2::add(c3.clone(), c2.clone()));
+        let y_beta = circuit.extend(Fq2::mul_by_nonresidue(c2.clone()));
+        let x_plus_y_beta = circuit.extend(Fq2::add(c3.clone(), y_beta));
+        let wires_1 = circuit.extend(Fq2::mul(x_plus_y, x_plus_y_beta));
+        let xy_beta = circuit.extend(Fq2::mul_by_nonresidue(xy.clone()));
+        let wires_2 = circuit.extend(Fq2::add(xy.clone(), xy_beta));
+        let t_2 = circuit.extend(Fq2::sub(wires_1, wires_2));
+        let t_3 = circuit.extend(Fq2::double(xy));
+
+        let xy = circuit.extend(Fq2::mul(c1.clone(), c5.clone()));
+        let x_plus_y = circuit.extend(Fq2::add(c1.clone(), c5.clone()));
+        let y_beta = circuit.extend(Fq2::mul_by_nonresidue(c5.clone()));
+        let x_plus_y_beta = circuit.extend(Fq2::add(c1.clone(), y_beta));
+        let wires_1 = circuit.extend(Fq2::mul(x_plus_y, x_plus_y_beta));
+        let xy_beta = circuit.extend(Fq2::mul_by_nonresidue(xy.clone()));
+        let wires_2 = circuit.extend(Fq2::add(xy.clone(), xy_beta));
+        let t_4 = circuit.extend(Fq2::sub(wires_1, wires_2));
+        let t_5 = circuit.extend(Fq2::double(xy));
+
+        let wires_1 = circuit.extend(Fq2::sub(t_0.clone(), c0));
+        let wires_2 = circuit.extend(Fq2::double(wires_1));
+        let z_0 = circuit.extend(Fq2::add(wires_2, t_0));
+
+        let wires_1 = circuit.extend(Fq2::sub(t_2.clone(), c1));
+        let wires_2 = circuit.extend(Fq2::double(wires_1));
+        let z_4 = circuit.extend(Fq2::add(wires_2, t_2));
+
+        let wires_1 = circuit.extend(Fq2::sub(t_4.clone(), c2));
+        let wires_2 = circuit.extend(Fq2::double(wires_1));
+        let z_3 = circuit.extend(Fq2::add(wires_2, t_4));
+
+        let t5_beta = circuit.extend(Fq2::mul_by_nonresidue(t_5.clone()));
+        let wires_1 = circuit.extend(Fq2::add(t5_beta.clone(), c3));
+        let wires_2 = circuit.extend(Fq2::double(wires_1));
+        let z_2 = circuit.extend(Fq2::add(wires_2, t5_beta));
+
+        let wires_1 = circuit.extend(Fq2::add(t_1.clone(), c4));
+        let wires_2 = circuit.extend(Fq2::double(wires_1));
+        let z_1 = circuit.extend(Fq2::add(wires_2, t_1));
+
+        let wires_1 = circuit.extend(Fq2::add(t_3.clone(), c5));
+        let wires_2 = circuit.extend(Fq2::double(wires_1));
+        let z_5 = circuit.extend(Fq2::add(wires_2, t_3));
+
+        circuit.add_wires(z_0);
+        circuit.add_wires(z_4);
+        circuit.add_wires(z_3);
+        circuit.add_wires(z_2);
+        circuit.add_wires(z_1);
+        circuit.add_wires(z_5);
+
+        circuit
+    }
+
+    pub fn cyclotomic_square_montgomery(a: Wires) -> Circuit {
+        // https://eprint.iacr.org/2009/565.pdf
+        // based on the implementation in arkworks-rs, fq12_2over3over2.rs
+
+        assert_eq!(a.len(), Self::N_BITS);
+        let mut circuit = Circuit::empty();
+        let c0 = a[0..Fq2::N_BITS].to_vec();
+        let c1 = a[Fq2::N_BITS..2 * Fq2::N_BITS].to_vec();
+        let c2 = a[2 * Fq2::N_BITS..3 * Fq2::N_BITS].to_vec();
+        let c3 = a[3 * Fq2::N_BITS..4 * Fq2::N_BITS].to_vec();
+        let c4 = a[4 * Fq2::N_BITS..5 * Fq2::N_BITS].to_vec();
+        let c5 = a[5 * Fq2::N_BITS..6 * Fq2::N_BITS].to_vec();
+
+        let xy = circuit.extend(Fq2::mul_montgomery(c0.clone(), c4.clone()));
+        let x_plus_y = circuit.extend(Fq2::add(c0.clone(), c4.clone()));
+        let y_beta = circuit.extend(Fq2::mul_by_nonresidue(c4.clone()));
+        let x_plus_y_beta = circuit.extend(Fq2::add(c0.clone(), y_beta));
+        let wires_1 = circuit.extend(Fq2::mul_montgomery(x_plus_y, x_plus_y_beta));
+        let xy_beta = circuit.extend(Fq2::mul_by_nonresidue(xy.clone()));
+        let wires_2 = circuit.extend(Fq2::add(xy.clone(), xy_beta));
+        let t_0 = circuit.extend(Fq2::sub(wires_1, wires_2));
+        let t_1 = circuit.extend(Fq2::double(xy));
+
+        let xy = circuit.extend(Fq2::mul_montgomery(c3.clone(), c2.clone()));
+        let x_plus_y = circuit.extend(Fq2::add(c3.clone(), c2.clone()));
+        let y_beta = circuit.extend(Fq2::mul_by_nonresidue(c2.clone()));
+        let x_plus_y_beta = circuit.extend(Fq2::add(c3.clone(), y_beta));
+        let wires_1 = circuit.extend(Fq2::mul_montgomery(x_plus_y, x_plus_y_beta));
+        let xy_beta = circuit.extend(Fq2::mul_by_nonresidue(xy.clone()));
+        let wires_2 = circuit.extend(Fq2::add(xy.clone(), xy_beta));
+        let t_2 = circuit.extend(Fq2::sub(wires_1, wires_2));
+        let t_3 = circuit.extend(Fq2::double(xy));
+
+        let xy = circuit.extend(Fq2::mul_montgomery(c1.clone(), c5.clone()));
+        let x_plus_y = circuit.extend(Fq2::add(c1.clone(), c5.clone()));
+        let y_beta = circuit.extend(Fq2::mul_by_nonresidue(c5.clone()));
+        let x_plus_y_beta = circuit.extend(Fq2::add(c1.clone(), y_beta));
+        let wires_1 = circuit.extend(Fq2::mul_montgomery(x_plus_y, x_plus_y_beta));
+        let xy_beta = circuit.extend(Fq2::mul_by_nonresidue(xy.clone()));
+        let wires_2 = circuit.extend(Fq2::add(xy.clone(), xy_beta));
+        let t_4 = circuit.extend(Fq2::sub(wires_1, wires_2));
+        let t_5 = circuit.extend(Fq2::double(xy));
+
+        let wires_1 = circuit.extend(Fq2::sub(t_0.clone(), c0));
+        let wires_2 = circuit.extend(Fq2::double(wires_1));
+        let z_0 = circuit.extend(Fq2::add(wires_2, t_0));
+
+        let wires_1 = circuit.extend(Fq2::sub(t_2.clone(), c1));
+        let wires_2 = circuit.extend(Fq2::double(wires_1));
+        let z_4 = circuit.extend(Fq2::add(wires_2, t_2));
+
+        let wires_1 = circuit.extend(Fq2::sub(t_4.clone(), c2));
+        let wires_2 = circuit.extend(Fq2::double(wires_1));
+        let z_3 = circuit.extend(Fq2::add(wires_2, t_4));
+
+        let t5_beta = circuit.extend(Fq2::mul_by_nonresidue(t_5.clone()));
+        let wires_1 = circuit.extend(Fq2::add(t5_beta.clone(), c3));
+        let wires_2 = circuit.extend(Fq2::double(wires_1));
+        let z_2 = circuit.extend(Fq2::add(wires_2, t5_beta));
+
+        let wires_1 = circuit.extend(Fq2::add(t_1.clone(), c4));
+        let wires_2 = circuit.extend(Fq2::double(wires_1));
+        let z_1 = circuit.extend(Fq2::add(wires_2, t_1));
+
+        let wires_1 = circuit.extend(Fq2::add(t_3.clone(), c5));
+        let wires_2 = circuit.extend(Fq2::double(wires_1));
+        let z_5 = circuit.extend(Fq2::add(wires_2, t_3));
+
+        circuit.add_wires(z_0);
+        circuit.add_wires(z_4);
+        circuit.add_wires(z_3);
+        circuit.add_wires(z_2);
+        circuit.add_wires(z_1);
+        circuit.add_wires(z_5);
+
+        circuit
     }
 
     pub fn inverse(a: Wires) -> Circuit {
@@ -635,8 +795,11 @@ impl Fq12 {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
-    use ark_ff::Field;
+    use ark_ff::{CyclotomicMultSubgroup, Field};
+    use num_bigint::BigUint;
     use serial_test::serial;
 
     #[test]
@@ -645,16 +808,6 @@ mod tests {
         println!("u: {:?}", u);
         let b = Fq12::to_bits(u);
         let v = Fq12::from_bits(b);
-        println!("v: {:?}", v);
-        assert_eq!(u, v);
-    }
-
-    #[test]
-    fn test_fq12_x() {
-        let u = Fq12::random();
-        println!("u: {:?}", u);
-        let b = Fq12::wires_set_montgomery(u);
-        let v = Fq12::from_montgomery_wires(b);
         println!("v: {:?}", v);
         assert_eq!(u, v);
     }
@@ -898,6 +1051,44 @@ mod tests {
         }
         let c = Fq12::from_wires(circuit.0);
         assert_eq!(c, Fq12::as_montgomery(a * a));
+    }
+
+    #[test]
+    #[serial]
+    fn test_fq12_cyclotomic_square() {
+        let p = Fq::modulus_as_biguint();
+        let u = (p.pow(6) - BigUint::from_str("1").unwrap())
+            * (p.pow(2) + BigUint::from_str("1").unwrap());
+        let mut prng = ChaCha20Rng::seed_from_u64(0);
+        let f = ark_bn254::Fq12::rand(&mut prng);
+        let mut cyclotomic_f = f.pow(u.to_u64_digits());
+        let circuit = Fq12::cyclotomic_square(Fq12::wires_set(cyclotomic_f));
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = Fq12::from_wires(circuit.0);
+        cyclotomic_f.cyclotomic_square_in_place();
+        assert_eq!(c, cyclotomic_f);
+    }
+
+    #[test]
+    #[serial]
+    fn test_fq12_cyclotomic_square_montgomery() {
+        let p = Fq::modulus_as_biguint();
+        let u = (p.pow(6) - BigUint::from_str("1").unwrap())
+            * (p.pow(2) + BigUint::from_str("1").unwrap());
+        let mut prng = ChaCha20Rng::seed_from_u64(0);
+        let f = ark_bn254::Fq12::rand(&mut prng);
+        let mut cyclotomic_f = f.pow(u.to_u64_digits());
+        let circuit = Fq12::cyclotomic_square_montgomery(Fq12::wires_set_montgomery(cyclotomic_f));
+        circuit.gate_counts().print();
+        for mut gate in circuit.1 {
+            gate.evaluate();
+        }
+        let c = Fq12::from_wires(circuit.0);
+        cyclotomic_f.cyclotomic_square_in_place();
+        assert_eq!(c, Fq12::as_montgomery(cyclotomic_f));
     }
 
     #[test]
