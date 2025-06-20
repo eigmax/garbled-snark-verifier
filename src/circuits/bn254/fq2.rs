@@ -365,15 +365,14 @@ impl Fq2 {
         let a_c0 = a[0..Fq::N_BITS].to_vec();
         let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
 
-        let wires_1 = circuit.extend(Fq::add(a_c0.clone(), a_c1.clone()));
-        let wires_2 = circuit.extend(Fq::square(a_c0.clone()));
-        let wires_3 = circuit.extend(Fq::square(a_c1.clone()));
-        let wires_4 = circuit.extend(Fq::add(wires_2.clone(), wires_3.clone()));
-        let wires_5 = circuit.extend(Fq::sub(wires_2.clone(), wires_3.clone()));
-        let wires_6 = circuit.extend(Fq::square(wires_1.clone()));
-        let wires_7 = circuit.extend(Fq::sub(wires_6.clone(), wires_4.clone()));
-        circuit.add_wires(wires_5);
-        circuit.add_wires(wires_7);
+        let a_c0_plus_a_c1 = circuit.extend(Fq::add(a_c0.clone(), a_c1.clone()));
+        let a_c0_minus_a_c1 = circuit.extend(Fq::sub(a_c0.clone(), a_c1.clone()));
+        let a_c0_a_c1 = circuit.extend(Fq::mul(a_c0.clone(), a_c1));
+        let a_c0_square_minus_a_c1_square =
+            circuit.extend(Fq::mul(a_c0_plus_a_c1.clone(), a_c0_minus_a_c1));
+        let a_c0_a_c1_double = circuit.extend(Fq::double(a_c0_a_c1));
+        circuit.add_wires(a_c0_square_minus_a_c1_square);
+        circuit.add_wires(a_c0_a_c1_double);
         circuit
     }
 
@@ -384,15 +383,14 @@ impl Fq2 {
         let a_c0 = a[0..Fq::N_BITS].to_vec();
         let a_c1 = a[Fq::N_BITS..2 * Fq::N_BITS].to_vec();
 
-        let wires_1 = circuit.extend(Fq::add(a_c0.clone(), a_c1.clone()));
-        let wires_2 = circuit.extend(Fq::square_montgomery(a_c0.clone()));
-        let wires_3 = circuit.extend(Fq::square_montgomery(a_c1.clone()));
-        let wires_4 = circuit.extend(Fq::add(wires_2.clone(), wires_3.clone()));
-        let wires_5 = circuit.extend(Fq::sub(wires_2.clone(), wires_3.clone()));
-        let wires_6 = circuit.extend(Fq::square_montgomery(wires_1.clone()));
-        let wires_7 = circuit.extend(Fq::sub(wires_6.clone(), wires_4.clone()));
-        circuit.add_wires(wires_5);
-        circuit.add_wires(wires_7);
+        let a_c0_plus_a_c1 = circuit.extend(Fq::add(a_c0.clone(), a_c1.clone()));
+        let a_c0_minus_a_c1 = circuit.extend(Fq::sub(a_c0.clone(), a_c1.clone()));
+        let a_c0_a_c1 = circuit.extend(Fq::mul_montgomery(a_c0.clone(), a_c1));
+        let a_c0_square_minus_a_c1_square =
+            circuit.extend(Fq::mul_montgomery(a_c0_plus_a_c1.clone(), a_c0_minus_a_c1));
+        let a_c0_a_c1_double = circuit.extend(Fq::double(a_c0_a_c1));
+        circuit.add_wires(a_c0_square_minus_a_c1_square);
+        circuit.add_wires(a_c0_a_c1_double);
         circuit
     }
 

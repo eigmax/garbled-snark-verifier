@@ -726,80 +726,8 @@ impl Fq6 {
         circuit
     }
 
-    pub fn square(a: Wires) -> Circuit {
-        assert_eq!(a.len(), Self::N_BITS);
-        let mut circuit = Circuit::empty();
-
-        let a_c0 = a[0..Fq2::N_BITS].to_vec();
-        let a_c1 = a[Fq2::N_BITS..2 * Fq2::N_BITS].to_vec();
-        let a_c2 = a[2 * Fq2::N_BITS..3 * Fq2::N_BITS].to_vec();
-
-        let v0 = circuit.extend(Fq2::square(a_c0.clone()));
-        let wires_1: Vec<Rc<RefCell<Wire>>> = circuit.extend(Fq2::mul(a_c0.clone(), a_c1.clone()));
-        let v1: Vec<Rc<RefCell<Wire>>> = circuit.extend(Fq2::double(wires_1));
-        let wires_2: Vec<Rc<RefCell<Wire>>> = circuit.extend(Fq2::add(a_c0.clone(), a_c2.clone()));
-        let wires_3: Vec<Rc<RefCell<Wire>>> =
-            circuit.extend(Fq2::sub(wires_2.clone(), a_c1.clone()));
-        let v2 = circuit.extend(Fq2::square(wires_3));
-        let wires_4: Vec<Rc<RefCell<Wire>>> = circuit.extend(Fq2::mul(a_c2.clone(), a_c1.clone()));
-        let v3: Vec<Rc<RefCell<Wire>>> = circuit.extend(Fq2::double(wires_4));
-        let v4 = circuit.extend(Fq2::square(a_c2.clone()));
-
-        let v3_b = circuit.extend(Fq2::mul_by_nonresidue(v3.clone()));
-        let v4_b = circuit.extend(Fq2::mul_by_nonresidue(v4.clone()));
-
-        let c0 = circuit.extend(Fq2::add(v0.clone(), v3_b.clone()));
-        let c1 = circuit.extend(Fq2::add(v1.clone(), v4_b.clone()));
-        let wires_5 = circuit.extend(Fq2::add(v1.clone(), v2));
-        let wires_6 = circuit.extend(Fq2::add(wires_5, v3));
-        let wires_7 = circuit.extend(Fq2::add(v4, v0.clone()));
-        let c2 = circuit.extend(Fq2::sub(wires_6, wires_7));
-
-        circuit.add_wires(c0);
-        circuit.add_wires(c1);
-        circuit.add_wires(c2);
-        circuit
-    }
-
-    pub fn square_montgomery(a: Wires) -> Circuit {
-        assert_eq!(a.len(), Self::N_BITS);
-        let mut circuit = Circuit::empty();
-
-        let a_c0 = a[0..Fq2::N_BITS].to_vec();
-        let a_c1 = a[Fq2::N_BITS..2 * Fq2::N_BITS].to_vec();
-        let a_c2 = a[2 * Fq2::N_BITS..3 * Fq2::N_BITS].to_vec();
-
-        let v0 = circuit.extend(Fq2::square_montgomery(a_c0.clone()));
-        let wires_1: Vec<Rc<RefCell<Wire>>> =
-            circuit.extend(Fq2::mul_montgomery(a_c0.clone(), a_c1.clone()));
-        let v1: Vec<Rc<RefCell<Wire>>> = circuit.extend(Fq2::double(wires_1));
-        let wires_2: Vec<Rc<RefCell<Wire>>> = circuit.extend(Fq2::add(a_c0.clone(), a_c2.clone()));
-        let wires_3: Vec<Rc<RefCell<Wire>>> =
-            circuit.extend(Fq2::sub(wires_2.clone(), a_c1.clone()));
-        let v2 = circuit.extend(Fq2::square_montgomery(wires_3));
-        let wires_4: Vec<Rc<RefCell<Wire>>> =
-            circuit.extend(Fq2::mul_montgomery(a_c2.clone(), a_c1.clone()));
-        let v3: Vec<Rc<RefCell<Wire>>> = circuit.extend(Fq2::double(wires_4));
-        let v4 = circuit.extend(Fq2::square_montgomery(a_c2.clone()));
-
-        let v3_b = circuit.extend(Fq2::mul_by_nonresidue(v3.clone()));
-        let v4_b = circuit.extend(Fq2::mul_by_nonresidue(v4.clone()));
-
-        let c0 = circuit.extend(Fq2::add(v0.clone(), v3_b.clone()));
-        let c1 = circuit.extend(Fq2::add(v1.clone(), v4_b.clone()));
-        let wires_5 = circuit.extend(Fq2::add(v1.clone(), v2));
-        let wires_6 = circuit.extend(Fq2::add(wires_5, v3));
-        let wires_7 = circuit.extend(Fq2::add(v4, v0.clone()));
-        let c2 = circuit.extend(Fq2::sub(wires_6, wires_7));
-
-        circuit.add_wires(c0);
-        circuit.add_wires(c1);
-        circuit.add_wires(c2);
-        circuit
-    }
-
     // https://eprint.iacr.org/2006/471.pdf
-    pub fn square_v2(a: Wires) -> Circuit {
+    pub fn square(a: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
 
@@ -834,7 +762,7 @@ impl Fq6 {
         circuit
     }
 
-    pub fn square_v2_montgomery(a: Wires) -> Circuit {
+    pub fn square_montgomery(a: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
 
@@ -1302,32 +1230,6 @@ mod tests {
     fn test_fq6_square_montgomery() {
         let a = Fq6::random();
         let circuit = Fq6::square_montgomery(Fq6::wires_set_montgomery(a));
-        circuit.gate_counts().print();
-        for mut gate in circuit.1 {
-            gate.evaluate();
-        }
-        let c = Fq6::from_wires(circuit.0);
-        assert_eq!(c, Fq6::as_montgomery(a * a));
-    }
-
-    #[test]
-    #[serial]
-    fn test_fq6_square_v2() {
-        let a = Fq6::random();
-        let circuit = Fq6::square_v2(Fq6::wires_set(a));
-        circuit.gate_counts().print();
-        for mut gate in circuit.1 {
-            gate.evaluate();
-        }
-        let c = Fq6::from_wires(circuit.0);
-        assert_eq!(c, a * a);
-    }
-
-    #[test]
-    #[serial]
-    fn test_fq6_square_v2_montgomery() {
-        let a = Fq6::random();
-        let circuit = Fq6::square_v2_montgomery(Fq6::wires_set_montgomery(a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();

@@ -467,36 +467,42 @@ impl Fq12 {
     pub fn square(a: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
+
         let a_c0 = a[0..Fq6::N_BITS].to_vec();
         let a_c1 = a[Fq6::N_BITS..2 * Fq6::N_BITS].to_vec();
-        let wires_1 = circuit.extend(Fq6::add(a_c0.clone(), a_c1.clone()));
-        let wires_2 = circuit.extend(Fq6::square(a_c0.clone()));
-        let wires_3 = circuit.extend(Fq6::square(a_c1.clone()));
-        let wires_4 = circuit.extend(Fq6::add(wires_2.clone(), wires_3.clone()));
-        let wires_5 = circuit.extend(Fq6::mul_by_nonresidue(wires_3.clone()));
-        let wires_6 = circuit.extend(Fq6::add(wires_5.clone(), wires_2.clone()));
-        let wires_7 = circuit.extend(Fq6::mul(wires_1.clone(), wires_1.clone()));
-        let wires_8 = circuit.extend(Fq6::sub(wires_7.clone(), wires_4.clone()));
-        circuit.add_wires(wires_6);
-        circuit.add_wires(wires_8);
+
+        let v0 = circuit.extend(Fq6::add(a_c0.clone(), a_c1.clone()));
+        let a_c1_beta = circuit.extend(Fq6::mul_by_nonresidue(a_c1.clone()));
+        let v3 = circuit.extend(Fq6::add(a_c0.clone(), a_c1_beta.clone()));
+        let v2 = circuit.extend(Fq6::mul(a_c0.clone(), a_c1.clone()));
+        let v0 = circuit.extend(Fq6::mul(v0, v3));
+        let v2_beta = circuit.extend(Fq6::mul_by_nonresidue(v2.clone()));
+        let v2_beta_plus_v2 = circuit.extend(Fq6::add(v2_beta, v2.clone()));
+        let c0 = circuit.extend(Fq6::sub(v0, v2_beta_plus_v2));
+        let c1 = circuit.extend(Fq6::double(v2));
+        circuit.add_wires(c0);
+        circuit.add_wires(c1);
         circuit
     }
 
     pub fn square_montgomery(a: Wires) -> Circuit {
         assert_eq!(a.len(), Self::N_BITS);
         let mut circuit = Circuit::empty();
+
         let a_c0 = a[0..Fq6::N_BITS].to_vec();
         let a_c1 = a[Fq6::N_BITS..2 * Fq6::N_BITS].to_vec();
-        let wires_1 = circuit.extend(Fq6::add(a_c0.clone(), a_c1.clone()));
-        let wires_2 = circuit.extend(Fq6::square_montgomery(a_c0.clone()));
-        let wires_3 = circuit.extend(Fq6::square_montgomery(a_c1.clone()));
-        let wires_4 = circuit.extend(Fq6::add(wires_2.clone(), wires_3.clone()));
-        let wires_5 = circuit.extend(Fq6::mul_by_nonresidue(wires_3.clone()));
-        let wires_6 = circuit.extend(Fq6::add(wires_5.clone(), wires_2.clone()));
-        let wires_7 = circuit.extend(Fq6::mul_montgomery(wires_1.clone(), wires_1.clone()));
-        let wires_8 = circuit.extend(Fq6::sub(wires_7.clone(), wires_4.clone()));
-        circuit.add_wires(wires_6);
-        circuit.add_wires(wires_8);
+
+        let v0 = circuit.extend(Fq6::add(a_c0.clone(), a_c1.clone()));
+        let a_c1_beta = circuit.extend(Fq6::mul_by_nonresidue(a_c1.clone()));
+        let v3 = circuit.extend(Fq6::add(a_c0.clone(), a_c1_beta.clone()));
+        let v2 = circuit.extend(Fq6::mul_montgomery(a_c0.clone(), a_c1.clone()));
+        let v0 = circuit.extend(Fq6::mul_montgomery(v0, v3));
+        let v2_beta = circuit.extend(Fq6::mul_by_nonresidue(v2.clone()));
+        let v2_beta_plus_v2 = circuit.extend(Fq6::add(v2_beta, v2.clone()));
+        let c0 = circuit.extend(Fq6::sub(v0, v2_beta_plus_v2));
+        let c1 = circuit.extend(Fq6::double(v2));
+        circuit.add_wires(c0);
+        circuit.add_wires(c1);
         circuit
     }
 
