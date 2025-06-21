@@ -9,20 +9,20 @@ pub fn half_adder(a: Wirex, b: Wirex) -> Circuit {
 }
 
 pub fn full_adder(a: Wirex, b: Wirex, c: Wirex) -> Circuit {
-    let d = new_wirex();
-    let e = new_wirex();
-    let f = new_wirex();
-    let result = new_wirex();
-    let carry = new_wirex();
-    let gate_1 = Gate::xor(a.clone(), b.clone(), d.clone());
-    let gate_2 = Gate::and(a.clone(), b.clone(), e.clone());
-    let gate_3 = Gate::xor(d.clone(), c.clone(), result.clone());
-    let gate_4 = Gate::and(d.clone(), c.clone(), f.clone());
-    let gate_5 = Gate::or(e.clone(), f.clone(), carry.clone());
-    Circuit::new(
-        vec![result, carry],
-        vec![gate_1, gate_2, gate_3, gate_4, gate_5],
-    )
+    let ab_xor = new_wirex();     // d = a ⊕ b
+    let ab_and = new_wirex();     // e = a ∧ b
+    let sum = new_wirex();        // result = (a ⊕ b) ⊕ c
+    let d_c_and = new_wirex();    // f = (a ⊕ b) ∧ c
+    let carry = new_wirex();      // carry = (a ∧ b) ∨ ((a ⊕ b) ∧ c)
+
+    // Gates
+    let g1 = Gate::xor(a.clone(), b.clone(), ab_xor.clone());  // a ⊕ b
+    let g2 = Gate::and(a.clone(), b.clone(), ab_and.clone());  // a ∧ b
+    let g3 = Gate::xor(ab_xor.clone(), c.clone(), sum.clone()); // (a ⊕ b) ⊕ c
+    let g4 = Gate::and(ab_xor.clone(), c.clone(), d_c_and.clone()); // (a ⊕ b) ∧ c
+    let g5 = Gate::xor(ab_and.clone(), d_c_and.clone(), carry.clone()); // carry = e ⊕ f (use XOR instead of OR)
+
+    Circuit::new(vec![sum, carry], vec![g1, g2, g3, g4, g5])
 }
 
 pub fn half_subtracter(a: Wirex, b: Wirex) -> Circuit {
