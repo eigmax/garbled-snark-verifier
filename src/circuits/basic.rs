@@ -9,15 +9,15 @@ pub fn half_adder(a: Wirex, b: Wirex) -> Circuit {
 }
 
 pub fn full_adder(a: Wirex, b: Wirex, c: Wirex) -> Circuit {
-    let ab_xor = new_wirex();     // d = a ⊕ b
-    let ab_and = new_wirex();     // e = a ∧ b
-    let sum = new_wirex();        // result = (a ⊕ b) ⊕ c
-    let d_c_and = new_wirex();    // f = (a ⊕ b) ∧ c
-    let carry = new_wirex();      // carry = (a ∧ b) ∨ ((a ⊕ b) ∧ c)
+    let ab_xor = new_wirex(); // d = a ⊕ b
+    let ab_and = new_wirex(); // e = a ∧ b
+    let sum = new_wirex(); // result = (a ⊕ b) ⊕ c
+    let d_c_and = new_wirex(); // f = (a ⊕ b) ∧ c
+    let carry = new_wirex(); // carry = (a ∧ b) ∨ ((a ⊕ b) ∧ c)
 
     // Gates
-    let g1 = Gate::xor(a.clone(), b.clone(), ab_xor.clone());  // a ⊕ b
-    let g2 = Gate::and(a.clone(), b.clone(), ab_and.clone());  // a ∧ b
+    let g1 = Gate::xor(a.clone(), b.clone(), ab_xor.clone()); // a ⊕ b
+    let g2 = Gate::and(a.clone(), b.clone(), ab_and.clone()); // a ∧ b
     let g3 = Gate::xor(ab_xor.clone(), c.clone(), sum.clone()); // (a ⊕ b) ⊕ c
     let g4 = Gate::and(ab_xor.clone(), c.clone(), d_c_and.clone()); // (a ⊕ b) ∧ c
     let g5 = Gate::xor(ab_and.clone(), d_c_and.clone(), carry.clone()); // carry = e ⊕ f (use XOR instead of OR)
@@ -26,15 +26,20 @@ pub fn full_adder(a: Wirex, b: Wirex, c: Wirex) -> Circuit {
 }
 
 pub fn half_subtracter(a: Wirex, b: Wirex) -> Circuit {
-    let result = new_wirex();
-    let borrow = new_wirex();
-    let not_a = new_wirex();
-    let gate_not_a = Gate::not(a.clone(), not_a.clone());
+    let result = new_wirex(); // a ⊕ b
+    let borrow = new_wirex(); // ¬a ∧ b
+    let a_xor1 = new_wirex(); // a ⊕ 1 == ¬a
+    let one = Rc::new(RefCell::new(Wire::const_one()));
+
+    // ¬a = a ⊕ 1 (free xor)
+    let gate_not_a = Gate::xor(a.clone(), one, a_xor1.clone());
+    // a ⊕ b
     let gate_result = Gate::xor(a.clone(), b.clone(), result.clone());
-    let gate_borrow = Gate::and(not_a.clone(), b.clone(), borrow.clone());
+    // borrow = (a ⊕ 1) ∧ b
+    let gate_borrow = Gate::and(a_xor1.clone(), b.clone(), borrow.clone());
     Circuit::new(
         vec![result, borrow],
-        vec![gate_not_a, gate_result, gate_borrow],
+        vec![gate_result, gate_not_a, gate_borrow],
     )
 }
 
@@ -192,6 +197,7 @@ mod tests {
             b_wire.borrow_mut().set(b);
 
             let circuit = half_subtracter(a_wire, b_wire);
+            circuit.gate_counts().print();
 
             for mut gate in circuit.1 {
                 gate.evaluate();
