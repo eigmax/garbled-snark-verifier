@@ -44,21 +44,22 @@ pub fn half_subtracter(a: Wirex, b: Wirex) -> Circuit {
 }
 
 pub fn full_subtracter(a: Wirex, b: Wirex, c: Wirex) -> Circuit {
-    let d = new_wirex();
-    let e = new_wirex();
-    let f = new_wirex();
-    let g = new_wirex();
-    let h = new_wirex();
-    let result = new_wirex();
-    let borrow = new_wirex();
+    let one = Rc::new(RefCell::new(Wire::const_one()));
+    let d = new_wirex(); // a ⊕ b
+    let result = new_wirex(); // (a ⊕ b) ⊕ c
+    let nota = new_wirex(); // ¬a = a ⊕ 1
+    let notd = new_wirex(); // ¬(a ⊕ b) = d ⊕ 1
+    let term1 = new_wirex(); // (¬a ∧ b)
+    let term2 = new_wirex(); // (¬(a ⊕ b) ∧ c)
+    let borrow = new_wirex(); // borrow = term1 ∨ term2
 
-    let gate_1 = Gate::xor(a.clone(), b.clone(), d.clone());
-    let gate_2 = Gate::xor(c.clone(), d.clone(), result.clone());
-    let gate_3 = Gate::not(d.clone(), e.clone());
-    let gate_4 = Gate::and(c.clone(), e.clone(), f.clone());
-    let gate_5 = Gate::not(a.clone(), g.clone());
-    let gate_6 = Gate::and(b.clone(), g.clone(), h.clone());
-    let gate_7 = Gate::or(f.clone(), h.clone(), borrow.clone());
+    let gate_1 = Gate::xor(a.clone(), b.clone(), d.clone()); // d = a ⊕ b
+    let gate_2 = Gate::xor(d.clone(), c.clone(), result.clone()); // result = d ⊕ c
+    let gate_3 = Gate::xor(a.clone(), one.clone(), nota.clone()); // nota = a ⊕ 1
+    let gate_4 = Gate::xor(d.clone(), one.clone(), notd.clone()); // notd = d ⊕ 1
+    let gate_5 = Gate::and(nota.clone(), b.clone(), term1.clone()); // term1 = ¬a ∧ b
+    let gate_6 = Gate::and(notd.clone(), c.clone(), term2.clone()); // term2 = ¬(a⊕b) ∧ c
+    let gate_7 = Gate::or(term1.clone(), term2.clone(), borrow.clone()); // borrow = term1 ∨ term2
 
     Circuit::new(
         vec![result, borrow],
@@ -197,7 +198,6 @@ mod tests {
             b_wire.borrow_mut().set(b);
 
             let circuit = half_subtracter(a_wire, b_wire);
-            circuit.gate_counts().print();
 
             for mut gate in circuit.1 {
                 gate.evaluate();
