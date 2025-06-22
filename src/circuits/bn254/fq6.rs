@@ -184,30 +184,22 @@ impl Fq6 {
         let v0 = circuit.extend(Fq2::mul(a_c0.clone(), b_c0.clone()));
 
         let wires_2: Wires = circuit.extend(Fq2::add(a_c0.clone(), a_c2.clone()));
-        let wires_3: Wires =
-            circuit.extend(Fq2::add(wires_2.clone(), a_c1.clone()));
-        let wires_4: Wires =
-            circuit.extend(Fq2::sub(wires_2.clone(), a_c1.clone()));
+        let wires_3: Wires = circuit.extend(Fq2::add(wires_2.clone(), a_c1.clone()));
+        let wires_4: Wires = circuit.extend(Fq2::sub(wires_2.clone(), a_c1.clone()));
         let wires_5: Wires = circuit.extend(Fq2::double(a_c1.clone()));
         let wires_6: Wires = circuit.extend(Fq2::double(a_c2.clone()));
         let wires_7: Wires = circuit.extend(Fq2::double(wires_6.clone()));
-        let wires_8: Wires =
-            circuit.extend(Fq2::add(a_c0.clone(), wires_5.clone()));
-        let wires_9: Wires =
-            circuit.extend(Fq2::add(wires_8.clone(), wires_7.clone()));
+        let wires_8: Wires = circuit.extend(Fq2::add(a_c0.clone(), wires_5.clone()));
+        let wires_9: Wires = circuit.extend(Fq2::add(wires_8.clone(), wires_7.clone()));
 
         let wires_10: Wires = circuit.extend(Fq2::add(b_c0.clone(), b_c2.clone()));
-        let wires_11: Wires =
-            circuit.extend(Fq2::add(wires_10.clone(), b_c1.clone()));
-        let wires_12: Wires =
-            circuit.extend(Fq2::sub(wires_10.clone(), b_c1.clone()));
+        let wires_11: Wires = circuit.extend(Fq2::add(wires_10.clone(), b_c1.clone()));
+        let wires_12: Wires = circuit.extend(Fq2::sub(wires_10.clone(), b_c1.clone()));
         let wires_13: Wires = circuit.extend(Fq2::double(b_c1.clone()));
         let wires_14: Wires = circuit.extend(Fq2::double(b_c2.clone()));
         let wires_15: Wires = circuit.extend(Fq2::double(wires_14.clone()));
-        let wires_16: Wires =
-            circuit.extend(Fq2::add(b_c0.clone(), wires_13.clone()));
-        let wires_17: Wires =
-            circuit.extend(Fq2::add(wires_16.clone(), wires_15.clone()));
+        let wires_16: Wires = circuit.extend(Fq2::add(b_c0.clone(), wires_13.clone()));
+        let wires_17: Wires = circuit.extend(Fq2::add(wires_16.clone(), wires_15.clone()));
 
         let v1 = circuit.extend(Fq2::mul(wires_3.clone(), wires_11.clone()));
         let v2 = circuit.extend(Fq2::mul(wires_4.clone(), wires_12.clone()));
@@ -228,29 +220,21 @@ impl Fq6 {
         let v4_12 = circuit.extend(Fq2::double(v4_6.clone()));
 
         let wires_18: Wires = circuit.extend(Fq2::sub(v0_3.clone(), v1_3.clone()));
-        let wires_19: Wires =
-            circuit.extend(Fq2::sub(wires_18.clone(), v2.clone()));
-        let wires_20: Wires =
-            circuit.extend(Fq2::add(wires_19.clone(), v3.clone()));
-        let wires_21: Wires =
-            circuit.extend(Fq2::sub(wires_20.clone(), v4_12.clone()));
-        let wires_22: Wires =
-            circuit.extend(Fq2::mul_by_nonresidue(wires_21.clone()));
+        let wires_19: Wires = circuit.extend(Fq2::sub(wires_18.clone(), v2.clone()));
+        let wires_20: Wires = circuit.extend(Fq2::add(wires_19.clone(), v3.clone()));
+        let wires_21: Wires = circuit.extend(Fq2::sub(wires_20.clone(), v4_12.clone()));
+        let wires_22: Wires = circuit.extend(Fq2::mul_by_nonresidue(wires_21.clone()));
         let mut c0 = circuit.extend(Fq2::add(wires_22.clone(), v0_6.clone()));
 
         let wires_23: Wires = circuit.extend(Fq2::sub(v1_6.clone(), v0_3.clone()));
-        let wires_24: Wires =
-            circuit.extend(Fq2::sub(wires_23.clone(), v2_2.clone()));
-        let wires_25: Wires =
-            circuit.extend(Fq2::sub(wires_24.clone(), v3.clone()));
-        let wires_26: Wires =
-            circuit.extend(Fq2::add(wires_25.clone(), v4_12.clone()));
+        let wires_24: Wires = circuit.extend(Fq2::sub(wires_23.clone(), v2_2.clone()));
+        let wires_25: Wires = circuit.extend(Fq2::sub(wires_24.clone(), v3.clone()));
+        let wires_26: Wires = circuit.extend(Fq2::add(wires_25.clone(), v4_12.clone()));
         let wires_27: Wires = circuit.extend(Fq2::mul_by_nonresidue(v4_6.clone()));
         let c1: Wires = circuit.extend(Fq2::add(wires_26, wires_27));
 
         let wires_28: Wires = circuit.extend(Fq2::sub(v1_3.clone(), v0_6.clone()));
-        let wires_29: Wires =
-            circuit.extend(Fq2::add(wires_28.clone(), v2_3.clone()));
+        let wires_29: Wires = circuit.extend(Fq2::add(wires_28.clone(), v2_3.clone()));
         let c2: Wires = circuit.extend(Fq2::sub(wires_29.clone(), v4_6.clone()));
 
         c0.extend(c1);
@@ -276,30 +260,22 @@ impl Fq6 {
         let v0 = circuit.extend(Fq2::mul_montgomery(a_c0.clone(), b_c0.clone()));
 
         let wires_2: Wires = circuit.extend(Fq2::add(a_c0.clone(), a_c2.clone()));
-        let wires_3: Wires =
-            circuit.extend(Fq2::add(wires_2.clone(), a_c1.clone()));
-        let wires_4: Wires =
-            circuit.extend(Fq2::sub(wires_2.clone(), a_c1.clone()));
+        let wires_3: Wires = circuit.extend(Fq2::add(wires_2.clone(), a_c1.clone()));
+        let wires_4: Wires = circuit.extend(Fq2::sub(wires_2.clone(), a_c1.clone()));
         let wires_5: Wires = circuit.extend(Fq2::double(a_c1.clone()));
         let wires_6: Wires = circuit.extend(Fq2::double(a_c2.clone()));
         let wires_7: Wires = circuit.extend(Fq2::double(wires_6.clone()));
-        let wires_8: Wires =
-            circuit.extend(Fq2::add(a_c0.clone(), wires_5.clone()));
-        let wires_9: Wires =
-            circuit.extend(Fq2::add(wires_8.clone(), wires_7.clone()));
+        let wires_8: Wires = circuit.extend(Fq2::add(a_c0.clone(), wires_5.clone()));
+        let wires_9: Wires = circuit.extend(Fq2::add(wires_8.clone(), wires_7.clone()));
 
         let wires_10: Wires = circuit.extend(Fq2::add(b_c0.clone(), b_c2.clone()));
-        let wires_11: Wires =
-            circuit.extend(Fq2::add(wires_10.clone(), b_c1.clone()));
-        let wires_12: Wires =
-            circuit.extend(Fq2::sub(wires_10.clone(), b_c1.clone()));
+        let wires_11: Wires = circuit.extend(Fq2::add(wires_10.clone(), b_c1.clone()));
+        let wires_12: Wires = circuit.extend(Fq2::sub(wires_10.clone(), b_c1.clone()));
         let wires_13: Wires = circuit.extend(Fq2::double(b_c1.clone()));
         let wires_14: Wires = circuit.extend(Fq2::double(b_c2.clone()));
         let wires_15: Wires = circuit.extend(Fq2::double(wires_14.clone()));
-        let wires_16: Wires =
-            circuit.extend(Fq2::add(b_c0.clone(), wires_13.clone()));
-        let wires_17: Wires =
-            circuit.extend(Fq2::add(wires_16.clone(), wires_15.clone()));
+        let wires_16: Wires = circuit.extend(Fq2::add(b_c0.clone(), wires_13.clone()));
+        let wires_17: Wires = circuit.extend(Fq2::add(wires_16.clone(), wires_15.clone()));
 
         let v1 = circuit.extend(Fq2::mul_montgomery(wires_3.clone(), wires_11.clone()));
         let v2 = circuit.extend(Fq2::mul_montgomery(wires_4.clone(), wires_12.clone()));
@@ -320,29 +296,21 @@ impl Fq6 {
         let v4_12 = circuit.extend(Fq2::double(v4_6.clone()));
 
         let wires_18: Wires = circuit.extend(Fq2::sub(v0_3.clone(), v1_3.clone()));
-        let wires_19: Wires =
-            circuit.extend(Fq2::sub(wires_18.clone(), v2.clone()));
-        let wires_20: Wires =
-            circuit.extend(Fq2::add(wires_19.clone(), v3.clone()));
-        let wires_21: Wires =
-            circuit.extend(Fq2::sub(wires_20.clone(), v4_12.clone()));
-        let wires_22: Wires =
-            circuit.extend(Fq2::mul_by_nonresidue(wires_21.clone()));
+        let wires_19: Wires = circuit.extend(Fq2::sub(wires_18.clone(), v2.clone()));
+        let wires_20: Wires = circuit.extend(Fq2::add(wires_19.clone(), v3.clone()));
+        let wires_21: Wires = circuit.extend(Fq2::sub(wires_20.clone(), v4_12.clone()));
+        let wires_22: Wires = circuit.extend(Fq2::mul_by_nonresidue(wires_21.clone()));
         let mut c0 = circuit.extend(Fq2::add(wires_22.clone(), v0_6.clone()));
 
         let wires_23: Wires = circuit.extend(Fq2::sub(v1_6.clone(), v0_3.clone()));
-        let wires_24: Wires =
-            circuit.extend(Fq2::sub(wires_23.clone(), v2_2.clone()));
-        let wires_25: Wires =
-            circuit.extend(Fq2::sub(wires_24.clone(), v3.clone()));
-        let wires_26: Wires =
-            circuit.extend(Fq2::add(wires_25.clone(), v4_12.clone()));
+        let wires_24: Wires = circuit.extend(Fq2::sub(wires_23.clone(), v2_2.clone()));
+        let wires_25: Wires = circuit.extend(Fq2::sub(wires_24.clone(), v3.clone()));
+        let wires_26: Wires = circuit.extend(Fq2::add(wires_25.clone(), v4_12.clone()));
         let wires_27: Wires = circuit.extend(Fq2::mul_by_nonresidue(v4_6.clone()));
         let c1: Wires = circuit.extend(Fq2::add(wires_26, wires_27));
 
         let wires_28: Wires = circuit.extend(Fq2::sub(v1_3.clone(), v0_6.clone()));
-        let wires_29: Wires =
-            circuit.extend(Fq2::add(wires_28.clone(), v2_3.clone()));
+        let wires_29: Wires = circuit.extend(Fq2::add(wires_28.clone(), v2_3.clone()));
         let c2: Wires = circuit.extend(Fq2::sub(wires_29.clone(), v4_6.clone()));
 
         c0.extend(c1);
@@ -364,17 +332,13 @@ impl Fq6 {
         let v0 = circuit.extend(Fq2::mul_by_constant(a_c0.clone(), b.c0));
 
         let wires_2: Wires = circuit.extend(Fq2::add(a_c0.clone(), a_c2.clone()));
-        let wires_3: Wires =
-            circuit.extend(Fq2::add(wires_2.clone(), a_c1.clone()));
-        let wires_4: Wires =
-            circuit.extend(Fq2::sub(wires_2.clone(), a_c1.clone()));
+        let wires_3: Wires = circuit.extend(Fq2::add(wires_2.clone(), a_c1.clone()));
+        let wires_4: Wires = circuit.extend(Fq2::sub(wires_2.clone(), a_c1.clone()));
         let wires_5: Wires = circuit.extend(Fq2::double(a_c1.clone()));
         let wires_6: Wires = circuit.extend(Fq2::double(a_c2.clone()));
         let wires_7: Wires = circuit.extend(Fq2::double(wires_6.clone()));
-        let wires_8: Wires =
-            circuit.extend(Fq2::add(a_c0.clone(), wires_5.clone()));
-        let wires_9: Wires =
-            circuit.extend(Fq2::add(wires_8.clone(), wires_7.clone()));
+        let wires_8: Wires = circuit.extend(Fq2::add(a_c0.clone(), wires_5.clone()));
+        let wires_9: Wires = circuit.extend(Fq2::add(wires_8.clone(), wires_7.clone()));
 
         let v1 = circuit.extend(Fq2::mul_by_constant(wires_3.clone(), b.c0 + b.c1 + b.c2));
         let v2 = circuit.extend(Fq2::mul_by_constant(wires_4.clone(), b.c0 - b.c1 + b.c2));
@@ -398,29 +362,21 @@ impl Fq6 {
         let v4_12 = circuit.extend(Fq2::double(v4_6.clone()));
 
         let wires_18: Wires = circuit.extend(Fq2::sub(v0_3.clone(), v1_3.clone()));
-        let wires_19: Wires =
-            circuit.extend(Fq2::sub(wires_18.clone(), v2.clone()));
-        let wires_20: Wires =
-            circuit.extend(Fq2::add(wires_19.clone(), v3.clone()));
-        let wires_21: Wires =
-            circuit.extend(Fq2::sub(wires_20.clone(), v4_12.clone()));
-        let wires_22: Wires =
-            circuit.extend(Fq2::mul_by_nonresidue(wires_21.clone()));
+        let wires_19: Wires = circuit.extend(Fq2::sub(wires_18.clone(), v2.clone()));
+        let wires_20: Wires = circuit.extend(Fq2::add(wires_19.clone(), v3.clone()));
+        let wires_21: Wires = circuit.extend(Fq2::sub(wires_20.clone(), v4_12.clone()));
+        let wires_22: Wires = circuit.extend(Fq2::mul_by_nonresidue(wires_21.clone()));
         let mut c0 = circuit.extend(Fq2::add(wires_22.clone(), v0_6.clone()));
 
         let wires_23: Wires = circuit.extend(Fq2::sub(v1_6.clone(), v0_3.clone()));
-        let wires_24: Wires =
-            circuit.extend(Fq2::sub(wires_23.clone(), v2_2.clone()));
-        let wires_25: Wires =
-            circuit.extend(Fq2::sub(wires_24.clone(), v3.clone()));
-        let wires_26: Wires =
-            circuit.extend(Fq2::add(wires_25.clone(), v4_12.clone()));
+        let wires_24: Wires = circuit.extend(Fq2::sub(wires_23.clone(), v2_2.clone()));
+        let wires_25: Wires = circuit.extend(Fq2::sub(wires_24.clone(), v3.clone()));
+        let wires_26: Wires = circuit.extend(Fq2::add(wires_25.clone(), v4_12.clone()));
         let wires_27: Wires = circuit.extend(Fq2::mul_by_nonresidue(v4_6.clone()));
         let c1: Wires = circuit.extend(Fq2::add(wires_26, wires_27));
 
         let wires_28: Wires = circuit.extend(Fq2::sub(v1_3.clone(), v0_6.clone()));
-        let wires_29: Wires =
-            circuit.extend(Fq2::add(wires_28.clone(), v2_3.clone()));
+        let wires_29: Wires = circuit.extend(Fq2::add(wires_28.clone(), v2_3.clone()));
         let c2: Wires = circuit.extend(Fq2::sub(wires_29.clone(), v4_6.clone()));
 
         c0.extend(c1);
@@ -442,17 +398,13 @@ impl Fq6 {
         let v0 = circuit.extend(Fq2::mul_by_constant_montgomery(a_c0.clone(), b.c0));
 
         let wires_2: Wires = circuit.extend(Fq2::add(a_c0.clone(), a_c2.clone()));
-        let wires_3: Wires =
-            circuit.extend(Fq2::add(wires_2.clone(), a_c1.clone()));
-        let wires_4: Wires =
-            circuit.extend(Fq2::sub(wires_2.clone(), a_c1.clone()));
+        let wires_3: Wires = circuit.extend(Fq2::add(wires_2.clone(), a_c1.clone()));
+        let wires_4: Wires = circuit.extend(Fq2::sub(wires_2.clone(), a_c1.clone()));
         let wires_5: Wires = circuit.extend(Fq2::double(a_c1.clone()));
         let wires_6: Wires = circuit.extend(Fq2::double(a_c2.clone()));
         let wires_7: Wires = circuit.extend(Fq2::double(wires_6.clone()));
-        let wires_8: Wires =
-            circuit.extend(Fq2::add(a_c0.clone(), wires_5.clone()));
-        let wires_9: Wires =
-            circuit.extend(Fq2::add(wires_8.clone(), wires_7.clone()));
+        let wires_8: Wires = circuit.extend(Fq2::add(a_c0.clone(), wires_5.clone()));
+        let wires_9: Wires = circuit.extend(Fq2::add(wires_8.clone(), wires_7.clone()));
 
         let v1 = circuit.extend(Fq2::mul_by_constant_montgomery(
             wires_3.clone(),
@@ -482,29 +434,21 @@ impl Fq6 {
         let v4_12 = circuit.extend(Fq2::double(v4_6.clone()));
 
         let wires_18: Wires = circuit.extend(Fq2::sub(v0_3.clone(), v1_3.clone()));
-        let wires_19: Wires =
-            circuit.extend(Fq2::sub(wires_18.clone(), v2.clone()));
-        let wires_20: Wires =
-            circuit.extend(Fq2::add(wires_19.clone(), v3.clone()));
-        let wires_21: Wires =
-            circuit.extend(Fq2::sub(wires_20.clone(), v4_12.clone()));
-        let wires_22: Wires =
-            circuit.extend(Fq2::mul_by_nonresidue(wires_21.clone()));
+        let wires_19: Wires = circuit.extend(Fq2::sub(wires_18.clone(), v2.clone()));
+        let wires_20: Wires = circuit.extend(Fq2::add(wires_19.clone(), v3.clone()));
+        let wires_21: Wires = circuit.extend(Fq2::sub(wires_20.clone(), v4_12.clone()));
+        let wires_22: Wires = circuit.extend(Fq2::mul_by_nonresidue(wires_21.clone()));
         let mut c0 = circuit.extend(Fq2::add(wires_22.clone(), v0_6.clone()));
 
         let wires_23: Wires = circuit.extend(Fq2::sub(v1_6.clone(), v0_3.clone()));
-        let wires_24: Wires =
-            circuit.extend(Fq2::sub(wires_23.clone(), v2_2.clone()));
-        let wires_25: Wires =
-            circuit.extend(Fq2::sub(wires_24.clone(), v3.clone()));
-        let wires_26: Wires =
-            circuit.extend(Fq2::add(wires_25.clone(), v4_12.clone()));
+        let wires_24: Wires = circuit.extend(Fq2::sub(wires_23.clone(), v2_2.clone()));
+        let wires_25: Wires = circuit.extend(Fq2::sub(wires_24.clone(), v3.clone()));
+        let wires_26: Wires = circuit.extend(Fq2::add(wires_25.clone(), v4_12.clone()));
         let wires_27: Wires = circuit.extend(Fq2::mul_by_nonresidue(v4_6.clone()));
         let c1: Wires = circuit.extend(Fq2::add(wires_26, wires_27));
 
         let wires_28: Wires = circuit.extend(Fq2::sub(v1_3.clone(), v0_6.clone()));
-        let wires_29: Wires =
-            circuit.extend(Fq2::add(wires_28.clone(), v2_3.clone()));
+        let wires_29: Wires = circuit.extend(Fq2::add(wires_28.clone(), v2_3.clone()));
         let c2: Wires = circuit.extend(Fq2::sub(wires_29.clone(), v4_6.clone()));
 
         c0.extend(c1);
@@ -776,8 +720,7 @@ impl Fq6 {
         let wires_3 = circuit.extend(Fq2::sub(wires_1.clone(), a_c1.clone()));
         let s_1 = circuit.extend(Fq2::square_montgomery(wires_2));
         let s_2 = circuit.extend(Fq2::square_montgomery(wires_3));
-        let wires_4: Wires =
-            circuit.extend(Fq2::mul_montgomery(a_c1.clone(), a_c2.clone()));
+        let wires_4: Wires = circuit.extend(Fq2::mul_montgomery(a_c1.clone(), a_c2.clone()));
         let s_3: Wires = circuit.extend(Fq2::double(wires_4));
         let s_4 = circuit.extend(Fq2::square_montgomery(a_c2.clone()));
         let wires_5 = circuit.extend(Fq2::add(s_1.clone(), s_2.clone()));

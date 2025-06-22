@@ -25,75 +25,74 @@ pub fn add_generic(a: Wires, b: Wires, len: usize) -> Circuit {
 }
 
 pub fn optimized_sub_generic(
-        a_wires: Wires,
-        b_wires: Wires,
-        check_bound: bool,
-        len: usize
-    ) -> Circuit {
-        assert_eq!(a_wires.len(), len);
-        assert_eq!(b_wires.len(), len);
+    a_wires: Wires,
+    b_wires: Wires,
+    check_bound: bool,
+    len: usize,
+) -> Circuit {
+    assert_eq!(a_wires.len(), len);
+    assert_eq!(b_wires.len(), len);
 
-        let mut circuit = Circuit::empty();
+    let mut circuit = Circuit::empty();
 
-        let mut want: Rc<RefCell<Wire>> = new_wirex();
-        for i in 0..len {
-            circuit.add_wire(new_wirex());
-            if i > 0 {
-                let subtract_bit = new_wirex();
-                circuit.add(Gate::xor(
-                    want.clone(),
-                    b_wires[i].clone(),
-                    subtract_bit.clone(),
-                ));
-                circuit.add(Gate::xor(
-                    subtract_bit.clone(),
-                    a_wires[i].clone(),
-                    circuit.0[i].clone(),
-                ));
-                let new_want_or0 = new_wirex();
-                let new_want_or1 = new_wirex();
-                let new_want = new_wirex();
-                circuit.add(Gate::nimp(
-                    subtract_bit.clone(),
-                    a_wires[i].clone(),
-                    new_want_or0.clone(),
-                ));
-                circuit.add(Gate::and(
-                    want.clone(),
-                    b_wires[i].clone(),
-                    new_want_or1.clone(),
-                ));
-                circuit.add(Gate::or(
-                    new_want_or0.clone(),
-                    new_want_or1.clone(),
-                    new_want.clone(),
-                ));
-                want = new_want;
-            } else {
-                circuit.add(Gate::xor(
-                    b_wires[i].clone(),
-                    a_wires[i].clone(),
-                    circuit.0[i].clone(),
-                ));
-                let new_want: Rc<RefCell<Wire>> = new_wirex();
-                circuit.add(Gate::nimp(
-                    b_wires[i].clone(),
-                    a_wires[i].clone(),
-                    new_want.clone(),
-                ));
-                want = new_want;
-            }
+    let mut want: Rc<RefCell<Wire>> = new_wirex();
+    for i in 0..len {
+        circuit.add_wire(new_wirex());
+        if i > 0 {
+            let subtract_bit = new_wirex();
+            circuit.add(Gate::xor(
+                want.clone(),
+                b_wires[i].clone(),
+                subtract_bit.clone(),
+            ));
+            circuit.add(Gate::xor(
+                subtract_bit.clone(),
+                a_wires[i].clone(),
+                circuit.0[i].clone(),
+            ));
+            let new_want_or0 = new_wirex();
+            let new_want_or1 = new_wirex();
+            let new_want = new_wirex();
+            circuit.add(Gate::nimp(
+                subtract_bit.clone(),
+                a_wires[i].clone(),
+                new_want_or0.clone(),
+            ));
+            circuit.add(Gate::and(
+                want.clone(),
+                b_wires[i].clone(),
+                new_want_or1.clone(),
+            ));
+            circuit.add(Gate::or(
+                new_want_or0.clone(),
+                new_want_or1.clone(),
+                new_want.clone(),
+            ));
+            want = new_want;
+        } else {
+            circuit.add(Gate::xor(
+                b_wires[i].clone(),
+                a_wires[i].clone(),
+                circuit.0[i].clone(),
+            ));
+            let new_want: Rc<RefCell<Wire>> = new_wirex();
+            circuit.add(Gate::nimp(
+                b_wires[i].clone(),
+                a_wires[i].clone(),
+                new_want.clone(),
+            ));
+            want = new_want;
         }
-
-        if check_bound {
-            let bound_check_wire = new_wirex();
-            circuit.add(Gate::not(want.clone(), bound_check_wire.clone()));
-            circuit.add_wire(bound_check_wire);
-        }
-
-        circuit
     }
 
+    if check_bound {
+        let bound_check_wire = new_wirex();
+        circuit.add(Gate::not(want.clone(), bound_check_wire.clone()));
+        circuit.add_wire(bound_check_wire);
+    }
+
+    circuit
+}
 
 impl<const N_BITS: usize> BigIntImpl<N_BITS> {
     pub fn add(a: Wires, b: Wires) -> Circuit {
@@ -308,11 +307,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
     }
 
     // This is optimized without not and xor optimizations, with them, it should be about the same
-    pub fn optimized_sub(
-        a_wires: Wires,
-        b_wires: Wires,
-        check_bound: bool,
-    ) -> Circuit {
+    pub fn optimized_sub(a_wires: Wires, b_wires: Wires, check_bound: bool) -> Circuit {
         optimized_sub_generic(a_wires, b_wires, check_bound, N_BITS)
     }
 }
@@ -370,7 +365,7 @@ mod tests {
             gate.evaluate();
         }
         let c = biguint_from_wires(circuit.0);
-        assert_eq!(c, (a + b)  % biguint_two_pow_254());
+        assert_eq!(c, (a + b) % biguint_two_pow_254());
     }
 
     #[test]

@@ -1,15 +1,23 @@
-use num_bigint::BigUint;
 use super::BigIntImpl;
-use crate::{bag::*, circuits::bigint::{add::{add_generic, optimized_sub_generic}, cmp::self_or_zero_generic, utils::{bits_from_biguint, n_wires}}};
+use crate::{
+    bag::*,
+    circuits::bigint::{
+        add::{add_generic, optimized_sub_generic},
+        cmp::self_or_zero_generic,
+        utils::{bits_from_biguint, n_wires},
+    },
+};
+use num_bigint::BigUint;
 
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
 
-static KARATSUBA_DECISIONS: Lazy<Mutex<[Option<bool>; 256]>> = Lazy::new(|| Mutex::new([None; 256]));
+static KARATSUBA_DECISIONS: Lazy<Mutex<[Option<bool>; 256]>> =
+    Lazy::new(|| Mutex::new([None; 256]));
 
 fn extend_with_false(wires: &mut Wires) {
     let zero_wire = new_wirex();
-    zero_wire.borrow_mut().set(false);    
+    zero_wire.borrow_mut().set(false);
     wires.push(zero_wire);
 }
 
@@ -18,12 +26,12 @@ fn set_karatsuba_decision_flag(index: usize, value: bool) {
     flags[index] = Some(value);
 }
 
-fn get_karatsuba_decision_flag(index: usize) -> Option<bool>{
+fn get_karatsuba_decision_flag(index: usize) -> Option<bool> {
     let flags = KARATSUBA_DECISIONS.lock().unwrap();
     flags[index]
 }
 
-pub fn mul_generic(a_wires: &Wires, b_wires: &Wires, len: usize) -> Circuit{
+pub fn mul_generic(a_wires: &Wires, b_wires: &Wires, len: usize) -> Circuit {
     assert_eq!(a_wires.len(), len);
     assert_eq!(b_wires.len(), len);
 
@@ -34,13 +42,16 @@ pub fn mul_generic(a_wires: &Wires, b_wires: &Wires, len: usize) -> Circuit{
         circuit.add_wire(wire)
     } //this part can be optimized later 
 
-    for i in 0..len {
+    for (i, current_bit) in b_wires.iter().enumerate().take(len) {
         let mut addition_wires_0 = vec![];
         for j in i..(i + len) {
             addition_wires_0.push(circuit.0[j].clone());
         }
-        let addition_wires_1 =
-            circuit.extend(self_or_zero_generic(a_wires.clone(), b_wires[i].clone(), len));
+        let addition_wires_1 = circuit.extend(self_or_zero_generic(
+            a_wires.clone(),
+            current_bit.clone(),
+            len,
+        ));
         let new_bits = circuit.extend(add_generic(addition_wires_0, addition_wires_1, len));
         circuit.0[i..(i + len + 1)].clone_from_slice(&new_bits);
     }
@@ -49,19 +60,19 @@ pub fn mul_generic(a_wires: &Wires, b_wires: &Wires, len: usize) -> Circuit{
 
 // decider[i] = 0, not calculated, 1 = karatsuba, 0 = brute force
 // this is a version of karatsuba I've just made up without any specific referance, there's probably a lot of room for improvement
- pub fn mul_karatsuba_generic(a_wires: &Wires, b_wires: &Wires, len: usize) -> Circuit {
+pub fn mul_karatsuba_generic(a_wires: &Wires, b_wires: &Wires, len: usize) -> Circuit {
     assert_eq!(a_wires.len(), len);
     assert_eq!(b_wires.len(), len);
     if len < 5 {
-        return mul_generic(&a_wires, &b_wires, len)
+        return mul_generic(a_wires, b_wires, len);
     }
     let mut min_circuit = Circuit::empty();
     let karatsuba_flag = get_karatsuba_decision_flag(len);
-    if karatsuba_flag.is_none() || karatsuba_flag.unwrap() == false {
-        min_circuit = mul_generic(&a_wires, &b_wires, len);
+    if karatsuba_flag.is_none() || !karatsuba_flag.unwrap() {
+        min_circuit = mul_generic(a_wires, b_wires, len);
     }
 
-    if karatsuba_flag.is_none() || karatsuba_flag.unwrap() == true {
+    if karatsuba_flag.is_none() || karatsuba_flag.unwrap() {
         let mut circuit = Circuit::empty();
         circuit.0 = n_wires(len * 2);
         for i in 0..len * 2 {
@@ -73,7 +84,7 @@ pub fn mul_generic(a_wires: &Wires, b_wires: &Wires, len: usize) -> Circuit{
 
         let a_0 = a_wires[0..len_0].to_vec();
         let a_1 = a_wires[len_0..].to_vec();
-        
+
         let b_0 = b_wires[0..len_0].to_vec();
         let b_1 = b_wires[len_0..].to_vec();
 
@@ -81,7 +92,7 @@ pub fn mul_generic(a_wires: &Wires, b_wires: &Wires, len: usize) -> Circuit{
         let sq_1 = circuit.extend(mul_karatsuba_generic(&a_1, &b_1, len_1));
         let mut extended_sq_0 = sq_0.clone();
         let mut extended_a_0 = a_0.clone();
-        let mut extended_b_0 = b_0.clone();  
+        let mut extended_b_0 = b_0.clone();
         if len_0 < len_1 {
             extend_with_false(&mut extended_a_0);
             extend_with_false(&mut extended_b_0);
@@ -98,11 +109,16 @@ pub fn mul_generic(a_wires: &Wires, b_wires: &Wires, len: usize) -> Circuit{
         let mut sq_sum = circuit.extend(add_generic(extended_sq_0, sq_1.clone(), len_1 * 2));
         extend_with_false(&mut sq_sum);
         //sq_sum.push(zero_wire.clone());
-        
 
         let sum_mul = circuit.extend(mul_karatsuba_generic(&sum_a, &sum_b, len_1 + 1));
-        let cross_term = circuit.extend(optimized_sub_generic(sum_mul, sq_sum, false, (len_1 + 1) * 2))[..(len + 1)].to_vec(); //len_0 + len_1 = len
-       
+        let cross_term = circuit.extend(optimized_sub_generic(
+            sum_mul,
+            sq_sum,
+            false,
+            (len_1 + 1) * 2,
+        ))[..(len + 1)]
+            .to_vec(); //len_0 + len_1 = len
+
         circuit.0[..(len_0 * 2)].clone_from_slice(&sq_0);
 
         {
@@ -112,7 +128,7 @@ pub fn mul_generic(a_wires: &Wires, b_wires: &Wires, len: usize) -> Circuit{
         }
 
         {
-            let segment =  circuit.0[(2 * len_0)..].to_vec();
+            let segment = circuit.0[(2 * len_0)..].to_vec();
             let new_segment = circuit.extend(add_generic(segment, sq_1, len_1 * 2));
             circuit.0[(2 * len_0)..].clone_from_slice(&new_segment[..(2 * len_1)]);
         }
@@ -129,7 +145,6 @@ pub fn mul_generic(a_wires: &Wires, b_wires: &Wires, len: usize) -> Circuit{
 
     min_circuit
 }
-
 
 impl<const N_BITS: usize> BigIntImpl<N_BITS> {
     pub fn mul(a_wires: Wires, b_wires: Wires) -> Circuit {
@@ -190,11 +205,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         circuit
     }
 
-    pub fn mul_by_constant_modulo_power_two(
-        a_wires: Wires,
-        c: BigUint,
-        power: usize,
-    ) -> Circuit {
+    pub fn mul_by_constant_modulo_power_two(a_wires: Wires, c: BigUint, power: usize) -> Circuit {
         assert_eq!(a_wires.len(), N_BITS);
         assert!(power < 2 * N_BITS);
         let mut c_bits = bits_from_biguint(c);
@@ -242,7 +253,8 @@ mod tests {
     use num_bigint::BigUint;
 
     use crate::circuits::bigint::{
-        utils::{biguint_from_bits, random_biguint_n_bits}, BigIntImpl, U254
+        BigIntImpl, U254,
+        utils::{biguint_from_bits, random_biguint_n_bits},
     };
 
     //tests are currently only for 254 bits
@@ -301,7 +313,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn test_karatsuba_small() {
         const S: usize = 64;
@@ -331,7 +342,6 @@ mod tests {
             assert_eq!(result, c);
         }
     }
-
 
     #[test]
     fn test_mul_by_constant() {

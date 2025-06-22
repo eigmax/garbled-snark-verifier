@@ -5,17 +5,17 @@ use crate::{bag::*, circuits::basic::selector};
 use num_bigint::BigUint;
 
 pub fn self_or_zero_generic(a: Wires, s: Wirex, len: usize) -> Circuit {
-        assert_eq!(a.len(), len);
-        let mut circuit = Circuit::empty();
+    assert_eq!(a.len(), len);
+    let mut circuit = Circuit::empty();
 
-        let mut result = vec![];
-        for i in 0..len {
-            result.push(new_wirex());
-            circuit.add(Gate::and(a[i].clone(), s.clone(), result[i].clone()));
-        }
-        circuit.add_wires(result);
-        circuit
+    let mut result = vec![];
+    for i in 0..len {
+        result.push(new_wirex());
+        circuit.add(Gate::and(a[i].clone(), s.clone(), result[i].clone()));
     }
+    circuit.add_wires(result);
+    circuit
+}
 
 impl<const N_BITS: usize> BigIntImpl<N_BITS> {
     pub fn equal(a: Wires, b: Wires) -> Circuit {
