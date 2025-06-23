@@ -26,41 +26,34 @@ pub fn full_adder(a: Wirex, b: Wirex, c: Wirex) -> Circuit {
 }
 
 pub fn half_subtracter(a: Wirex, b: Wirex) -> Circuit {
-    let result = new_wirex(); // a ⊕ b
-    let borrow = new_wirex(); // ¬a ∧ b
-    let a_xor1 = new_wirex(); // a ⊕ 1 == ¬a
-    let one = Rc::new(RefCell::new(Wire::const_one()));
-
-    // ¬a = a ⊕ 1 (free xor)
-    let gate_not_a = Gate::xor(a.clone(), one, a_xor1.clone());
-    // a ⊕ b
+    let result = new_wirex();
+    let borrow = new_wirex();
+    let not_a = new_wirex();
+    let gate_not_a = Gate::not(a.clone(), not_a.clone());
     let gate_result = Gate::xor(a.clone(), b.clone(), result.clone());
-    // borrow = (a ⊕ 1) ∧ b
-    let gate_borrow = Gate::and(a_xor1.clone(), b.clone(), borrow.clone());
+    let gate_borrow = Gate::and(not_a.clone(), b.clone(), borrow.clone());
     Circuit::new(
         vec![result, borrow],
-        vec![gate_result, gate_not_a, gate_borrow],
+        vec![gate_not_a, gate_result, gate_borrow],
     )
 }
 
 pub fn full_subtracter(a: Wirex, b: Wirex, c: Wirex) -> Circuit {
-    let one = Rc::new(RefCell::new(Wire::const_one()));
-    let d = new_wirex(); // a ⊕ b
-    let result = new_wirex(); // (a ⊕ b) ⊕ c
-    let nota = new_wirex(); // ¬a = a ⊕ 1
-    let notd = new_wirex(); // ¬(a ⊕ b) = d ⊕ 1
-    let term1 = new_wirex(); // (¬a ∧ b)
-    let term2 = new_wirex(); // (¬(a ⊕ b) ∧ c)
-    let borrow = new_wirex(); // borrow = term1 ∨ term2
+    let d = new_wirex();
+    let e = new_wirex();
+    let f = new_wirex();
+    let g = new_wirex();
+    let h = new_wirex();
+    let result = new_wirex();
+    let borrow = new_wirex();
 
-    let gate_1 = Gate::xor(a.clone(), b.clone(), d.clone()); // d = a ⊕ b
-    let gate_2 = Gate::xor(d.clone(), c.clone(), result.clone()); // result = d ⊕ c
-    let gate_3 = Gate::xor(a.clone(), one.clone(), nota.clone()); // nota = a ⊕ 1
-    let gate_4 = Gate::xor(d.clone(), one.clone(), notd.clone()); // notd = d ⊕ 1
-    let gate_5 = Gate::and(nota.clone(), b.clone(), term1.clone()); // term1 = ¬a ∧ b
-    let gate_6 = Gate::and(notd.clone(), c.clone(), term2.clone()); // term2 = ¬(a⊕b) ∧ c
-    let gate_7 = Gate::or(term1.clone(), term2.clone(), borrow.clone()); // borrow = term1 ∨ term2
-
+    let gate_1 = Gate::xor(a.clone(), b.clone(), d.clone());
+    let gate_2 = Gate::xor(c.clone(), d.clone(), result.clone());
+    let gate_3 = Gate::not(d.clone(), e.clone());
+    let gate_4 = Gate::and(c.clone(), e.clone(), f.clone());
+    let gate_5 = Gate::not(a.clone(), g.clone());
+    let gate_6 = Gate::and(b.clone(), g.clone(), h.clone());
+    let gate_7 = Gate::or(f.clone(), h.clone(), borrow.clone());
     Circuit::new(
         vec![result, borrow],
         vec![gate_1, gate_2, gate_3, gate_4, gate_5, gate_6, gate_7],
