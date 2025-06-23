@@ -80,7 +80,7 @@ pub fn mul_karatsuba_generic(a_wires: &Wires, b_wires: &Wires, len: usize) -> Ci
         }
 
         let len_0 = len / 2;
-        let len_1 = (len + 1) / 2;
+        let len_1 = len.div_ceil(2);
 
         let a_0 = a_wires[0..len_0].to_vec();
         let a_1 = a_wires[len_0..].to_vec();
