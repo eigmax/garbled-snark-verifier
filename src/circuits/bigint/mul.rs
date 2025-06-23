@@ -59,7 +59,7 @@ pub fn mul_generic(a_wires: &Wires, b_wires: &Wires, len: usize) -> Circuit {
 }
 
 // decider[i] = 0, not calculated, 1 = karatsuba, 0 = brute force
-// this is a version of karatsuba I've just made up without any specific referance, there's probably a lot of room for improvement
+// this is a version of karatsuba I've just made up without any specific reference, there's probably a lot of room for improvement
 pub fn mul_karatsuba_generic(a_wires: &Wires, b_wires: &Wires, len: usize) -> Circuit {
     assert_eq!(a_wires.len(), len);
     assert_eq!(b_wires.len(), len);
