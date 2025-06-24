@@ -196,19 +196,7 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
     }
 
     pub fn sub(a: Wires, b: Wires) -> Circuit {
-        assert_eq!(a.len(), N_BITS);
-        assert_eq!(b.len(), N_BITS);
-        let mut circuit = Circuit::empty();
-        let wires = circuit.extend(half_subtracter(a[0].clone(), b[0].clone()));
-        circuit.add_wire(wires[0].clone());
-        let mut borrow = wires[1].clone();
-        for i in 1..N_BITS {
-            let wires = circuit.extend(full_subtracter(a[i].clone(), b[i].clone(), borrow));
-            circuit.add_wire(wires[0].clone());
-            borrow = wires[1].clone();
-        }
-        circuit.add_wire(borrow);
-        circuit
+        optimized_sub_generic(a, b, false, N_BITS)
     }
 
     pub fn sub_without_borrow(a: Wires, b: Wires) -> Circuit {
