@@ -63,7 +63,7 @@ pub fn optimized_sub_generic(
                 b_wires[i].clone(),
                 new_want_or1.clone(),
             ));
-            circuit.add(Gate::or(
+            circuit.add(Gate::xor(
                 new_want_or0.clone(),
                 new_want_or1.clone(),
                 new_want.clone(),

@@ -53,7 +53,7 @@ pub fn full_subtracter(a: Wirex, b: Wirex, c: Wirex) -> Circuit {
     let gate_4 = Gate::and(c.clone(), e.clone(), f.clone());
     let gate_5 = Gate::not(a.clone(), g.clone());
     let gate_6 = Gate::and(b.clone(), g.clone(), h.clone());
-    let gate_7 = Gate::or(f.clone(), h.clone(), borrow.clone());
+    let gate_7 = Gate::xor(f.clone(), h.clone(), borrow.clone());
     Circuit::new(
         vec![result, borrow],
         vec![gate_1, gate_2, gate_3, gate_4, gate_5, gate_6, gate_7],
