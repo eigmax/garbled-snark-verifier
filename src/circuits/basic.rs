@@ -9,20 +9,33 @@ pub fn half_adder(a: Wirex, b: Wirex) -> Circuit {
 }
 
 pub fn full_adder(a: Wirex, b: Wirex, c: Wirex) -> Circuit {
-    let ab_xor = new_wirex(); // d = a ⊕ b
-    let ab_and = new_wirex(); // e = a ∧ b
-    let sum = new_wirex(); // result = (a ⊕ b) ⊕ c
-    let d_c_and = new_wirex(); // f = (a ⊕ b) ∧ c
-    let carry = new_wirex(); // carry = (a ∧ b) ∨ ((a ⊕ b) ∧ c)
+    // let ab_xor = new_wirex(); // d = a ⊕ b
+    // let ab_and = new_wirex(); // e = a ∧ b
+    // let sum = new_wirex(); // result = (a ⊕ b) ⊕ c
+    // let d_c_and = new_wirex(); // f = (a ⊕ b) ∧ c
+    // let carry = new_wirex(); // carry = (a ∧ b) ∨ ((a ⊕ b) ∧ c)
 
-    // Gates
-    let g1 = Gate::xor(a.clone(), b.clone(), ab_xor.clone()); // a ⊕ b
-    let g2 = Gate::and(a.clone(), b.clone(), ab_and.clone()); // a ∧ b
-    let g3 = Gate::xor(ab_xor.clone(), c.clone(), sum.clone()); // (a ⊕ b) ⊕ c
-    let g4 = Gate::and(ab_xor.clone(), c.clone(), d_c_and.clone()); // (a ⊕ b) ∧ c
-    let g5 = Gate::xor(ab_and.clone(), d_c_and.clone(), carry.clone()); // carry = e ⊕ f (use XOR instead of OR)
+    // // Gates
+    // let g1 = Gate::xor(a.clone(), b.clone(), ab_xor.clone()); // a ⊕ b
+    // let g2 = Gate::and(a.clone(), b.clone(), ab_and.clone()); // a ∧ b
+    // let g3 = Gate::xor(ab_xor.clone(), c.clone(), sum.clone()); // (a ⊕ b) ⊕ c
+    // let g4 = Gate::and(ab_xor.clone(), c.clone(), d_c_and.clone()); // (a ⊕ b) ∧ c
+    // let g5 = Gate::xor(ab_and.clone(), d_c_and.clone(), carry.clone()); // carry = e ⊕ f (use XOR instead of OR)
 
-    Circuit::new(vec![sum, carry], vec![g1, g2, g3, g4, g5])
+    let axc = new_wirex();
+    let bxc = new_wirex();
+    let result = new_wirex();
+    let t = new_wirex();
+    let carry = new_wirex();
+
+    let g1 = Gate::xor(a.clone(), c.clone(), axc.clone());
+    let g2 = Gate::xor(b.clone(), c.clone(), bxc.clone());
+    let g3 = Gate::xor(a.clone(), bxc.clone(), result.clone());
+    let g4 = Gate::and(axc.clone(), bxc.clone(), t.clone());
+    let g5 = Gate::xor(c.clone(), t.clone(), carry.clone());
+
+
+    Circuit::new(vec![result, carry], vec![g1, g2, g3, g4, g5])
 }
 
 pub fn half_subtracter(a: Wirex, b: Wirex) -> Circuit {
