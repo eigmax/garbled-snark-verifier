@@ -8,164 +8,116 @@ use crate::{
 };
 use num_bigint::BigUint;
 
+pub fn add_generic(a: Wires, b: Wires, len: usize) -> Circuit {
+    assert_eq!(a.len(), len);
+    assert_eq!(b.len(), len);
+    let mut circuit = Circuit::empty();
+    let wires = circuit.extend(half_adder(a[0].clone(), b[0].clone()));
+    circuit.add_wire(wires[0].clone());
+    let mut carry = wires[1].clone();
+    for i in 1..len {
+        let wires = circuit.extend(full_adder(a[i].clone(), b[i].clone(), carry));
+        circuit.add_wire(wires[0].clone());
+        carry = wires[1].clone();
+    }
+    circuit.add_wire(carry);
+    circuit
+}
+
+pub fn add_constant_generic(a: Wires, b: &BigUint, len: usize) -> Circuit {
+    assert_eq!(a.len(), len);
+    assert_ne!(b, &BigUint::ZERO);
+    let mut circuit = Circuit::empty();
+
+    let b_bits = bits_from_biguint(b);
+
+    let mut first_one = 0;
+    while !b_bits[first_one] {
+        first_one += 1;
+    }
+
+    let mut carry = new_wirex();
+    for i in 0..len {
+        if i < first_one {
+            circuit.add_wire(a[i].clone());
+        } else if i == first_one {
+            let wire = new_wirex();
+            circuit.add(Gate::not(a[i].clone(), wire.clone()));
+            circuit.add_wire(wire);
+            carry = a[i].clone();
+        } else if b_bits[i] {
+            let wire_1 = new_wirex();
+            let wire_2 = new_wirex();
+            circuit.add(Gate::xnor(a[i].clone(), carry.clone(), wire_1.clone()));
+            circuit.add(Gate::or(a[i].clone(), carry.clone(), wire_2.clone()));
+            circuit.add_wire(wire_1);
+            carry = wire_2;
+        } else {
+            let wire_1 = new_wirex();
+            let wire_2 = new_wirex();
+            circuit.add(Gate::xor(a[i].clone(), carry.clone(), wire_1.clone()));
+            circuit.add(Gate::and(a[i].clone(), carry.clone(), wire_2.clone()));
+            circuit.add_wire(wire_1);
+            carry = wire_2;
+        }
+    }
+    circuit.add_wire(carry);
+    circuit
+}
+
+pub fn sub_generic(a: Wires, b: Wires, len: usize) -> Circuit {
+    assert_eq!(a.len(), len);
+    assert_eq!(b.len(), len);
+
+    let mut circuit = Circuit::empty();
+    let wires = circuit.extend(half_subtracter(a[0].clone(), b[0].clone()));
+    circuit.add_wire(wires[0].clone());
+    let mut borrow = wires[1].clone();
+    for i in 1..len {
+        let wires: Vec<Rc<RefCell<Wire>>> =
+            circuit.extend(full_subtracter(a[i].clone(), b[i].clone(), borrow));
+        circuit.add_wire(wires[0].clone());
+        borrow = wires[1].clone();
+    }
+    circuit.add_wire(borrow);
+    circuit
+}
+
+pub fn sub_generic_without_borrow(a: Wires, b: Wires, len: usize) -> Circuit {
+    let mut c = sub_generic(a, b, len);
+    c.0.pop();
+    c
+}
+
 impl<const N_BITS: usize> BigIntImpl<N_BITS> {
     pub fn add(a: Wires, b: Wires) -> Circuit {
-        assert_eq!(a.len(), N_BITS);
-        assert_eq!(b.len(), N_BITS);
-        let mut circuit = Circuit::empty();
-        let wires = circuit.extend(half_adder(a[0].clone(), b[0].clone()));
-        circuit.add_wire(wires[0].clone());
-        let mut carry = wires[1].clone();
-        for i in 1..N_BITS {
-            let wires = circuit.extend(full_adder(a[i].clone(), b[i].clone(), carry));
-            circuit.add_wire(wires[0].clone());
-            carry = wires[1].clone();
-        }
-        circuit.add_wire(carry);
-        circuit
-    }
-
-    pub fn add_generic(a: Wires, b: Wires, len: usize) -> Circuit {
-        assert_eq!(a.len(), len);
-        assert_eq!(b.len(), len);
-        let mut circuit = Circuit::empty();
-        let wires = circuit.extend(half_adder(a[0].clone(), b[0].clone()));
-        circuit.add_wire(wires[0].clone());
-        let mut carry = wires[1].clone();
-        for i in 1..len {
-            let wires = circuit.extend(full_adder(a[i].clone(), b[i].clone(), carry));
-            circuit.add_wire(wires[0].clone());
-            carry = wires[1].clone();
-        }
-        circuit.add_wire(carry);
-        circuit
-    }
-
-    pub fn add_constant(a: Wires, b: BigUint) -> Circuit {
-        assert_eq!(a.len(), N_BITS);
-        assert_ne!(b, BigUint::ZERO);
-        let mut circuit = Circuit::empty();
-
-        let b_bits = bits_from_biguint(b);
-
-        let mut carry = new_wirex();
-        let mut first_one = 0;
-        while !b_bits[first_one] {
-            first_one += 1;
-        }
-
-        for i in 0..N_BITS {
-            if i < first_one {
-                circuit.add_wire(a[i].clone());
-            } else if i == first_one {
-                let wire = new_wirex();
-                circuit.add(Gate::not(a[i].clone(), wire.clone()));
-                circuit.add_wire(wire);
-                carry = a[i].clone();
-            } else if b_bits[i] {
-                let wire_1 = new_wirex();
-                let wire_2 = new_wirex();
-                circuit.add(Gate::xnor(a[i].clone(), carry.clone(), wire_1.clone()));
-                circuit.add(Gate::or(a[i].clone(), carry.clone(), wire_2.clone()));
-                circuit.add_wire(wire_1);
-                carry = wire_2;
-            } else {
-                let wire_1 = new_wirex();
-                let wire_2 = new_wirex();
-                circuit.add(Gate::xor(a[i].clone(), carry.clone(), wire_1.clone()));
-                circuit.add(Gate::and(a[i].clone(), carry.clone(), wire_2.clone()));
-                circuit.add_wire(wire_1);
-                carry = wire_2;
-            }
-        }
-        circuit.add_wire(carry);
-        circuit
+        add_generic(a, b, N_BITS)
     }
 
     pub fn add_without_carry(a: Wires, b: Wires) -> Circuit {
-        assert_eq!(a.len(), N_BITS);
-        assert_eq!(b.len(), N_BITS);
-        let mut circuit = Circuit::empty();
-        let wires = circuit.extend(half_adder(a[0].clone(), b[0].clone()));
-        circuit.add_wire(wires[0].clone());
-        let mut carry = wires[1].clone();
-        for i in 1..N_BITS {
-            let wires = circuit.extend(full_adder(a[i].clone(), b[i].clone(), carry));
-            circuit.add_wire(wires[0].clone());
-            carry = wires[1].clone();
-        }
-        circuit
+        let mut c = add_generic(a, b, N_BITS);
+        c.0.pop();
+        c
     }
 
-    pub fn add_constant_without_carry(a: Wires, b: BigUint) -> Circuit {
-        assert_eq!(a.len(), N_BITS);
-        assert_ne!(b, BigUint::ZERO);
-        let mut circuit = Circuit::empty();
-
-        let b_bits = bits_from_biguint(b);
-
-        let mut carry = new_wirex();
-        let mut first_one = 0;
-        while !b_bits[first_one] {
-            first_one += 1;
-        }
-
-        for i in 0..N_BITS {
-            if i < first_one {
-                circuit.add_wire(a[i].clone());
-            } else if i == first_one {
-                let wire = new_wirex();
-                circuit.add(Gate::not(a[i].clone(), wire.clone()));
-                circuit.add_wire(wire);
-                carry = a[i].clone();
-            } else if b_bits[i] {
-                let wire_1 = new_wirex();
-                let wire_2 = new_wirex();
-                circuit.add(Gate::xnor(a[i].clone(), carry.clone(), wire_1.clone()));
-                circuit.add(Gate::or(a[i].clone(), carry.clone(), wire_2.clone()));
-                circuit.add_wire(wire_1);
-                carry = wire_2;
-            } else {
-                let wire_1 = new_wirex();
-                let wire_2 = new_wirex();
-                circuit.add(Gate::xor(a[i].clone(), carry.clone(), wire_1.clone()));
-                circuit.add(Gate::and(a[i].clone(), carry.clone(), wire_2.clone()));
-                circuit.add_wire(wire_1);
-                carry = wire_2;
-            }
-        }
-        circuit
+    pub fn add_constant(a: Wires, b: &BigUint) -> Circuit {
+        add_constant_generic(a, b, N_BITS)
     }
 
+    pub fn add_constant_without_carry(a: Wires, b: &BigUint) -> Circuit {
+        let mut c = add_constant_generic(a, b, N_BITS);
+        c.0.pop();
+        c
+    }
+
+    /*
     pub fn sub(a: Wires, b: Wires) -> Circuit {
-        assert_eq!(a.len(), N_BITS);
-        assert_eq!(b.len(), N_BITS);
-        let mut circuit = Circuit::empty();
-        let wires = circuit.extend(half_subtracter(a[0].clone(), b[0].clone()));
-        circuit.add_wire(wires[0].clone());
-        let mut borrow = wires[1].clone();
-        for i in 1..N_BITS {
-            let wires = circuit.extend(full_subtracter(a[i].clone(), b[i].clone(), borrow));
-            circuit.add_wire(wires[0].clone());
-            borrow = wires[1].clone();
-        }
-        circuit.add_wire(borrow);
-        circuit
+        sub_generic(a, b, N_BITS)
     }
+    */
 
     pub fn sub_without_borrow(a: Wires, b: Wires) -> Circuit {
-        assert_eq!(a.len(), N_BITS);
-        assert_eq!(b.len(), N_BITS);
-        let mut circuit = Circuit::empty();
-        let wires = circuit.extend(half_subtracter(a[0].clone(), b[0].clone()));
-        circuit.add_wire(wires[0].clone());
-        let mut borrow = wires[1].clone();
-        for i in 1..N_BITS {
-            let wires = circuit.extend(full_subtracter(a[i].clone(), b[i].clone(), borrow));
-            circuit.add_wire(wires[0].clone());
-            borrow = wires[1].clone();
-        }
-        circuit
+        sub_generic_without_borrow(a, b, N_BITS)
     }
 
     pub fn double(a: Wires) -> Circuit {
@@ -208,7 +160,6 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         assert_eq!(a.len(), N_BITS);
         let mut circuit = Circuit::empty();
         let mut select = Self::wires();
-        let not_select = Self::wires();
         select[0] = a[0].clone();
         for i in 1..N_BITS {
             circuit.add(Gate::or(
@@ -218,17 +169,14 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
             ));
         }
 
-        for i in 0..N_BITS {
-            circuit.add(Gate::not(select[i].clone(), not_select[i].clone()));
-        }
-
         let mut k = Self::wires();
         k[0] = a[0].clone();
         for i in 1..N_BITS {
-            circuit.add(Gate::and(
-                not_select[i - 1].clone(),
+            circuit.add(Gate::and_variant(
+                select[i - 1].clone(),
                 a[i].clone(),
                 k[i].clone(),
+                [1, 0, 0],
             ));
         }
 
@@ -247,85 +195,13 @@ impl<const N_BITS: usize> BigIntImpl<N_BITS> {
         circuit.add_wires(k.clone());
         circuit
     }
-
-    // This is optimized without not and xor optimizations, with them, it should be about the same
-    pub fn optimized_sub(
-        a_wires: Vec<Rc<RefCell<Wire>>>,
-        b_wires: Vec<Rc<RefCell<Wire>>>,
-        check_bound: bool,
-    ) -> Circuit {
-        assert_eq!(a_wires.len(), N_BITS);
-        assert_eq!(b_wires.len(), N_BITS);
-
-        let mut circuit = Circuit::empty();
-
-        let mut want: Rc<RefCell<Wire>> = new_wirex();
-        for i in 0..N_BITS {
-            circuit.add_wire(new_wirex());
-            if i > 0 {
-                let subtract_bit = new_wirex();
-                circuit.add(Gate::xor(
-                    want.clone(),
-                    b_wires[i].clone(),
-                    subtract_bit.clone(),
-                ));
-                circuit.add(Gate::xor(
-                    subtract_bit.clone(),
-                    a_wires[i].clone(),
-                    circuit.0[i].clone(),
-                ));
-                let new_want_or0 = new_wirex();
-                let new_want_or1 = new_wirex();
-                let new_want = new_wirex();
-                circuit.add(Gate::nimp(
-                    subtract_bit.clone(),
-                    a_wires[i].clone(),
-                    new_want_or0.clone(),
-                ));
-                circuit.add(Gate::and(
-                    want.clone(),
-                    b_wires[i].clone(),
-                    new_want_or1.clone(),
-                ));
-                circuit.add(Gate::or(
-                    new_want_or0.clone(),
-                    new_want_or1.clone(),
-                    new_want.clone(),
-                ));
-                want = new_want;
-            } else {
-                circuit.add(Gate::xor(
-                    b_wires[i].clone(),
-                    a_wires[i].clone(),
-                    circuit.0[i].clone(),
-                ));
-                let new_want: Rc<RefCell<Wire>> = new_wirex();
-                circuit.add(Gate::nimp(
-                    b_wires[i].clone(),
-                    a_wires[i].clone(),
-                    new_want.clone(),
-                ));
-                want = new_want;
-            }
-        }
-
-        if check_bound {
-            let bound_check_wire = new_wirex();
-            circuit.add(Gate::not(want.clone(), bound_check_wire.clone()));
-            circuit.add_wire(bound_check_wire);
-        }
-
-        circuit
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::circuits::bigint::{
         U254,
-        utils::{
-            biguint_from_bits, biguint_from_wires, biguint_two_pow_254, random_biguint_n_bits,
-        },
+        utils::{biguint_from_wires, biguint_two_pow_254, random_biguint_n_bits},
     };
     use num_bigint::BigUint;
     use std::str::FromStr;
@@ -335,8 +211,8 @@ mod tests {
         let a = random_biguint_n_bits(254);
         let b = random_biguint_n_bits(254);
         let circuit = U254::add(
-            U254::wires_set_from_number(a.clone()),
-            U254::wires_set_from_number(b.clone()),
+            U254::wires_set_from_number(&a),
+            U254::wires_set_from_number(&b),
         );
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
@@ -350,7 +226,7 @@ mod tests {
     fn test_add_constant() {
         let a = random_biguint_n_bits(254);
         let b = random_biguint_n_bits(254);
-        let circuit = U254::add_constant(U254::wires_set_from_number(a.clone()), b.clone());
+        let circuit = U254::add_constant(U254::wires_set_from_number(&a), &b);
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -364,15 +240,15 @@ mod tests {
         let a = random_biguint_n_bits(254);
         let b = random_biguint_n_bits(254);
         let circuit = U254::add_without_carry(
-            U254::wires_set_from_number(a.clone()),
-            U254::wires_set_from_number(b.clone()),
+            U254::wires_set_from_number(&a),
+            U254::wires_set_from_number(&b),
         );
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
         }
         let c = biguint_from_wires(circuit.0);
-        assert_eq!(c, (a + b)  % biguint_two_pow_254());
+        assert_eq!(c, (a + b) % biguint_two_pow_254());
     }
 
     #[test]
@@ -382,9 +258,9 @@ mod tests {
         if a < b {
             (a, b) = (b, a);
         }
-        let circuit = U254::sub(
-            U254::wires_set_from_number(a.clone()),
-            U254::wires_set_from_number(b.clone()),
+        let circuit = U254::sub_without_borrow(
+            U254::wires_set_from_number(&a),
+            U254::wires_set_from_number(&b),
         );
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
@@ -402,8 +278,8 @@ mod tests {
             (a, b) = (b, a);
         }
         let circuit = U254::sub_without_borrow(
-            U254::wires_set_from_number(a.clone()),
-            U254::wires_set_from_number(b.clone()),
+            U254::wires_set_from_number(&a),
+            U254::wires_set_from_number(&b),
         );
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
@@ -416,7 +292,7 @@ mod tests {
     #[test]
     fn test_double() {
         let a = random_biguint_n_bits(254);
-        let circuit = U254::double(U254::wires_set_from_number(a.clone()));
+        let circuit = U254::double(U254::wires_set_from_number(&a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -428,7 +304,7 @@ mod tests {
     #[test]
     fn test_double_without_overflow() {
         let a = random_biguint_n_bits(254);
-        let circuit = U254::double_without_overflow(U254::wires_set_from_number(a.clone()));
+        let circuit = U254::double_without_overflow(U254::wires_set_from_number(&a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -440,7 +316,7 @@ mod tests {
     #[test]
     fn test_half() {
         let a = random_biguint_n_bits(254);
-        let circuit = U254::half(U254::wires_set_from_number(a.clone()));
+        let circuit = U254::half(U254::wires_set_from_number(&a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -453,7 +329,7 @@ mod tests {
     #[test]
     fn test_odd_part() {
         let a = random_biguint_n_bits(254);
-        let circuit = U254::odd_part(U254::wires_set_from_number(a.clone()));
+        let circuit = U254::odd_part(U254::wires_set_from_number(&a));
         circuit.gate_counts().print();
         for mut gate in circuit.1 {
             gate.evaluate();
@@ -461,36 +337,5 @@ mod tests {
         let c = biguint_from_wires(circuit.0[0..U254::N_BITS].to_vec());
         let d = biguint_from_wires(circuit.0[U254::N_BITS..2 * U254::N_BITS].to_vec());
         assert_eq!(a, c * d);
-    }
-
-    #[test]
-    fn test_optimized_sub() {
-        for _ in 0..10 {
-            let a = random_biguint_n_bits(254);
-            let b = random_biguint_n_bits(254);
-            let mut circuit = U254::optimized_sub(
-                U254::wires_set_from_number(a.clone()),
-                U254::wires_set_from_number(b.clone()),
-                true,
-            );
-            circuit.gate_counts().print();
-            let bound_check = circuit.0.pop().unwrap();
-            let output_wires = circuit.0;
-            for mut gate in circuit.1 {
-                gate.evaluate();
-            }
-            if a < b {
-                assert!(!bound_check.borrow().get_value());
-            } else {
-                assert!(bound_check.borrow().get_value());
-                let result = biguint_from_bits(
-                    output_wires
-                        .iter()
-                        .map(|output_wire| output_wire.borrow().get_value())
-                        .collect(),
-                );
-                assert_eq!(result, a - b);
-            }
-        }
     }
 }

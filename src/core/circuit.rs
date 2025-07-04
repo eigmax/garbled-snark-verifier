@@ -37,37 +37,11 @@ impl Circuit {
     }
 
     pub fn gate_counts(&self) -> GateCount {
-        let mut and = 0;
-        let mut or = 0;
-        let mut xor = 0;
-        let mut nand = 0;
-        let mut not = 0;
-        let mut xnor = 0;
-        let mut nimp = 0;
-        let mut nsor = 0;
-        for gate in self.1.clone() {
-            match gate.name.as_str() {
-                "and" => and += 1,
-                "or" => or += 1,
-                "xor" => xor += 1,
-                "nand" => nand += 1,
-                "inv" | "not" => not += 1,
-                "xnor" => xnor += 1,
-                "nimp" => nimp += 1,
-                "nsor" => nsor += 1,
-                _ => panic!("this gate type is not allowed"),
-            }
+        let mut gc = GateCount::default();
+        for gate in self.1.iter() {
+            gc.0[gate.gate_type as usize] += 1;
         }
-        GateCount {
-            and,
-            or,
-            xor,
-            nand,
-            not,
-            xnor,
-            nimp,
-            nsor,
-        }
+        gc
     }
 }
 
